@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+
+        body {
+            background: #020617;
+            color: #e2e8f0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            transition: all 0.2s;
+        }
+
+        input,
+        select,
+        textarea {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            color: white !important;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .border-divider {
+            border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .sort-header {
+            cursor: pointer;
+        }
+
+        .sort-header:hover {
+            color: #6366f1;
+        }
+
+        .note-text {
+            white-space: pre-line;
+            word-break: break-word;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* MOBILE OPTIMIZATION */
+        @media (max-width: 640px) {
+            body {
+                padding: 1rem !important;
+            }
+
+            h1 {
+                font-size: 1.5rem !important;
+            }
+
+            .glass {
+                border-radius: 1.25rem !important;
+            }
+
+            table {
+                font-size: 10px !important;
+            }
+
+            th,
+            td {
+                padding: 0.5rem !important;
+            }
+
+            .text-sm {
+                font-size: 11px !important;
+            }
+
+            .text-\[9px\] {
+                font-size: 8px !important;
+            }
+
+            .text-\[10px\] {
+                font-size: 9px !important;
+            }
+
+            .btn-gradient {
+                padding: 0.6rem 1rem !important;
+                font-size: 10px !important;
+            }
+
+            .fa-base {
+                font-size: 14px !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8 text-slate-300">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-black italic uppercase tracking-tighter text-white">HUSTLE<span
+                        class="text-indigo-500">.NUNN</span></h1>
+                <p class="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Don't Give Up Until You Get
+                    Hired.</p>
+            </div>
+            <button onclick="openNewModal()"
+                class="btn-gradient px-8 py-3 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:scale-105 transition">
+                + NEW APPLICATION
+            </button>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div class="glass p-4 rounded-3xl text-center">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Total</p>
+                <h2 id="s-total" class="text-2xl font-black text-white">0</h2>
+            </div>
+            <div class="glass p-4 rounded-3xl text-center border-l-4 border-yellow-500">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Not Started</p>
+                <h2 id="s-notstarted" class="text-2xl font-black text-yellow-400">0</h2>
+            </div>
+            <div class="glass p-4 rounded-3xl text-center border-l-4 border-indigo-500">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">In Progress</p>
+                <h2 id="s-progress" class="text-2xl font-black text-indigo-400">0</h2>
+            </div>
+            <div class="glass p-4 rounded-3xl text-center border-l-4 border-green-500">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Success</p>
+                <h2 id="s-success" class="text-2xl font-black text-green-400">0</h2>
+            </div>
+            <div class="glass p-4 rounded-3xl text-center border-l-4 border-red-500">
+                <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Failed</p>
+                <h2 id="s-failed" class="text-2xl font-black text-red-400">0</h2>
+            </div>
+        </div>
+
+        <!-- Feed -->
+        <div class="glass rounded-[2rem] overflow-hidden">
+            <div class="p-5 border-divider flex justify-between items-center bg-white/5">
+                <h3 class="font-bold text-white uppercase text-[10px] tracking-widest">Application Feed</h3>
+                <button onclick="loadAll()"
+                    class="flex items-center gap-2 text-[9px] font-bold text-indigo-400 hover:text-white transition">
+                    <i id="refreshIcon" class="fa-solid fa-arrows-rotate"></i> SYNC DATABASE
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-[13px]" id="jobTable">
+                    <thead class="text-slate-500 uppercase text-[9px] font-black tracking-widest bg-slate-900/50">
+                        <tr>
+                            <th class="p-4 w-10 text-center border-b border-white/5 sort-header"
+                                onclick="sortTable('no')">No. <i class="fa-solid fa-sort ml-1 text-[7px]"></i></th>
+                            <th class="p-4 border-b border-white/5 sort-header" onclick="sortTable('company')">Entity <i
+                                    class="fa-solid fa-sort ml-1 text-[7px]"></i></th>
+                            <th class="p-4 text-center border-b border-white/5">Link</th>
+                            <th class="p-4 text-center border-b border-white/5 sort-header"
+                                onclick="sortTable('status')">Status <i class="fa-solid fa-sort ml-1 text-[7px]"></i>
+                            </th>
+                            <th class="p-4 border-b border-white/5 sort-header" onclick="sortTable('startdate')">
+                                Timeline <i class="fa-solid fa-sort ml-1 text-[7px]"></i></th>
+                            <th class="p-4 border-b border-white/5">Notes</th>
+                            <th class="p-4 text-center border-b border-white/5">Proof</th>
+                            <th class="p-4 text-center w-20 border-b border-white/5">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="divide-y divide-white/5">
+                        <tr>
+                            <td colspan="8"
+                                class="p-16 text-center text-slate-600 font-bold italic animate-pulse text-[10px]">
+                                Syncing Data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Modal -->
+    <div id="modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="glass w-full max-w-lg rounded-[1.5rem] p-6 shadow-2xl border border-white/10">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modalTitle" class="text-lg font-black uppercase text-white">New Application</h2><button
+                    onclick="closeModal()"
+                    class="text-slate-500 hover:text-white text-2xl font-light transition">&times;</button>
+            </div>
+            <form id="jobForm" onsubmit="handleSave(this)" class="space-y-3">
+                <input type="hidden" name="rowNum" id="f-rowNum">
+                <input type="hidden" name="id" id="f-id">
+                <input type="hidden" name="existingUrl" id="f-url">
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">Company</label><input
+                            name="company" id="f-company" required class="w-full"></div>
+                    <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">Kategori</label><input
+                            name="kategori" id="f-kategori" class="w-full"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">Start Date</label><input
+                            type="datetime-local" name="startDate" id="f-start" class="w-full"></div>
+                    <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">End Date</label><input
+                            type="datetime-local" name="endDate" id="f-end" class="w-full"></div>
+                </div>
+                <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">Status</label>
+                    <select name="status" id="f-status" class="w-full">
+                        <option value="Not Started">🟡 Not Started</option>
+                        <option value="In Progress">🔵 In Progress</option>
+                        <option value="Success">🟢 Success</option>
+                        <option value="Failed">🔴 Failed</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <input name="linkIg" id="f-ig" placeholder="Link IG" class="text-[11px] h-9">
+                    <input name="linkLi" id="f-li" placeholder="Link LinkedIn" class="text-[11px] h-9">
+                    <input name="linkWeb" id="f-web" placeholder="Link Web" class="text-[11px] h-9">
+                </div>
+                <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase">Notes</label><textarea
+                        name="note" id="f-note" placeholder="Quick notes..." class="w-full h-16"></textarea></div>
+                <div><label class="text-[9px] font-bold text-slate-500 ml-1 uppercase text-indigo-400">Proof Attachment
+                        (Only if new)</label>
+                    <input type="file" name="buktiFile" id="f-file"
+                        class="w-full text-[10px] p-1 border-none bg-transparent">
+                    <p id="fileStatus" class="text-[8px] text-slate-500 italic mt-1"></p>
+                </div>
+                <button type="submit" id="saveBtn"
+                    class="w-full btn-gradient p-3.5 rounded-xl font-black text-white uppercase mt-2 text-[12px]">Push
+                    Data</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal (White Background & Black Text) -->
+    <div id="deleteModal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4 z-[100]">
+        <div class="bg-white w-full max-w-sm rounded-2xl p-7 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5">
+                <i class="fa-solid fa-trash-can text-2xl"></i>
+            </div>
+            <p class="text-black font-bold text-[14px] leading-relaxed mb-8 px-2">Hapus data ini? File di folder Drive
+                juga akan terhapus.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()"
+                    class="flex-1 bg-slate-100 hover:bg-slate-200 text-black font-bold py-3.5 rounded-xl transition text-[12px] uppercase">Cancel</button>
+                <button id="confirmDeleteBtn"
+                    class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl transition text-[12px] uppercase shadow-lg shadow-red-500/20">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let globalData = [];
+        let currentSort = { key: 'startdate', asc: false };
+        let rowToDelete = null;
+
+        function loadAll() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('animate-spin');
+            google.script.run.withSuccessHandler(data => {
+                globalData = data;
+                renderTable(globalData);
+                google.script.run.withSuccessHandler(s => {
+                    document.getElementById('s-total').innerText = s.total;
+                    document.getElementById('s-notstarted').innerText = s.notstarted;
+                    document.getElementById('s-progress').innerText = s.progress;
+                    document.getElementById('s-success').innerText = s.success;
+                    document.getElementById('s-failed').innerText = s.failed;
+                    icon.classList.remove('animate-spin');
+                }).getStats();
+            }).getData();
+        }
+
+        function renderTable(data) {
+            const body = document.getElementById('tableBody');
+            if (!data || data.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" class="p-16 text-center text-slate-600 font-bold uppercase tracking-widest text-[10px]">Zero applications found.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = data.map((item, index) => {
+                const displayNo = currentSort.asc ? index + 1 : data.length - index;
+                return `
+        <tr class="hover:bg-white/5 border-b border-white/5 group transition duration-300">
+          <td class="p-4 text-center text-slate-500 font-bold text-[11px]">${displayNo}.</td>
+          <td class="p-4">
+            <div class="text-sm font-extrabold text-indigo-400 leading-tight transition">${item.company}</div>
+            <div class="text-[9px] text-slate-500 font-bold tracking-wider mb-1.5 capitalize">${item.kategori || '-'}</div>
+          </td>
+          <td class="p-4 text-center">
+            <div class="flex items-center justify-center gap-2.5">
+              ${item.instagram ? `<a href="${item.instagram}" target="_blank" class="text-slate-500 hover:text-pink-500 transition"><i class="fa-brands fa-instagram fa-base"></i></a>` : ''}
+              ${item.linkedin ? `<a href="${item.linkedin}" target="_blank" class="text-slate-500 hover:text-blue-500 transition"><i class="fa-brands fa-linkedin fa-base"></i></a>` : ''}
+              ${item.web ? `<a href="${item.web}" target="_blank" class="text-slate-500 hover:text-indigo-400 transition"><i class="fa-solid fa-globe fa-base"></i></a>` : ''}
+            </div>
+          </td>
+          <td class="p-4 text-center">
+            <span class="px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${getStatusClass(item.status)}">${item.status}</span>
+          </td>
+          <td class="p-4">
+            <div class="text-[9px] font-bold flex flex-col gap-0.5 whitespace-nowrap">
+              <span><span class="text-indigo-400 uppercase text-[7px] font-black">S:</span> ${formatDate(item.startdate)}</span>
+              <span><span class="text-red-400 uppercase text-[7px] font-black">E:</span> ${formatDate(item.enddate)}</span>
+            </div>
+          </td>
+          <td class="p-4"><div class="text-[10px] text-slate-400 max-w-[150px] note-text">${item.note || '-'}</div></td>
+          <td class="p-4 text-center">
+            ${item.buktiurl && item.buktiurl !== 'No File' ? `<a href="${item.buktiurl}" target="_blank" class="inline-flex text-indigo-400 hover:text-white transition"><i class="fa-solid fa-up-right-from-square fa-base"></i></a>` : `<span class="text-[8px] text-slate-700 font-bold uppercase">N/A</span>`}
+          </td>
+          <td class="p-4 text-center">
+            <div class="flex items-center justify-center gap-3">
+              <button onclick='editItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="text-slate-500 hover:text-indigo-400 transition"><i class="fa-solid fa-pen-to-square fa-base"></i></button>
+              <button onclick="confirmDelete(${item.rownum})" class="text-slate-500 hover:text-red-500 transition"><i class="fa-solid fa-trash-can fa-base"></i></button>
+            </div>
+          </td>
+        </tr>`;
+            }).join('');
+        }
+
+        function sortTable(key) {
+            if (key === 'no') {
+                currentSort.asc = !currentSort.asc;
+                globalData.reverse();
+            } else {
+                if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+                else { currentSort.key = key; currentSort.asc = true; }
+                globalData.sort((a, b) => {
+                    let valA = String(a[key] || '').toLowerCase();
+                    let valB = String(b[key] || '').toLowerCase();
+                    return currentSort.asc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                });
+            }
+            renderTable(globalData);
+        }
+
+        /* Modal Handlers */
+        function openNewModal() {
+            const form = document.getElementById('jobForm');
+            form.reset();
+            document.getElementById('f-note').value = "";
+            document.getElementById('f-rowNum').value = "";
+            document.getElementById('f-id').value = "";
+            document.getElementById('f-url').value = "";
+            document.getElementById('fileStatus').innerText = "";
+            document.getElementById('modalTitle').innerText = "New Application";
+            document.getElementById('modal').classList.remove('hidden');
+        }
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        /* Custom Delete Handlers */
+        function confirmDelete(row) {
+            rowToDelete = row;
+            document.getElementById('deleteModal').classList.remove('hidden');
+        }
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            rowToDelete = null;
+        }
+        document.getElementById('confirmDeleteBtn').onclick = function () {
+            if (rowToDelete) {
+                this.innerText = "Processing...";
+                this.disabled = true;
+                google.script.run.withSuccessHandler(() => {
+                    closeDeleteModal();
+                    loadAll();
+                    this.innerText = "Hapus";
+                    this.disabled = false;
+                }).deleteRecord(rowToDelete);
+            }
+        };
+
+        function handleSave(form) {
+            event.preventDefault();
+            const btn = document.getElementById('saveBtn'); btn.innerText = "Syncing..."; btn.disabled = true;
+            google.script.run.withSuccessHandler(() => { closeModal(); loadAll(); btn.innerText = "Push Data"; btn.disabled = false; }).saveRecord(form);
+        }
+
+        function editItem(item) {
+            document.getElementById('modal').classList.remove('hidden');
+            document.getElementById('modalTitle').innerText = "Edit Entry";
+            document.getElementById('f-rowNum').value = item.rownum;
+            document.getElementById('f-id').value = item.id;
+            document.getElementById('f-company').value = item.company;
+            document.getElementById('f-kategori').value = item.kategori;
+
+            // Normalisasi value untuk sinkronisasi data lama
+            let currentStatus = item.status;
+            if (String(currentStatus).toLowerCase() === 'done') currentStatus = 'Success';
+            if (String(currentStatus).toLowerCase() === 'progress') currentStatus = 'In Progress';
+            document.getElementById('f-status').value = currentStatus;
+
+            document.getElementById('f-ig').value = item.instagram;
+            document.getElementById('f-li').value = item.linkedin;
+            document.getElementById('f-web').value = item.web;
+            document.getElementById('f-note').value = item.note;
+            document.getElementById('f-url').value = item.buktiurl;
+            document.getElementById('fileStatus').innerText = item.buktiurl !== "No File" ? "📄 Current file preserved." : "";
+            if (item.startdate) document.getElementById('f-start').value = new Date(item.startdate).toISOString().slice(0, 16);
+            if (item.enddate) document.getElementById('f-end').value = new Date(item.enddate).toISOString().slice(0, 16);
+        }
+
+        function formatDate(d) { if (!d) return '---'; const date = new Date(d); return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' }); }
+
+        function getStatusClass(s) {
+            const st = String(s).toLowerCase();
+            if (st.includes('not started')) return 'bg-yellow-500/10 text-yellow-400';
+            if (st.includes('in progress') || st === 'progress') return 'bg-indigo-500/10 text-indigo-400';
+            if (st.includes('success') || st === 'done') return 'bg-green-500/10 text-green-400';
+            if (st.includes('failed')) return 'bg-red-500/10 text-red-400';
+            return 'bg-slate-500/10 text-slate-400';
+        }
+        window.onload = loadAll;
+    </script>
+</body>
+
+</html>
