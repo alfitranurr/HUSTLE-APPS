@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ArrowUpDown, Edit, Trash2, Globe, ExternalLink, AlertTriangle } from 'lucide-react';
+import { ArrowUpDown, Edit, Trash2, Globe, ExternalLink, AlertTriangle, Eye } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
 import { useToast } from './Toast';
+import { JobDetailsModal } from './JobDetailsModal';
 
 interface JobTableProps {
   jobs: Job[];
@@ -38,6 +39,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [rowToDelete, setRowToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
 
   const handleSort = (key: 'rownum' | 'company' | 'status' | 'startdate') => {
     if (sortKey === key) {
@@ -188,8 +190,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                           </span>
                         </div>
                       </td>
-                      <td className="p-4">
-                        <div className="text-[10px] text-slate-400 max-w-[200px] truncate hover:text-slate-200 transition" title={item.note}>
+                      <td className="p-4 cursor-pointer" onClick={() => setSelectedJobForDetails(item)}>
+                        <div className="text-[10px] text-slate-400 max-w-[200px] truncate hover:text-slate-200 transition" title="Click to view details">
                           {item.note || '-'}
                         </div>
                       </td>
@@ -204,10 +206,13 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 transition">
+                          <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 transition" title="View Details">
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 transition" title="Edit">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 transition">
+                          <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 transition" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -292,6 +297,9 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                     </div>
                     
                     <div className="flex items-center gap-4">
+                      <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider">
+                        <Eye className="w-3.5 h-3.5" /> Details
+                      </button>
                       <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider">
                         <Edit className="w-3.5 h-3.5" /> Edit
                       </button>
@@ -336,6 +344,12 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
           </div>
         </div>
       )}
+      {/* Job Details Modal */}
+      <JobDetailsModal
+        isOpen={selectedJobForDetails !== null}
+        onClose={() => setSelectedJobForDetails(null)}
+        job={selectedJobForDetails}
+      />
     </>
   );
 };
