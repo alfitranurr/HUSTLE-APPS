@@ -1,5 +1,5 @@
 import { google } from 'googleapis';
-import { JWT } from 'google-auth-library';
+import { JWT, OAuth2Client } from 'google-auth-library';
 
 export interface Job {
   id: string;
@@ -19,11 +19,45 @@ export interface Job {
 
 const SHEET_NAME = 'DataLowongan';
 
-// Helper to get Google Auth JWT Client
-function getAuthClient(): JWT {
+function cleanEnvValue(val?: string): string | undefined {
+  if (!val) return undefined;
+  let clean = val.trim();
+  if (clean.startsWith('"') && clean.endsWith('"')) {
+    clean = clean.substring(1, clean.length - 1);
+  } else if (clean.startsWith("'") && clean.endsWith("'")) {
+    clean = clean.substring(1, clean.length - 1);
+  }
+  return clean.trim();
+}
+
+// Helper to get Google Auth Client (OAuth2 or JWT Service Account)
+function getAuthClient(): OAuth2Client | JWT {
+  const clientId = cleanEnvValue(process.env.GOOGLE_CLIENT_ID);
+  const clientSecret = cleanEnvValue(process.env.GOOGLE_CLIENT_SECRET);
+  const refreshToken = cleanEnvValue(process.env.GOOGLE_REFRESH_TOKEN);
+
+  console.log('googleSheets.ts - loaded env values (cleaned):', {
+    clientId: JSON.stringify(clientId),
+    clientSecret: JSON.stringify(clientSecret),
+    refreshToken: JSON.stringify(refreshToken),
+  });
+
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      'http://localhost:8080/oauth2callback'
+    );
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken,
+    });
+    return oauth2Client;
+  }
+
+  // Fallback to Service Account
   const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
   if (!serviceAccountKey) {
-    throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_KEY in environment variables');
+    throw new Error('Missing Google Auth variables (OAuth2 variables or GOOGLE_SERVICE_ACCOUNT_KEY) in environment variables');
   }
 
   let credentials;
@@ -46,13 +80,13 @@ function getAuthClient(): JWT {
 // Get Google Sheets Client
 export function getSheetsClient() {
   const auth = getAuthClient();
-  return google.sheets({ version: 'v4', auth });
+  return google.sheets({ version: 'v4', auth: auth as any });
 }
 
 // Get Google Drive Client
 export function getDriveClient() {
   const auth = getAuthClient();
-  return google.drive({ version: 'v3', auth });
+  return google.drive({ version: 'v3', auth: auth as any });
 }
 
 // Fetch all jobs
@@ -346,6 +380,7 @@ export async function deleteFileFromDrive(fileUrl: string): Promise<void> {
     // Set trashed: true to send it to the trash folder
     await drive.files.update({
       fileId,
+      supportsAllDrives: true,
       requestBody: {
         trashed: true,
       },
@@ -389,6 +424,7 @@ export async function uploadFileToDrive(
       requestBody: fileMetadata,
       media: media,
       fields: 'id,webViewLink',
+      supportsAllDrives: true,
     });
 
     const fileId = file.data.id;
@@ -399,6 +435,7 @@ export async function uploadFileToDrive(
     // Set permission to anyone with link can view (reader)
     await drive.permissions.create({
       fileId: fileId,
+      supportsAllDrives: true,
       requestBody: {
         role: 'reader',
         type: 'anyone',
@@ -409,6 +446,7 @@ export async function uploadFileToDrive(
     const fileData = await drive.files.get({
       fileId,
       fields: 'webViewLink',
+      supportsAllDrives: true,
     });
 
     return fileData.data.webViewLink || '';
