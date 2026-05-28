@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, Calendar, Globe, FileText, CheckCircle, ExternalLink } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
+import { ensureAbsoluteUrl } from '@/lib/utils';
 import { getStatusClass } from './JobTable';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 
@@ -110,7 +111,7 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
             <div className="flex gap-4 flex-wrap text-xs font-semibold">
               {job.instagram ? (
                 <a
-                  href={job.instagram}
+                  href={ensureAbsoluteUrl(job.instagram)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 text-pink-400 hover:text-pink-300 transition"
@@ -120,7 +121,7 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
               ) : null}
               {job.linkedin ? (
                 <a
-                  href={job.linkedin}
+                  href={ensureAbsoluteUrl(job.linkedin)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 text-blue-400 hover:text-blue-300 transition"
@@ -130,7 +131,7 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
               ) : null}
               {job.web ? (
                 <a
-                  href={job.web}
+                  href={ensureAbsoluteUrl(job.web)}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 transition"
@@ -177,7 +178,7 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
             </div>
             {job.buktiurl && job.buktiurl !== 'No File' ? (
               <a
-                href={job.buktiurl}
+                href={ensureAbsoluteUrl(job.buktiurl)}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1 text-[10px] font-black text-indigo-400 hover:text-white transition uppercase tracking-wider"

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ArrowUpDown, Edit, Trash2, Globe, ExternalLink, AlertTriangle, Eye } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
+import { ensureAbsoluteUrl } from '@/lib/utils';
 import { useToast } from './Toast';
 import { JobDetailsModal } from './JobDetailsModal';
 
@@ -156,17 +157,17 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2.5">
                           {item.instagram ? (
-                            <a href={item.instagram} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-pink-500 transition">
+                            <a href={ensureAbsoluteUrl(item.instagram)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-pink-500 transition">
                               <InstagramIcon className="w-4 h-4" />
                             </a>
                           ) : null}
                           {item.linkedin ? (
-                            <a href={item.linkedin} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-500 transition">
+                            <a href={ensureAbsoluteUrl(item.linkedin)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-500 transition">
                               <LinkedinIcon className="w-4 h-4" />
                             </a>
                           ) : null}
                           {item.web ? (
-                            <a href={item.web} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-indigo-400 transition">
+                            <a href={ensureAbsoluteUrl(item.web)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-indigo-400 transition">
                               <Globe className="w-4 h-4" />
                             </a>
                           ) : null}
@@ -197,7 +198,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                       </td>
                       <td className="p-4 text-center">
                         {item.buktiurl && item.buktiurl !== 'No File' ? (
-                          <a href={item.buktiurl} target="_blank" rel="noreferrer" className="inline-flex text-indigo-400 hover:text-white transition">
+                          <a href={ensureAbsoluteUrl(item.buktiurl)} target="_blank" rel="noreferrer" className="inline-flex text-indigo-400 hover:text-white transition">
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         ) : (
@@ -259,17 +260,17 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                       <span className="text-[9px] uppercase tracking-wider font-bold text-slate-500">Links:</span>
                       <div className="flex gap-3 items-center">
                         {item.instagram && (
-                          <a href={item.instagram} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-pink-500">
+                          <a href={ensureAbsoluteUrl(item.instagram)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-pink-500">
                             <InstagramIcon className="w-3.5 h-3.5" />
                           </a>
                         )}
                         {item.linkedin && (
-                          <a href={item.linkedin} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-500">
+                          <a href={ensureAbsoluteUrl(item.linkedin)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-500">
                             <LinkedinIcon className="w-3.5 h-3.5" />
                           </a>
                         )}
                         {item.web && (
-                          <a href={item.web} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-indigo-400">
+                          <a href={ensureAbsoluteUrl(item.web)} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-indigo-400">
                             <Globe className="w-3.5 h-3.5" />
                           </a>
                         )}
@@ -288,7 +289,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                   <div className="flex items-center justify-between mt-1 pt-3 border-t border-white/5">
                     <div>
                       {item.buktiurl && item.buktiurl !== 'No File' ? (
-                        <a href={item.buktiurl} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
+                        <a href={ensureAbsoluteUrl(item.buktiurl)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] text-indigo-400 font-bold uppercase tracking-wider">
                           <ExternalLink className="w-3 h-3" /> View Proof
                         </a>
                       ) : (

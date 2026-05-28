@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Globe, Upload, FileText } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
+import { ensureAbsoluteUrl } from '@/lib/utils';
 import { useToast } from './Toast';
 
 interface JobFormModalProps {
@@ -112,16 +113,20 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       }
     }
 
-    if (linkIg && !isValidUrl(linkIg)) {
-      toast.error('Invalid Instagram Link URL format. (Include http/https)');
+    const formattedIg = ensureAbsoluteUrl(linkIg);
+    const formattedLi = ensureAbsoluteUrl(linkLi);
+    const formattedWeb = ensureAbsoluteUrl(linkWeb);
+
+    if (formattedIg && !isValidUrl(formattedIg)) {
+      toast.error('Invalid Instagram Link URL format.');
       return;
     }
-    if (linkLi && !isValidUrl(linkLi)) {
-      toast.error('Invalid LinkedIn Link URL format. (Include http/https)');
+    if (formattedLi && !isValidUrl(formattedLi)) {
+      toast.error('Invalid LinkedIn Link URL format.');
       return;
     }
-    if (linkWeb && !isValidUrl(linkWeb)) {
-      toast.error('Invalid Web Link URL format. (Include http/https)');
+    if (formattedWeb && !isValidUrl(formattedWeb)) {
+      toast.error('Invalid Web Link URL format.');
       return;
     }
 
@@ -138,9 +143,9 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('startDate', startDate);
       formData.append('endDate', endDate);
       formData.append('status', status);
-      formData.append('linkIg', linkIg);
-      formData.append('linkLi', linkLi);
-      formData.append('linkWeb', linkWeb);
+      formData.append('linkIg', formattedIg);
+      formData.append('linkLi', formattedLi);
+      formData.append('linkWeb', formattedWeb);
       formData.append('note', note);
       formData.append('existingUrl', existingUrl);
 
