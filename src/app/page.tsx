@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import useSWR from 'swr';
-import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X } from 'lucide-react';
+import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
 import { DashboardCharts } from '@/components/DashboardCharts';
 import { JobTable } from '@/components/JobTable';
@@ -21,6 +21,9 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
 
   // SWR for automatic revalidation and caching
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/jobs', fetcher, {
@@ -30,14 +33,47 @@ export default function Dashboard() {
 
   const jobs: Job[] = data?.data || [];
   const filteredJobs = jobs.filter((job) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      (job.company || '').toLowerCase().includes(query) ||
-      (job.kategori || '').toLowerCase().includes(query) ||
-      (job.status || '').toLowerCase().includes(query) ||
-      (job.note || '').toLowerCase().includes(query)
-    );
+    // 1. Search Query filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = (
+        (job.company || '').toLowerCase().includes(query) ||
+        (job.kategori || '').toLowerCase().includes(query) ||
+        (job.status || '').toLowerCase().includes(query) ||
+        (job.note || '').toLowerCase().includes(query)
+      );
+      if (!matchesSearch) return false;
+    }
+
+    // 2. Status filter
+    if (statusFilter) {
+      const jobStatus = (job.status || '').toLowerCase();
+      const filterStatus = statusFilter.toLowerCase();
+      
+      const isMatch = jobStatus === filterStatus || 
+                      (filterStatus === 'success' && jobStatus === 'done') ||
+                      (filterStatus === 'in progress' && jobStatus === 'progress');
+                      
+      if (!isMatch) return false;
+    }
+
+    // 3. Date range filter
+    if (startDateFilter || endDateFilter) {
+      if (!job.startdate) return false;
+      const jobTime = new Date(job.startdate).getTime();
+      if (isNaN(jobTime)) return false;
+
+      if (startDateFilter) {
+        const startTime = new Date(startDateFilter + 'T00:00:00').getTime();
+        if (jobTime < startTime) return false;
+      }
+      if (endDateFilter) {
+        const endTime = new Date(endDateFilter + 'T23:59:59').getTime();
+        if (jobTime > endTime) return false;
+      }
+    }
+
+    return true;
   });
   const stats = data?.stats || {
     total: 0,
@@ -137,11 +173,11 @@ export default function Dashboard() {
 
       {/* Feed Panel */}
       <div className="mb-12">
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-white/5 border border-white/5 border-b-0 p-5 rounded-t-[2rem] backdrop-blur-md gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white/5 border border-white/5 border-b-0 p-5 rounded-t-[2rem] backdrop-blur-md gap-4">
           <h3 className="font-bold text-white uppercase text-[10px] tracking-widest whitespace-nowrap">
             Application Feed
           </h3>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-grow sm:flex-grow-0">
+          <div className="flex flex-wrap items-center gap-3 flex-grow lg:flex-grow-0">
             {/* Search Input */}
             <div className="relative flex-grow sm:w-64">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
@@ -163,11 +199,66 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
+
+            {/* Status Filter */}
+            <div className="relative flex-grow sm:flex-grow-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full sm:w-36 bg-white/5 border border-white/10 text-white rounded-xl py-2.5 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition cursor-pointer appearance-none text-slate-300"
+              >
+                <option value="" className="bg-[#0f172a] text-slate-400">All Status</option>
+                <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
+                <option value="In Progress" className="bg-[#0f172a] text-white">🔵 In Progress</option>
+                <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
+                <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
+              </select>
+              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </span>
+            </div>
+
+            {/* Date Range Filter */}
+            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex-grow sm:flex-grow-0">
+              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <input
+                type="date"
+                value={startDateFilter}
+                onChange={(e) => setStartDateFilter(e.target.value)}
+                className="bg-transparent text-white text-xs focus:outline-none w-28 [color-scheme:dark] cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+              <span className="text-[10px] text-slate-500 font-bold uppercase whitespace-nowrap">to</span>
+              <input
+                type="date"
+                value={endDateFilter}
+                onChange={(e) => setEndDateFilter(e.target.value)}
+                className="bg-transparent text-white text-xs focus:outline-none w-28 [color-scheme:dark] cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+              />
+            </div>
+
+            {/* Clear Filters Button */}
+            {(searchQuery || statusFilter || startDateFilter || endDateFilter) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('');
+                  setStartDateFilter('');
+                  setEndDateFilter('');
+                }}
+                className="flex items-center justify-center gap-1.5 text-[9px] font-bold text-red-400 hover:text-white transition cursor-pointer uppercase tracking-wider py-2.5 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl whitespace-nowrap"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear Filters
+              </button>
+            )}
+
             {/* Sync Database Button */}
             <button
               onClick={() => mutate()}
               disabled={isLoading || isValidating}
-              className="flex items-center justify-center gap-2 text-[9px] font-bold text-indigo-400 hover:text-white transition disabled:opacity-50 cursor-pointer uppercase tracking-wider bg-white/5 sm:bg-transparent py-2.5 sm:py-0 px-4 sm:px-0 rounded-xl sm:rounded-none border border-white/10 sm:border-none whitespace-nowrap"
+              className="flex items-center justify-center gap-2 text-[9px] font-bold text-indigo-400 hover:text-white transition disabled:opacity-50 cursor-pointer uppercase tracking-wider bg-white/5 lg:bg-transparent py-2.5 lg:py-0 px-4 lg:px-0 rounded-xl lg:rounded-none border border-white/10 lg:border-none whitespace-nowrap"
             >
               <RotateCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
               Sync Database
