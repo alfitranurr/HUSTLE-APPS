@@ -5,6 +5,7 @@
 export function ensureAbsoluteUrl(url?: string): string {
   if (!url) return '';
   const trimmed = url.trim();
+  if (!trimmed) return '';
   if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(trimmed)) {
     return trimmed;
   }
