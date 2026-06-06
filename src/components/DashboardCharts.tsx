@@ -107,65 +107,68 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
           <p className="text-slate-500 text-[9px] uppercase tracking-wider">Breakdown of application phases</p>
         </div>
         
-        <div className="h-44 w-full relative flex items-center justify-center">
-          {statusData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={75}
-                  paddingAngle={4}
-                  dataKey="value"
-                  cornerRadius={4}
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <span className="text-xs text-slate-500 font-bold italic uppercase">No active records for charts</span>
-          )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 items-center flex-grow mt-4 w-full">
+          {/* Left: Donut Chart */}
+          <div className="h-44 w-full relative flex items-center justify-center">
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={75}
+                    paddingAngle={4}
+                    dataKey="value"
+                    cornerRadius={4}
+                  >
+                    {statusData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <span className="text-xs text-slate-500 font-bold italic uppercase">No active records for charts</span>
+            )}
 
-          {/* Centered Total Count */}
-          {statusData.length > 0 && (
-            <div className="absolute flex flex-col items-center justify-center">
-              <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Active</span>
-              <span className="text-3xl font-black text-white">{jobs.length}</span>
+            {/* Centered Total Count */}
+            {statusData.length > 0 && (
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-xs font-bold uppercase text-slate-500 tracking-wider">Active</span>
+                <span className="text-3xl font-black text-white">{jobs.length}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Legend */}
+          <div className="flex flex-col gap-3 justify-center text-[9px] font-bold uppercase text-slate-400 pl-0 sm:pl-8 sm:border-l border-white/5 h-full">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 block" />
+              <span>Not Started ({statusCounts['Not Started']})</span>
             </div>
-          )}
-        </div>
-
-        {/* Legend */}
-        <div className="flex justify-center gap-4 flex-wrap text-[9px] font-bold uppercase text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 block" />
-            <span>Not Started ({statusCounts['Not Started']})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 block" />
-            <span>In Progress ({statusCounts['In Progress']})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 block" />
-            <span>Psikotes ({statusCounts['Psikotes']})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-400 block" />
-            <span>Interview ({statusCounts['Interview']})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 block" />
-            <span>Success ({statusCounts['Success']})</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-400 block" />
-            <span>Failed ({statusCounts['Failed']})</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 block" />
+              <span>In Progress ({statusCounts['In Progress']})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 block" />
+              <span>Psikotes ({statusCounts['Psikotes']})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-400 block" />
+              <span>Interview ({statusCounts['Interview']})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 block" />
+              <span>Success ({statusCounts['Success']})</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400 block" />
+              <span>Failed ({statusCounts['Failed']})</span>
+            </div>
           </div>
         </div>
       </div>
