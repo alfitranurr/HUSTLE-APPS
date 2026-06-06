@@ -124,7 +124,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
         {/* Table View (Desktop) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-[13px]">
-            <thead className="text-slate-500 uppercase text-[9px] font-black tracking-widest bg-slate-900/50">
+            <thead className="text-slate-500 uppercase text-[9px] font-bold tracking-widest bg-slate-900/50">
               <tr className="border-b border-white/5">
                 <th
                   onClick={() => handleSort('rownum')}
