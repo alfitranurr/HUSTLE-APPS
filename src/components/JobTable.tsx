@@ -173,7 +173,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                 </tr>
               ) : (
                 currentJobs.map((item, index) => {
-                  const displayNo = sortAsc ? index + 1 : currentJobs.length - index;
+                  const overallIndex = indexOfFirstJob + index;
+                  const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
                   return (
                     <tr key={item.id || item.rownum} className="hover:bg-white/5 border-b border-white/5 group transition duration-300">
                       <td className="p-4 text-center text-slate-500 font-bold text-[11px]">{displayNo}.</td>
@@ -261,7 +262,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
             </div>
           ) : (
             currentJobs.map((item, index) => {
-              const displayNo = sortAsc ? index + 1 : currentJobs.length - index;
+              const overallIndex = indexOfFirstJob + index;
+              const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
               return (
                 <div key={item.id || item.rownum} className="p-5 hover:bg-white/5 transition flex flex-col gap-3">
                   <div className="flex justify-between items-start">
