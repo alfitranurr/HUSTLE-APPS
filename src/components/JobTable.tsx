@@ -36,8 +36,8 @@ const formatDate = (dateStr?: string) => {
 
 export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSuccess }) => {
   const toast = useToast();
-  const [sortKey, setSortKey] = useState<'rownum' | 'company' | 'status' | 'startdate'>('startdate');
-  const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const [sortKey, setSortKey] = useState<'rownum' | 'company' | 'status' | 'startdate'>('company');
+  const [sortAsc, setSortAsc] = useState<boolean>(true);
   const [rowToDelete, setRowToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
@@ -61,8 +61,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
       const timeB = b.startdate ? new Date(b.startdate).getTime() : 0;
       return sortAsc ? timeA - timeB : timeB - timeA;
     }
-    const valA = String(a[sortKey] || '').toLowerCase();
-    const valB = String(b[sortKey] || '').toLowerCase();
+    const valA = String(a[sortKey] || '').trim().toLowerCase();
+    const valB = String(b[sortKey] || '').trim().toLowerCase();
     return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
   });
 
@@ -93,7 +93,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
 
   return (
     <>
-      <div className="glass rounded-[2rem] overflow-hidden">
+      <div className="overflow-hidden">
         {/* Table View (Desktop) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-[13px]">

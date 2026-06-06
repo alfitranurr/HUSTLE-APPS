@@ -120,7 +120,7 @@ export async function fetchJobs(): Promise<Job[]> {
           if (val === undefined || val === null) {
             obj[header] = '';
           } else {
-            obj[header] = String(val);
+            obj[header] = String(val).trim();
           }
         });
         obj.rownum = idx + 2; // Rows are 1-indexed, header is row 1
@@ -276,16 +276,16 @@ export async function saveJob(obj: {
   const rowData = [
     id,
     timestamp,
-    obj.company,
-    obj.startDate || '',
-    obj.endDate || '',
-    obj.status,
-    obj.linkIg || '',
-    obj.linkLi || '',
-    obj.linkWeb || '',
-    obj.kategori || '',
-    obj.note || '',
-    obj.buktiurl || 'No File',
+    obj.company.trim(),
+    (obj.startDate || '').trim(),
+    (obj.endDate || '').trim(),
+    obj.status.trim(),
+    (obj.linkIg || '').trim(),
+    (obj.linkLi || '').trim(),
+    (obj.linkWeb || '').trim(),
+    (obj.kategori || '').trim(),
+    (obj.note || '').trim(),
+    (obj.buktiurl || 'No File').trim(),
   ];
 
   const parsedRowNum = obj.rowNum ? Number(obj.rowNum) : null;

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useSWR from 'swr';
-import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar } from 'lucide-react';
+import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
 import { DashboardCharts } from '@/components/DashboardCharts';
 import { JobTable } from '@/components/JobTable';
@@ -24,6 +24,26 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
+    });
+  };
 
   // SWR for automatic revalidation and caching
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/jobs', fetcher, {
@@ -172,8 +192,8 @@ export default function Dashboard() {
       <DashboardCharts jobs={jobs} />
 
       {/* Feed Panel */}
-      <div className="mb-12">
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center bg-white/5 border border-white/5 border-b-0 p-5 rounded-t-[2rem] backdrop-blur-md gap-4">
+      <div className="mb-12 glass rounded-[2rem] overflow-hidden">
+        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center p-5 border-b border-white/5 gap-4">
           <h3 className="font-bold text-white uppercase text-[10px] tracking-widest whitespace-nowrap">
             Application Feed
           </h3>
@@ -280,6 +300,17 @@ export default function Dashboard() {
         jobToEdit={jobToEdit}
         onSuccess={mutate}
       />
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-6 right-6 z-50 bg-slate-900/60 hover:bg-indigo-600/95 backdrop-blur-md border border-white/10 hover:border-indigo-500/50 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group cursor-pointer ${
+          showScrollTop ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-90 pointer-events-none'
+        }`}
+        aria-label="Scroll to top"
+      >
+        <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform duration-300" />
+      </button>
     </main>
   );
 }
