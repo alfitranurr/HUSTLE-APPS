@@ -264,6 +264,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
             >
               <option value="Not Started">🟡 Not Started</option>
               <option value="In Progress">🔵 In Progress</option>
+              <option value="Psikotes">🧠 Psikotes</option>
               <option value="Interview">🟣 Interview</option>
               <option value="Success">🟢 Success</option>
               <option value="Failed">🔴 Failed</option>

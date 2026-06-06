@@ -41,6 +41,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
   const statusCounts = {
     'Not Started': 0,
     'In Progress': 0,
+    'Psikotes': 0,
     'Interview': 0,
     'Success': 0,
     'Failed': 0,
@@ -57,6 +58,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
       // Fallback matching
       const lower = s.toLowerCase();
       if (lower.includes('not started')) statusCounts['Not Started']++;
+      else if (lower.includes('psikotes')) statusCounts['Psikotes']++;
       else if (lower.includes('interview')) statusCounts['Interview']++;
       else if (lower.includes('in progress')) statusCounts['In Progress']++;
       else if (lower.includes('success')) statusCounts['Success']++;
@@ -67,6 +69,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
   const statusData = [
     { name: 'Not Started', value: statusCounts['Not Started'], color: '#facc15' }, // Yellow-400
     { name: 'In Progress', value: statusCounts['In Progress'], color: '#818cf8' }, // Indigo-400
+    { name: 'Psikotes', value: statusCounts['Psikotes'], color: '#22d3ee' },       // Cyan-400
     { name: 'Interview', value: statusCounts['Interview'], color: '#c084fc' },     // Purple-400
     { name: 'Success', value: statusCounts['Success'], color: '#34d399' },     // Emerald-400
     { name: 'Failed', value: statusCounts['Failed'], color: '#f87171' },       // Red-400
@@ -147,6 +150,10 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 block" />
             <span>In Progress ({statusCounts['In Progress']})</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 block" />
+            <span>Psikotes ({statusCounts['Psikotes']})</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-purple-400 block" />

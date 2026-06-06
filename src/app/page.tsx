@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp, Users, Clock } from 'lucide-react';
+import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp, Users, Clock, Brain } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
 import { DashboardCharts } from '@/components/DashboardCharts';
 import { JobTable } from '@/components/JobTable';
@@ -102,6 +102,7 @@ export default function Dashboard() {
       total: jobs.length,
       notstarted: 0,
       progress: 0,
+      psikotes: 0,
       interview: 0,
       success: 0,
       failed: 0,
@@ -110,6 +111,8 @@ export default function Dashboard() {
       const s = String(job.status || '').toLowerCase();
       if (s.includes('not started')) {
         counts.notstarted++;
+      } else if (s.includes('psikotes')) {
+        counts.psikotes++;
       } else if (s.includes('interview')) {
         counts.interview++;
       } else if (s.includes('in progress') || s === 'progress') {
@@ -154,7 +157,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Panel */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4 mb-8">
         {/* Total */}
         <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
           <div className="absolute top-0 bottom-0 left-0 w-1 bg-slate-500" />
@@ -188,6 +191,18 @@ export default function Dashboard() {
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">In Progress</p>
           <h2 className="text-3xl font-black text-indigo-400 leading-none">
             {isLoading ? '...' : stats.progress}
+          </h2>
+        </div>
+
+        {/* Psikotes */}
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-cyan-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
+            <Brain className="w-12 h-12 text-cyan-400" />
+          </div>
+          <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Psikotes</p>
+          <h2 className="text-3xl font-black text-cyan-400 leading-none">
+            {isLoading ? '...' : stats.psikotes}
           </h2>
         </div>
 
@@ -270,6 +285,7 @@ export default function Dashboard() {
                 <option value="" className="bg-[#0f172a] text-slate-400">All Status</option>
                 <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
                 <option value="In Progress" className="bg-[#0f172a] text-white">🔵 In Progress</option>
+                <option value="Psikotes" className="bg-[#0f172a] text-white">🧠 Psikotes</option>
                 <option value="Interview" className="bg-[#0f172a] text-white">🟣 Interview</option>
                 <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
                 <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
