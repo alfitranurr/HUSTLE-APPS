@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ArrowUpDown, Edit, Trash2, Globe, ExternalLink, AlertTriangle, Eye } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowUpDown, Edit, Trash2, Globe, ExternalLink, AlertTriangle, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
 import { ensureAbsoluteUrl } from '@/lib/utils';
@@ -42,6 +42,13 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
 
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 20;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [jobs]);
+
   const handleSort = (key: 'rownum' | 'company' | 'status' | 'startdate') => {
     if (sortKey === key) {
       setSortAsc(!sortAsc);
@@ -65,6 +72,11 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
     const valB = String(b[sortKey] || '').trim().toLowerCase();
     return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
   });
+
+  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
+  const indexOfLastJob = currentPage * itemsPerPage;
+  const indexOfFirstJob = indexOfLastJob - itemsPerPage;
+  const currentJobs = sortedJobs.slice(indexOfFirstJob, indexOfLastJob);
 
   const handleDelete = async () => {
     if (!rowToDelete) return;
@@ -145,8 +157,9 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                   </td>
                 </tr>
               ) : (
-                sortedJobs.map((item, index) => {
-                  const displayNo = sortAsc ? index + 1 : jobs.length - index;
+                currentJobs.map((item, index) => {
+                  const overallIndex = indexOfFirstJob + index;
+                  const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
                   return (
                     <tr key={item.id || item.rownum} className="hover:bg-white/5 border-b border-white/5 group transition duration-300">
                       <td className="p-4 text-center text-slate-500 font-bold text-[11px]">{displayNo}.</td>
@@ -191,8 +204,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                           </span>
                         </div>
                       </td>
-                      <td className="p-4 cursor-pointer" onClick={() => setSelectedJobForDetails(item)}>
-                        <div className="text-[10px] text-slate-400 max-w-[200px] truncate hover:text-slate-200 transition" title="Click to view details">
+                      <td className="p-4">
+                        <div className="text-[10px] text-slate-400 max-w-[200px] truncate" title={item.note || undefined}>
                           {item.note || '-'}
                         </div>
                       </td>
@@ -207,13 +220,13 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 transition" title="View Details">
+                          <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 transition cursor-pointer" title="View Details">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 transition" title="Edit">
+                          <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 transition cursor-pointer" title="Edit">
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 transition" title="Delete">
+                          <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 transition cursor-pointer" title="Delete">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -233,8 +246,9 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
               Zero applications found.
             </div>
           ) : (
-            sortedJobs.map((item, index) => {
-              const displayNo = sortAsc ? index + 1 : jobs.length - index;
+            currentJobs.map((item, index) => {
+              const overallIndex = indexOfFirstJob + index;
+              const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
               return (
                 <div key={item.id || item.rownum} className="p-5 hover:bg-white/5 transition flex flex-col gap-3">
                   <div className="flex justify-between items-start">
@@ -298,13 +312,13 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                     </div>
                     
                     <div className="flex items-center gap-4">
-                      <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider">
+                      <button onClick={() => setSelectedJobForDetails(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider cursor-pointer">
                         <Eye className="w-3.5 h-3.5" /> Details
                       </button>
-                      <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider">
+                      <button onClick={() => onEdit(item)} className="text-slate-500 hover:text-indigo-400 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider cursor-pointer">
                         <Edit className="w-3.5 h-3.5" /> Edit
                       </button>
-                      <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider">
+                      <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-500 hover:text-red-500 flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider cursor-pointer">
                         <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
                     </div>
@@ -314,6 +328,49 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
             })
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-slate-900/30 border-t border-white/5 gap-4">
+            <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+              Showing <span className="text-white">{indexOfFirstJob + 1}</span> to{' '}
+              <span className="text-white">{Math.min(indexOfLastJob, sortedJobs.length)}</span> of{' '}
+              <span className="text-white">{sortedJobs.length}</span> applications
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              
+              {/* Page Numbers */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+                    currentPage === page
+                      ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                      : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none hover:bg-white/10 transition cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Confirmation Modal */}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
@@ -52,49 +52,51 @@ export default function Dashboard() {
   });
 
   const jobs: Job[] = data?.data || [];
-  const filteredJobs = jobs.filter((job) => {
-    // 1. Search Query filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch = (
-        (job.company || '').toLowerCase().includes(query) ||
-        (job.kategori || '').toLowerCase().includes(query) ||
-        (job.status || '').toLowerCase().includes(query) ||
-        (job.note || '').toLowerCase().includes(query)
-      );
-      if (!matchesSearch) return false;
-    }
-
-    // 2. Status filter
-    if (statusFilter) {
-      const jobStatus = (job.status || '').toLowerCase();
-      const filterStatus = statusFilter.toLowerCase();
-      
-      const isMatch = jobStatus === filterStatus || 
-                      (filterStatus === 'success' && jobStatus === 'done') ||
-                      (filterStatus === 'in progress' && jobStatus === 'progress');
-                      
-      if (!isMatch) return false;
-    }
-
-    // 3. Date range filter
-    if (startDateFilter || endDateFilter) {
-      if (!job.startdate) return false;
-      const jobTime = new Date(job.startdate).getTime();
-      if (isNaN(jobTime)) return false;
-
-      if (startDateFilter) {
-        const startTime = new Date(startDateFilter + 'T00:00:00').getTime();
-        if (jobTime < startTime) return false;
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      // 1. Search Query filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = (
+          (job.company || '').toLowerCase().includes(query) ||
+          (job.kategori || '').toLowerCase().includes(query) ||
+          (job.status || '').toLowerCase().includes(query) ||
+          (job.note || '').toLowerCase().includes(query)
+        );
+        if (!matchesSearch) return false;
       }
-      if (endDateFilter) {
-        const endTime = new Date(endDateFilter + 'T23:59:59').getTime();
-        if (jobTime > endTime) return false;
-      }
-    }
 
-    return true;
-  });
+      // 2. Status filter
+      if (statusFilter) {
+        const jobStatus = (job.status || '').toLowerCase();
+        const filterStatus = statusFilter.toLowerCase();
+        
+        const isMatch = jobStatus === filterStatus || 
+                        (filterStatus === 'success' && jobStatus === 'done') ||
+                        (filterStatus === 'in progress' && jobStatus === 'progress');
+                        
+        if (!isMatch) return false;
+      }
+
+      // 3. Date range filter
+      if (startDateFilter || endDateFilter) {
+        if (!job.startdate) return false;
+        const jobTime = new Date(job.startdate).getTime();
+        if (isNaN(jobTime)) return false;
+
+        if (startDateFilter) {
+          const startTime = new Date(startDateFilter + 'T00:00:00').getTime();
+          if (jobTime < startTime) return false;
+        }
+        if (endDateFilter) {
+          const endTime = new Date(endDateFilter + 'T23:59:59').getTime();
+          if (jobTime > endTime) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [jobs, searchQuery, statusFilter, startDateFilter, endDateFilter]);
   const stats = data?.stats || {
     total: 0,
     notstarted: 0,
