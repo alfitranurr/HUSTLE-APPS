@@ -31,6 +31,17 @@ const formatDateTime = (dateStr?: string) => {
 };
 
 export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClose, job }) => {
+  React.useEffect(() => {
+    if (isOpen && job) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen, job]);
+
   if (!isOpen || !job) return null;
 
   return (

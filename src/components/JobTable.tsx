@@ -18,6 +18,7 @@ export function getStatusClass(s?: string) {
   const st = String(s || '').toLowerCase();
   if (st.includes('not started')) return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
   if (st.includes('in progress') || st === 'progress') return 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20';
+  if (st.includes('interview')) return 'bg-purple-500/10 text-purple-400 border border-purple-500/20';
   if (st.includes('success') || st === 'done') return 'bg-green-500/10 text-green-400 border border-green-500/20';
   if (st.includes('failed')) return 'bg-red-500/10 text-red-400 border border-red-500/20';
   return 'bg-slate-500/10 text-slate-400 border border-slate-500/20';
@@ -50,6 +51,17 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
   useEffect(() => {
     setCurrentPage(1);
   }, [jobs]);
+
+  useEffect(() => {
+    if (rowToDelete !== null) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [rowToDelete]);
 
   const handleSort = (key: 'rownum' | 'company' | 'status' | 'startdate') => {
     if (sortKey === key) {

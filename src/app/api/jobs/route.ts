@@ -16,6 +16,7 @@ export async function GET() {
       total: jobs.length,
       notstarted: 0,
       progress: 0,
+      interview: 0,
       success: 0,
       failed: 0,
     };
@@ -24,6 +25,8 @@ export async function GET() {
       const s = String(item.status || '').toLowerCase();
       if (s.includes('not started')) {
         stats.notstarted++;
+      } else if (s.includes('interview')) {
+        stats.interview++;
       } else if (s.includes('in progress') || s === 'progress') {
         stats.progress++;
       } else if (s.includes('success') || s === 'done') {

@@ -35,6 +35,17 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const toast = useToast();
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   // Form Fields State
   const [company, setCompany] = useState('');
   const [kategori, setKategori] = useState('');
@@ -253,6 +264,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
             >
               <option value="Not Started">🟡 Not Started</option>
               <option value="In Progress">🔵 In Progress</option>
+              <option value="Interview">🟣 Interview</option>
               <option value="Success">🟢 Success</option>
               <option value="Failed">🔴 Failed</option>
             </select>

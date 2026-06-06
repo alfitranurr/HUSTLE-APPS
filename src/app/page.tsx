@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
-import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp } from 'lucide-react';
+import { Plus, RotateCw, Briefcase, Play, CheckCircle2, XCircle, Search, X, ChevronDown, Calendar, ArrowUp, Users, Clock } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
 import { DashboardCharts } from '@/components/DashboardCharts';
 import { JobTable } from '@/components/JobTable';
@@ -97,13 +97,31 @@ export default function Dashboard() {
       return true;
     });
   }, [jobs, searchQuery, statusFilter, startDateFilter, endDateFilter]);
-  const stats = data?.stats || {
-    total: 0,
-    notstarted: 0,
-    progress: 0,
-    success: 0,
-    failed: 0,
-  };
+  const stats = useMemo(() => {
+    const counts = {
+      total: jobs.length,
+      notstarted: 0,
+      progress: 0,
+      interview: 0,
+      success: 0,
+      failed: 0,
+    };
+    jobs.forEach((job) => {
+      const s = String(job.status || '').toLowerCase();
+      if (s.includes('not started')) {
+        counts.notstarted++;
+      } else if (s.includes('interview')) {
+        counts.interview++;
+      } else if (s.includes('in progress') || s === 'progress') {
+        counts.progress++;
+      } else if (s.includes('success') || s === 'done') {
+        counts.success++;
+      } else if (s.includes('failed')) {
+        counts.failed++;
+      }
+    });
+    return counts;
+  }, [jobs]);
 
   const handleEdit = (job: Job) => {
     setJobToEdit(job);
@@ -136,10 +154,11 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Panel */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
         {/* Total */}
-        <div className="glass p-5 rounded-3xl text-center relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition duration-300">
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-slate-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
             <Briefcase className="w-12 h-12 text-white" />
           </div>
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Total</p>
@@ -149,7 +168,11 @@ export default function Dashboard() {
         </div>
 
         {/* Not Started */}
-        <div className="glass p-5 rounded-3xl text-center border-l-4 border-yellow-500 relative overflow-hidden group">
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-yellow-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
+            <Clock className="w-12 h-12 text-yellow-400" />
+          </div>
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Not Started</p>
           <h2 className="text-3xl font-black text-yellow-400 leading-none">
             {isLoading ? '...' : stats.notstarted}
@@ -157,8 +180,9 @@ export default function Dashboard() {
         </div>
 
         {/* In Progress */}
-        <div className="glass p-5 rounded-3xl text-center border-l-4 border-indigo-500 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition duration-300">
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-indigo-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
             <Play className="w-12 h-12 text-indigo-400" />
           </div>
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">In Progress</p>
@@ -167,9 +191,22 @@ export default function Dashboard() {
           </h2>
         </div>
 
+        {/* Interview */}
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-purple-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
+            <Users className="w-12 h-12 text-purple-400" />
+          </div>
+          <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Interview</p>
+          <h2 className="text-3xl font-black text-purple-400 leading-none">
+            {isLoading ? '...' : stats.interview}
+          </h2>
+        </div>
+
         {/* Success */}
-        <div className="glass p-5 rounded-3xl text-center border-l-4 border-green-500 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition duration-300">
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-emerald-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
             <CheckCircle2 className="w-12 h-12 text-green-400" />
           </div>
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Success</p>
@@ -179,8 +216,9 @@ export default function Dashboard() {
         </div>
 
         {/* Failed */}
-        <div className="glass p-5 rounded-3xl text-center border-l-4 border-red-500 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-3 opacity-5 group-hover:scale-110 transition duration-300">
+        <div className="glass p-5 rounded-3xl text-left relative overflow-hidden group">
+          <div className="absolute top-0 bottom-0 left-0 w-1 bg-red-500" />
+          <div className="absolute inset-y-0 right-4 flex items-center opacity-5 group-hover:scale-110 transition duration-300">
             <XCircle className="w-12 h-12 text-red-400" />
           </div>
           <p className="text-[9px] text-slate-500 font-bold uppercase mb-1 tracking-wider">Failed</p>
@@ -232,6 +270,7 @@ export default function Dashboard() {
                 <option value="" className="bg-[#0f172a] text-slate-400">All Status</option>
                 <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
                 <option value="In Progress" className="bg-[#0f172a] text-white">🔵 In Progress</option>
+                <option value="Interview" className="bg-[#0f172a] text-white">🟣 Interview</option>
                 <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
                 <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
               </select>
