@@ -19,8 +19,8 @@ const formatDateTime = (dateStr?: string) => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '---';
     return date.toLocaleString('id-ID', {
-      day: '2-digit',
-      month: '2-digit',
+      day: 'numeric',
+      month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',

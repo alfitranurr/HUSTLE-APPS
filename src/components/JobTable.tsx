@@ -28,7 +28,7 @@ const formatDate = (dateStr?: string) => {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '---';
-    return date.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit' });
+    return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   } catch {
     return '---';
   }
@@ -38,6 +38,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
   const toast = useToast();
   const [sortKey, setSortKey] = useState<'rownum' | 'company' | 'status' | 'startdate'>('company');
   const [sortAsc, setSortAsc] = useState<boolean>(true);
+  const [lastGlobalSortKey, setLastGlobalSortKey] = useState<'company' | 'status' | 'startdate'>('company');
+  const [lastGlobalSortAsc, setLastGlobalSortAsc] = useState<boolean>(true);
   const [rowToDelete, setRowToDelete] = useState<number | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
@@ -51,32 +53,45 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
 
   const handleSort = (key: 'rownum' | 'company' | 'status' | 'startdate') => {
     if (sortKey === key) {
-      setSortAsc(!sortAsc);
+      const nextAsc = !sortAsc;
+      setSortAsc(nextAsc);
+      if (key !== 'rownum') {
+        setLastGlobalSortAsc(nextAsc);
+      }
     } else {
       setSortKey(key);
       setSortAsc(true);
+      if (key !== 'rownum') {
+        setLastGlobalSortKey(key);
+        setLastGlobalSortAsc(true);
+      }
     }
   };
 
-  // Perform sorting
-  const sortedJobs = [...jobs].sort((a, b) => {
+  // Perform sorting globally based on the last active global key
+  const globallySorted = [...jobs].sort((a, b) => {
+    if (lastGlobalSortKey === 'startdate') {
+      const timeA = a.startdate ? new Date(a.startdate).getTime() : 0;
+      const timeB = b.startdate ? new Date(b.startdate).getTime() : 0;
+      return lastGlobalSortAsc ? timeA - timeB : timeB - timeA;
+    }
+    const valA = String(a[lastGlobalSortKey] || '').trim().toLowerCase();
+    const valB = String(b[lastGlobalSortKey] || '').trim().toLowerCase();
+    return lastGlobalSortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+  });
+
+  const totalPages = Math.ceil(globallySorted.length / itemsPerPage);
+  const indexOfLastJob = currentPage * itemsPerPage;
+  const indexOfFirstJob = indexOfLastJob - itemsPerPage;
+  const pagedJobs = globallySorted.slice(indexOfFirstJob, indexOfLastJob);
+
+  // Perform sorting on the current page's jobs
+  const currentJobs = [...pagedJobs].sort((a, b) => {
     if (sortKey === 'rownum') {
       return sortAsc ? a.rownum - b.rownum : b.rownum - a.rownum;
     }
-    if (sortKey === 'startdate') {
-      const timeA = a.startdate ? new Date(a.startdate).getTime() : 0;
-      const timeB = b.startdate ? new Date(b.startdate).getTime() : 0;
-      return sortAsc ? timeA - timeB : timeB - timeA;
-    }
-    const valA = String(a[sortKey] || '').trim().toLowerCase();
-    const valB = String(b[sortKey] || '').trim().toLowerCase();
-    return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    return 0; // Keep the global sorted order if not sorting by 'No'
   });
-
-  const totalPages = Math.ceil(sortedJobs.length / itemsPerPage);
-  const indexOfLastJob = currentPage * itemsPerPage;
-  const indexOfFirstJob = indexOfLastJob - itemsPerPage;
-  const currentJobs = sortedJobs.slice(indexOfFirstJob, indexOfLastJob);
 
   const handleDelete = async () => {
     if (!rowToDelete) return;
@@ -150,7 +165,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {sortedJobs.length === 0 ? (
+              {jobs.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-16 text-center text-slate-600 font-bold uppercase tracking-widest text-[10px] italic">
                     Zero applications found.
@@ -158,8 +173,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                 </tr>
               ) : (
                 currentJobs.map((item, index) => {
-                  const overallIndex = indexOfFirstJob + index;
-                  const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
+                  const displayNo = sortAsc ? index + 1 : currentJobs.length - index;
                   return (
                     <tr key={item.id || item.rownum} className="hover:bg-white/5 border-b border-white/5 group transition duration-300">
                       <td className="p-4 text-center text-slate-500 font-bold text-[11px]">{displayNo}.</td>
@@ -241,14 +255,13 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
 
         {/* Card View (Mobile) */}
         <div className="block md:hidden divide-y divide-white/5">
-          {sortedJobs.length === 0 ? (
+          {jobs.length === 0 ? (
             <div className="p-16 text-center text-slate-600 font-bold uppercase tracking-widest text-[10px] italic">
               Zero applications found.
             </div>
           ) : (
             currentJobs.map((item, index) => {
-              const overallIndex = indexOfFirstJob + index;
-              const displayNo = sortAsc ? overallIndex + 1 : jobs.length - overallIndex;
+              const displayNo = sortAsc ? index + 1 : currentJobs.length - index;
               return (
                 <div key={item.id || item.rownum} className="p-5 hover:bg-white/5 transition flex flex-col gap-3">
                   <div className="flex justify-between items-start">
@@ -334,8 +347,8 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
           <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 bg-slate-900/30 border-t border-white/5 gap-4">
             <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">
               Showing <span className="text-white">{indexOfFirstJob + 1}</span> to{' '}
-              <span className="text-white">{Math.min(indexOfLastJob, sortedJobs.length)}</span> of{' '}
-              <span className="text-white">{sortedJobs.length}</span> applications
+              <span className="text-white">{Math.min(indexOfLastJob, jobs.length)}</span> of{' '}
+              <span className="text-white">{jobs.length}</span> applications
             </div>
             <div className="flex items-center gap-2">
               <button
