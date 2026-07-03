@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import useSWR from 'swr';
 import { 
   Plus, 
@@ -43,11 +43,12 @@ export default function TrackerPage() {
   const [stageFilter, setStageFilter] = useState('');
   const [provinceFilter, setProvinceFilter] = useState('');
   const [levelFilter, setLevelFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [startDateFilter, setStartDateFilter] = useState('');
   const [endDateFilter, setEndDateFilter] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'card'>('list');
 
-  const { data, error, isLoading, isValidating, mutate } = useSWR('/api/jobs', fetcher, {
+  const { data, isLoading, isValidating, mutate } = useSWR('/api/jobs', fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: true,
   });
@@ -56,6 +57,10 @@ export default function TrackerPage() {
 
   const uniqueProvinces = useMemo(() => {
     return Array.from(new Set(jobs.map(j => j.province).filter((p): p is string => typeof p === 'string' && p.trim() !== ''))).sort();
+  }, [jobs]);
+
+  const uniqueCategories = useMemo(() => {
+    return Array.from(new Set(jobs.map(j => j.kategori).filter((k): k is string => typeof k === 'string' && k.trim() !== ''))).sort();
   }, [jobs]);
 
   const filteredJobs = useMemo(() => {
@@ -103,6 +108,12 @@ export default function TrackerPage() {
         if (jobLvl !== levelFilter.toLowerCase()) return false;
       }
 
+      // 2.9. Position (Category) filter
+      if (categoryFilter) {
+        const jobCat = (job.kategori || '').toLowerCase();
+        if (jobCat !== categoryFilter.toLowerCase()) return false;
+      }
+
       // 3. Date range filter
       if (startDateFilter || endDateFilter) {
         if (!job.startdate) return false;
@@ -121,7 +132,7 @@ export default function TrackerPage() {
 
       return true;
     });
-  }, [jobs, searchQuery, statusFilter, stageFilter, provinceFilter, levelFilter, startDateFilter, endDateFilter]);
+  }, [jobs, searchQuery, statusFilter, stageFilter, provinceFilter, levelFilter, categoryFilter, startDateFilter, endDateFilter]);
 
   const handleEdit = (job: Job) => {
     setJobToEdit(job);
@@ -138,14 +149,6 @@ export default function TrackerPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/10">
-              TraKerja
-            </span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              / Track Progress
-            </span>
-          </div>
           <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 uppercase italic">
             Track Progress
             <span className="bg-indigo-500/15 text-indigo-400 text-[9px] not-italic font-black tracking-widest px-2 py-0.5 rounded-md border border-indigo-500/20">
@@ -157,51 +160,69 @@ export default function TrackerPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleCreateNew}
-          className="w-full md:w-auto btn-gradient px-6 py-2.5 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer"
-        >
-          <Plus className="w-4 h-4" /> Add New Application
-        </button>
-      </div>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* View Switchers (List / Card) */}
+          <div className="flex bg-slate-900/80 border border-white/10 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                viewMode === 'list'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="List View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> <span className="hidden sm:inline">List</span>
+            </button>
+            
+            <button
+              onClick={() => setViewMode('card')}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
+                viewMode === 'card'
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+              title="Card View"
+            >
+              <Layers className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Card View</span>
+            </button>
+          </div>
 
-      {/* View Switchers (List / Card) */}
-      <div className="flex items-center justify-between">
-        <div className="flex bg-white/5 border border-white/5 rounded-xl p-1 gap-1">
           <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
-              viewMode === 'list'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
+            onClick={handleCreateNew}
+            className="flex-1 md:flex-initial btn-gradient px-5 py-2.5 rounded-xl font-bold text-white shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition flex items-center justify-center gap-2 text-xs uppercase tracking-wider cursor-pointer"
           >
-            <LayoutGrid className="w-3.5 h-3.5" /> List
-          </button>
-          
-          <button
-            onClick={() => setViewMode('card')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition cursor-pointer ${
-              viewMode === 'card'
-                ? 'bg-indigo-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" /> Card View
+            <Plus className="w-4 h-4" /> Add New Application
           </button>
         </div>
       </div>
 
       {/* Feed Panel / Table Container */}
-      <div className="glass rounded-[2rem] overflow-hidden">
+      <div className="glass rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl">
         {/* Filters bar */}
-        <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center p-5 border-b border-white/5 gap-4">
-          <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest whitespace-nowrap">
-            Application Feed
-          </h3>
-          <div className="flex flex-wrap items-center gap-3 flex-grow lg:flex-grow-0">
+        <div className="p-5 border-b border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest flex items-center gap-2">
+              Application Feed
+              <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                {filteredJobs.length} Items
+              </span>
+            </h3>
+
+            {/* Sync Database Button */}
+            <button
+              onClick={() => mutate()}
+              disabled={isLoading || isValidating}
+              className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 hover:text-white transition disabled:opacity-50 cursor-pointer uppercase tracking-wider bg-white/5 hover:bg-white/10 py-1.5 px-3 rounded-xl border border-white/10"
+            >
+              <RotateCw className={`w-3 h-3 ${isValidating ? 'animate-spin' : ''}`} />
+              Sync Database
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
             {/* Search Input */}
-            <div className="relative flex-grow sm:w-64">
+            <div className="relative flex-grow min-w-[200px] sm:max-w-xs">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500">
                 <Search className="w-3.5 h-3.5" />
               </span>
@@ -210,7 +231,7 @@ export default function TrackerPage() {
                 placeholder="Cari perusahaan, kategori, status..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 text-white rounded-xl py-2 pl-9 pr-9 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition placeholder-slate-500"
+                className="w-full bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-9 pr-9 text-xs focus:outline-none focus:border-indigo-500/50 transition placeholder-slate-500"
               />
               {searchQuery && (
                 <button
@@ -223,11 +244,11 @@ export default function TrackerPage() {
             </div>
 
             {/* Status Filter */}
-            <div className="relative flex-grow sm:flex-grow-0">
+            <div className="relative">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full sm:w-36 bg-white/5 border border-white/10 text-white rounded-xl py-2.5 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition cursor-pointer appearance-none text-slate-300"
+                className="bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 transition cursor-pointer appearance-none text-slate-300"
               >
                 <option value="" className="bg-[#0f172a] text-slate-400">All Status</option>
                 <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
@@ -235,76 +256,104 @@ export default function TrackerPage() {
                 <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
                 <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
               </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-500">
                 <ChevronDown className="w-3.5 h-3.5" />
               </span>
             </div>
 
             {/* Stage Filter */}
-            <div className="relative flex-grow sm:flex-grow-0">
+            <div className="relative">
               <select
                 value={stageFilter}
                 onChange={(e) => setStageFilter(e.target.value)}
-                className="w-full sm:w-36 bg-white/5 border border-white/10 text-white rounded-xl py-2.5 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition cursor-pointer appearance-none text-slate-300"
+                className="bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 transition cursor-pointer appearance-none text-slate-300"
               >
-                <option value="" className="bg-[#0f172a] text-slate-400">All Stages</option>
-                <option value="Not Started" className="bg-[#0f172a] text-white">Not Started</option>
-                <option value="Document Screening" className="bg-[#0f172a] text-white">Document Screening</option>
-                <option value="Online Test" className="bg-[#0f172a] text-white">Online Test</option>
-                <option value="Technical Test" className="bg-[#0f172a] text-white">Technical Test</option>
-                <option value="Psikotes" className="bg-[#0f172a] text-white">Psikotes</option>
-                <option value="HR Interview" className="bg-[#0f172a] text-white">HR Interview</option>
-                <option value="User Interview" className="bg-[#0f172a] text-white">User Interview</option>
-                <option value="Presentation Round" className="bg-[#0f172a] text-white">Presentation Round</option>
-                <option value="Offering Letter" className="bg-[#0f172a] text-white">Offering Letter</option>
-                <option value="Contract Signed / Done" className="bg-[#0f172a] text-white">Contract Signed / Done</option>
+                <option value="" className="bg-[#0f172a] text-slate-400">📋 All Stages</option>
+                <option value="Not Started" className="bg-[#0f172a] text-white">⏳ Not Started</option>
+                <option value="Document Screening" className="bg-[#0f172a] text-white">📄 Document Screening</option>
+                <option value="Assessment Test" className="bg-[#0f172a] text-white">📝 Assessment Test</option>
+                <option value="HR Interview" className="bg-[#0f172a] text-white">👥 HR Interview</option>
+                <option value="User Interview" className="bg-[#0f172a] text-white">🗣️ User Interview</option>
+                <option value="FGD/LGD" className="bg-[#0f172a] text-white">👥 FGD/LGD</option>
+                <option value="Offering Letter" className="bg-[#0f172a] text-white">📩 Offering Letter</option>
+                <option value="Contract Signed / Done" className="bg-[#0f172a] text-white">✍️ Contract Signed / Done</option>
               </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-500">
                 <ChevronDown className="w-3.5 h-3.5" />
               </span>
             </div>
 
             {/* Location (Province) Filter */}
-            <div className="relative flex-grow sm:flex-grow-0">
+            <div className="relative">
               <select
                 value={provinceFilter}
                 onChange={(e) => setProvinceFilter(e.target.value)}
-                className="w-full sm:w-36 bg-white/5 border border-white/10 text-white rounded-xl py-2.5 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition cursor-pointer appearance-none text-slate-300"
+                className="bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 transition cursor-pointer appearance-none text-slate-300 max-w-[160px]"
               >
-                <option value="" className="bg-[#0f172a] text-slate-400">All Locations</option>
+                <option value="" className="bg-[#0f172a] text-slate-400">📍 All Locations</option>
                 {uniqueProvinces.map((prov) => (
                   <option key={prov} value={prov} className="bg-[#0f172a] text-white">
-                    {prov.replace('Daerah Khusus Ibukota ', '').replace('Daerah Istimewa ', '')}
+                    📍 {prov.replace('Daerah Khusus Ibukota ', '').replace('Daerah Istimewa ', '')}
                   </option>
                 ))}
               </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-500">
                 <ChevronDown className="w-3.5 h-3.5" />
               </span>
             </div>
 
             {/* Level Filter */}
-            <div className="relative flex-grow sm:flex-grow-0">
+            <div className="relative">
               <select
                 value={levelFilter}
                 onChange={(e) => setLevelFilter(e.target.value)}
-                className="w-full sm:w-36 bg-white/5 border border-white/10 text-white rounded-xl py-2.5 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 focus:bg-white/10 transition cursor-pointer appearance-none text-slate-300"
+                className="bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 transition cursor-pointer appearance-none text-slate-300"
               >
-                <option value="" className="bg-[#0f172a] text-slate-400">All Levels</option>
-                {CAREER_LEVELS.map((lvl) => (
-                  <option key={lvl} value={lvl} className="bg-[#0f172a] text-white">
-                    {lvl}
+                <option value="" className="bg-[#0f172a] text-slate-400">🎯 All Levels</option>
+                {CAREER_LEVELS.map((lvl) => {
+                  const levelIcons: Record<string, string> = {
+                    'Internship': '🌱',
+                    'Entry Level / Junior': '🚀',
+                    'Associate / Mid-Senior': '⚡',
+                    'Senior': '⭐',
+                    'Lead / Manager': '👑',
+                    'Director / Executive': '🏆',
+                    'Not Specified': '❓'
+                  };
+                  return (
+                    <option key={lvl} value={lvl} className="bg-[#0f172a] text-white">
+                      {levelIcons[lvl] || '💼'} {lvl}
+                    </option>
+                  );
+                })}
+              </select>
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-500">
+                <ChevronDown className="w-3.5 h-3.5" />
+              </span>
+            </div>
+
+            {/* Position (Category) Filter */}
+            <div className="relative">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-slate-900/90 border border-white/10 text-white rounded-xl py-2 pl-3 pr-8 text-xs focus:outline-none focus:border-indigo-500/50 transition cursor-pointer appearance-none text-slate-300 max-w-[170px]"
+              >
+                <option value="" className="bg-[#0f172a] text-slate-400">💼 All Positions</option>
+                {uniqueCategories.map((cat) => (
+                  <option key={cat} value={cat} className="bg-[#0f172a] text-white">
+                    💼 {cat}
                   </option>
                 ))}
               </select>
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-2.5 pointer-events-none text-slate-500">
                 <ChevronDown className="w-3.5 h-3.5" />
               </span>
             </div>
 
             {/* Date Range Filter */}
-            <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-2 flex-grow sm:flex-grow-0">
-              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+            <div className="flex items-center gap-1.5 bg-slate-900/90 border border-white/10 rounded-xl px-3 py-1.5">
+              <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <input
                 type="date"
                 value={startDateFilter}
@@ -312,7 +361,7 @@ export default function TrackerPage() {
                 className="bg-transparent text-white text-xs focus:outline-none w-28 [color-scheme:dark] cursor-pointer"
                 style={{ colorScheme: 'dark' }}
               />
-              <span className="text-[10px] text-slate-500 font-bold uppercase whitespace-nowrap">to</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">to</span>
               <input
                 type="date"
                 value={endDateFilter}
@@ -323,7 +372,7 @@ export default function TrackerPage() {
             </div>
 
             {/* Clear Filters Button */}
-            {(searchQuery || statusFilter || stageFilter || provinceFilter || levelFilter || startDateFilter || endDateFilter) && (
+            {(searchQuery || statusFilter || stageFilter || provinceFilter || levelFilter || categoryFilter || startDateFilter || endDateFilter) && (
               <button
                 onClick={() => {
                   setSearchQuery('');
@@ -331,25 +380,16 @@ export default function TrackerPage() {
                   setStageFilter('');
                   setProvinceFilter('');
                   setLevelFilter('');
+                  setCategoryFilter('');
                   setStartDateFilter('');
                   setEndDateFilter('');
                 }}
-                className="flex items-center justify-center gap-1.5 text-[9px] font-bold text-red-400 hover:text-white transition cursor-pointer uppercase tracking-wider py-2.5 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl whitespace-nowrap"
+                className="flex items-center gap-1 text-[10px] font-bold text-rose-400 hover:text-white transition cursor-pointer uppercase tracking-wider py-2 px-3 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-xl whitespace-nowrap"
               >
                 <X className="w-3.5 h-3.5" />
                 Clear Filters
               </button>
             )}
-
-            {/* Sync Database Button */}
-            <button
-              onClick={() => mutate()}
-              disabled={isLoading || isValidating}
-              className="flex items-center justify-center gap-2 text-[9px] font-bold text-indigo-400 hover:text-white transition disabled:opacity-50 cursor-pointer uppercase tracking-wider bg-white/5 lg:bg-transparent py-2.5 lg:py-0 px-4 lg:px-0 rounded-xl lg:rounded-none border border-white/10 lg:border-none whitespace-nowrap"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
-              Sync Database
-            </button>
           </div>
         </div>
 

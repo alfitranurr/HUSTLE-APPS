@@ -25,7 +25,7 @@ const fetcher = async (url: string) => {
 };
 
 export default function SummaryPage() {
-  const [timeframe, setTimeframe] = useState<'weekly' | 'monthly' | 'alltime'>('alltime');
+  const [timeframe, setTimeframe] = useState<'weekly' | 'monthly' | 'all-time'>('all-time');
 
   const { data, error, isLoading, isValidating, mutate } = useSWR('/api/jobs', fetcher, {
     revalidateOnFocus: false,
@@ -57,18 +57,10 @@ export default function SummaryPage() {
   }, [jobs]);
 
   return (
-    <main className="p-4 md:p-8 max-w-7xl mx-auto w-full flex-grow space-y-8">
+    <main className="p-4 sm:p-6 lg:p-8 max-w-7xl 2xl:max-w-[1600px] mx-auto w-full flex-grow space-y-6 lg:space-y-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-500/10">
-              TraKerja
-            </span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              / Summary
-            </span>
-          </div>
           <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 uppercase italic">
             Analytics Summary
             <span className="bg-indigo-500/15 text-indigo-400 text-[9px] not-italic font-black tracking-widest px-2 py-0.5 rounded-md border border-indigo-500/20">
@@ -83,7 +75,7 @@ export default function SummaryPage() {
         <div className="flex items-center gap-3 w-full md:w-auto self-stretch md:self-auto">
           {/* Timeframe Toggles */}
           <div className="flex bg-white/5 border border-white/5 rounded-xl p-1 gap-1 flex-grow md:flex-grow-0 justify-around md:justify-start">
-            {(['weekly', 'monthly', 'alltime'] as const).map((t) => (
+            {(['weekly', 'monthly', 'all-time'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTimeframe(t)}
@@ -93,7 +85,7 @@ export default function SummaryPage() {
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {t === 'alltime' ? 'All Time' : t}
+                {t === 'all-time' ? 'All Time' : t}
               </button>
             ))}
           </div>

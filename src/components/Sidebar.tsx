@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Layers, 
   BarChart3, 
-  Coins, 
   Calendar, 
   FileText, 
   Sparkles, 
@@ -32,11 +31,10 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, className = '' }:
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Track Progress', path: '/tracker', icon: Layers },
     { name: 'Summary', path: '/summary', icon: BarChart3 },
-    { name: 'UMR Daerah', path: '/umr', icon: Coins },
   ];
 
   const managementItems = [
-    { name: 'Interviews', icon: Calendar },
+    { name: 'Interviews', path: '/interviews', icon: Calendar },
     { name: 'CV Builder', icon: FileText },
     { name: 'AI Studio', icon: Sparkles },
   ];
@@ -72,6 +70,27 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, className = '' }:
   const renderDisabledLinks = (items: typeof managementItems) => {
     return items.map((item) => {
       const Icon = item.icon;
+
+      if (item.path) {
+        const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
+        return (
+          <Link
+            key={item.name}
+            href={item.path}
+            onClick={() => setIsMobileOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-xs transition-all duration-200 group cursor-pointer ${
+              isActive
+                ? 'bg-indigo-600/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.05)]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+            }`}
+          >
+            <Icon className={`w-4.5 h-4.5 shrink-0 transition-transform duration-200 ${isActive ? 'text-indigo-400' : 'text-slate-500 group-hover:text-slate-300'}`} />
+            <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'md:hidden opacity-0 w-0' : 'opacity-100'}`}>
+              {item.name}
+            </span>
+          </Link>
+        );
+      }
 
       return (
         <div

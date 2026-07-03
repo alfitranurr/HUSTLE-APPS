@@ -40,10 +40,11 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const result = await deleteJob(parsedRowNum);
 
     return NextResponse.json({ success: true, message: result });
-  } catch (error: any) {
-    console.error('API DELETE Error:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('API DELETE Error:', err);
     return NextResponse.json(
-      { success: false, error: error.message || 'Internal Server Error' },
+      { success: false, error: err.message || 'Internal Server Error' },
       { status: 500 }
     );
   }

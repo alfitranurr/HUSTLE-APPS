@@ -1,5 +1,7 @@
+/* cspell:disable */
 import { google } from 'googleapis';
 import { JWT, OAuth2Client } from 'google-auth-library';
+import { Readable } from 'stream';
 
 export interface Job {
   id: string;
@@ -20,9 +22,25 @@ export interface Job {
   currentstage?: string;
   province?: string;
   city?: string;
+  otherlink?: string;
+}
+
+export interface InterviewQuestion {
+  id: string;
+  category: string;
+  question: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  targetcompany: string;
+  difficulty: 'Easy' | 'Medium' | 'Hard';
+  status: 'Mastered' | 'Practice Needed';
+  rownum: number;
 }
 
 const SHEET_NAME = 'DataLowongan';
+const INTERVIEWS_SHEET_NAME = 'Interviews';
 
 function cleanEnvValue(val?: string): string | undefined {
   if (!val) return undefined;
@@ -68,7 +86,7 @@ function getAuthClient(): OAuth2Client | JWT {
   let credentials;
   try {
     credentials = JSON.parse(serviceAccountKey);
-  } catch (error) {
+  } catch {
     throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY JSON. Ensure it is a valid single-line JSON string.');
   }
 
@@ -85,13 +103,13 @@ function getAuthClient(): OAuth2Client | JWT {
 // Get Google Sheets Client
 export function getSheetsClient() {
   const auth = getAuthClient();
-  return google.sheets({ version: 'v4', auth: auth as any });
+  return google.sheets({ version: 'v4', auth: auth as unknown as JWT });
 }
 
 // Get Google Drive Client
 export function getDriveClient() {
   const auth = getAuthClient();
-  return google.drive({ version: 'v3', auth: auth as any });
+  return google.drive({ version: 'v3', auth: auth as unknown as JWT });
 }
 
 // Fetch all jobs
@@ -106,7 +124,7 @@ export async function fetchJobs(): Promise<Job[]> {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${SHEET_NAME}!A:Q`,
+      range: `${SHEET_NAME}!A:R`,
     });
 
     const rows = response.data.values;
@@ -118,9 +136,9 @@ export async function fetchJobs(): Promise<Job[]> {
 
     return dataRows
       .map((row, idx) => {
-        const obj: any = {};
+        const obj: Record<string, string | number> = {};
         headers.forEach((header, colIdx) => {
-          let val = row[colIdx];
+          const val = row[colIdx];
           // Handle Date or empty columns
           if (val === undefined || val === null) {
             obj[header] = '';
@@ -129,18 +147,19 @@ export async function fetchJobs(): Promise<Job[]> {
           }
         });
         obj.rownum = idx + 2; // Rows are 1-indexed, header is row 1
-        return obj as Job;
+        return obj as unknown as Job;
       })
       // Ensure company name is present
       .filter(item => item.company && item.company.trim() !== '');
-  } catch (error: any) {
-    console.error('Error fetching jobs:', error);
+  } catch (error: unknown) {
+    const err = error as Error;
+    console.error('Error fetching jobs:', err);
     // If the sheet does not exist, let's auto-setup/create it
-    if (error.message && error.message.includes('NOT_FOUND')) {
+    if (err.message && err.message.includes('NOT_FOUND')) {
       await setupDatabase();
       return [];
     }
-    throw error;
+    throw err;
   }
 }
 
@@ -153,7 +172,7 @@ export async function setupDatabase(): Promise<void> {
     throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
   }
 
-  const headers = ['ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori', 'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City'];
+  const headers = ['ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori', 'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink'];
 
   try {
     // Check if the sheet exists
@@ -183,7 +202,7 @@ export async function setupDatabase(): Promise<void> {
     // Set headers and styling
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${SHEET_NAME}!A1:Q1`,
+      range: `${SHEET_NAME}!A1:R1`,
       valueInputOption: 'RAW',
       requestBody: {
         values: [headers],
@@ -273,6 +292,7 @@ export async function saveJob(obj: {
   currentStage?: string;
   province?: string;
   city?: string;
+  linkOther?: string;
 }): Promise<string> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
@@ -301,6 +321,7 @@ export async function saveJob(obj: {
     (obj.currentStage || '').trim(),
     (obj.province || '').trim(),
     (obj.city || '').trim(),
+    (obj.linkOther || '').trim(),
   ];
 
   const parsedRowNum = obj.rowNum ? Number(obj.rowNum) : null;
@@ -309,7 +330,7 @@ export async function saveJob(obj: {
     // Update existing row
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${SHEET_NAME}!A${parsedRowNum}:Q${parsedRowNum}`,
+      range: `${SHEET_NAME}!A${parsedRowNum}:R${parsedRowNum}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [rowData],
@@ -320,7 +341,7 @@ export async function saveJob(obj: {
     // Append new row
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${SHEET_NAME}!A:Q`,
+      range: `${SHEET_NAME}!A:R`,
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: {
@@ -426,7 +447,7 @@ export async function uploadFileToDrive(
 
   const media = {
     mimeType,
-    body: new (require('stream').Readable)({
+    body: new Readable({
       read() {
         this.push(fileBuffer);
         this.push(null);
@@ -470,3 +491,170 @@ export async function uploadFileToDrive(
     throw error;
   }
 }
+
+// Ensure Interviews Sheet Exists with Headers
+async function ensureInterviewsSheetExists(): Promise<void> {
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) return;
+
+  try {
+    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = spreadsheet.data.sheets?.some(
+      (s) => s.properties?.title === INTERVIEWS_SHEET_NAME
+    );
+
+    if (!sheetExists) {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: {
+                  title: INTERVIEWS_SHEET_NAME,
+                },
+              },
+            },
+          ],
+        },
+      });
+
+      // Add Headers
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${INTERVIEWS_SHEET_NAME}!A1:J1`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [
+            ['ID', 'Category', 'Question', 'Situation', 'Task', 'Action', 'Result', 'TargetCompany', 'Difficulty', 'Status'],
+          ],
+        },
+      });
+    }
+  } catch (err) {
+    console.error('Error checking/creating Interviews sheet:', err);
+  }
+}
+
+// Fetch all interview questions
+export async function fetchInterviewQuestions(): Promise<InterviewQuestion[]> {
+  await ensureInterviewsSheetExists();
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
+
+  const response = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: `${INTERVIEWS_SHEET_NAME}!A2:J`,
+  });
+
+  const rows = response.data.values;
+  if (!rows || rows.length === 0) return [];
+
+  return rows.map((row, index) => ({
+    id: row[0] || `iq_${Date.now()}_${index}`,
+    category: row[1] || 'General',
+    question: row[2] || '',
+    situation: row[3] || '',
+    task: row[4] || '',
+    action: row[5] || '',
+    result: row[6] || '',
+    targetcompany: row[7] || '',
+    difficulty: (row[8] as InterviewQuestion['difficulty']) || 'Medium',
+    status: (row[9] as InterviewQuestion['status']) || 'Practice Needed',
+    rownum: index + 2,
+  })).filter(q => q.question.trim() !== '');
+}
+
+// Add new interview question
+export async function addInterviewQuestion(
+  data: Omit<InterviewQuestion, 'id' | 'rownum'>
+): Promise<InterviewQuestion> {
+  await ensureInterviewsSheetExists();
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
+
+  const newId = `iq_${Date.now()}`;
+  const values = [
+    [
+      newId,
+      data.category,
+      data.question,
+      data.situation || '',
+      data.task || '',
+      data.action || '',
+      data.result || '',
+      data.targetcompany || '',
+      data.difficulty || 'Medium',
+      data.status || 'Practice Needed',
+    ],
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${INTERVIEWS_SHEET_NAME}!A:J`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values },
+  });
+
+  const updatedList = await fetchInterviewQuestions();
+  const created = updatedList.find((q) => q.id === newId);
+  return created || { ...data, id: newId, rownum: updatedList.length + 1 };
+}
+
+// Update interview question
+export async function updateInterviewQuestion(
+  id: string,
+  data: Partial<InterviewQuestion>
+): Promise<void> {
+  const list = await fetchInterviewQuestions();
+  const target = list.find((q) => q.id === id);
+  if (!target) throw new Error(`Interview question with ID ${id} not found`);
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
+
+  const updated: InterviewQuestion = { ...target, ...data };
+  const values = [
+    [
+      updated.id,
+      updated.category,
+      updated.question,
+      updated.situation,
+      updated.task,
+      updated.action,
+      updated.result,
+      updated.targetcompany,
+      updated.difficulty,
+      updated.status,
+    ],
+  ];
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${INTERVIEWS_SHEET_NAME}!A${target.rownum}:J${target.rownum}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values },
+  });
+}
+
+// Delete interview question
+export async function deleteInterviewQuestion(id: string): Promise<void> {
+  const list = await fetchInterviewQuestions();
+  const target = list.find((q) => q.id === id);
+  if (!target) throw new Error(`Interview question with ID ${id} not found`);
+
+  const sheets = getSheetsClient();
+  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
+  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
+
+  // Clear row values
+  await sheets.spreadsheets.values.clear({
+    spreadsheetId,
+    range: `${INTERVIEWS_SHEET_NAME}!A${target.rownum}:J${target.rownum}`,
+  });
+}
+

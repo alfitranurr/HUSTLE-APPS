@@ -231,14 +231,6 @@ export default function DashboardPage() {
       {/* Header Panel */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-bold px-2.5 py-0.5 rounded-full border border-indigo-500/10">
-              TraKerja
-            </span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-              / Dashboard
-            </span>
-          </div>
           <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2 uppercase italic">
             Dashboard Overview
             <span className="bg-indigo-500/15 text-indigo-400 text-[9px] not-italic font-black tracking-widest px-2 py-0.5 rounded-md border border-indigo-500/20">

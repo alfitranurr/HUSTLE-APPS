@@ -1,8 +1,8 @@
+/* cspell:disable */
 'use client';
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, Globe, Upload, FileText } from 'lucide-react';
-import { InstagramIcon, LinkedinIcon } from './BrandIcons';
+import { X, Globe, Upload, FileText, Link as LinkIcon } from 'lucide-react';
+import { InstagramIcon, LinkedinIcon, PlatformBrandIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
 import { ensureAbsoluteUrl } from '@/lib/utils';
 import { useToast } from './Toast';
@@ -42,9 +42,33 @@ const STATIC_PROVINCES: { [key: string]: string[] } = {
   'Kalimantan Timur': ['Seluruh Provinsi (UMP)', 'Kota Balikpapan', 'Kota Samarinda']
 };
 
-const PLATFORMS = ['LinkedIn', 'JobStreet', 'Glints', '9CV9', 'Kalibrr', 'Tech In Asia', 'Indeed', 'Direct Web', 'Telegram', 'Instagram', 'Other'];
+const PLATFORMS = [
+  'LinkedIn',
+  'Instagram',
+  'Direct Web',
+  'G-Form / Microsoft Form',
+  'JobStreet',
+  'Glints',
+  '9CV9',
+  'Kalibrr',
+  'Tech In Asia',
+  'Indeed',
+  'Telegram',
+  'Other'
+];
+
 const CAREER_LEVELS = ['Internship', 'Entry Level / Junior', 'Associate / Mid-Senior', 'Senior', 'Lead / Manager', 'Director / Executive', 'Not Specified'];
-const STAGES = ['Not Started', 'Document Screening', 'Online Test', 'Technical Test', 'Psikotes', 'HR Interview', 'User Interview', 'Presentation Round', 'Offering Letter', 'Contract Signed / Done'];
+const levelIcons: Record<string, string> = {
+  'Internship': '🌱',
+  'Entry Level / Junior': '🚀',
+  'Associate / Mid-Senior': '⚡',
+  'Senior': '⭐',
+  'Lead / Manager': '👑',
+  'Director / Executive': '🏆',
+  'Not Specified': '❓',
+};
+
+const STAGES = ['Not Started', 'Document Screening', 'Assessment Test', 'HR Interview', 'User Interview', 'FGD/LGD', 'Offering Letter', 'Contract Signed / Done'];
 
 const formatToDatetimeLocal = (dateStr?: string) => {
   if (!dateStr) return '';
@@ -58,6 +82,79 @@ const formatToDatetimeLocal = (dateStr?: string) => {
   }
 };
 
+// Generic Custom Select component for consistent styling and font size across all dropdowns
+const CustomGenericSelect = ({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+  dropUp,
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: { value: string; label: string; icon?: React.ReactNode | string }[];
+  disabled?: boolean;
+  dropUp?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedOpt = options.find((o) => o.value === value);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="text-[8.5px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">
+        {label}
+      </label>
+
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 text-xs text-white outline-none focus:border-indigo-500 transition flex items-center justify-between cursor-pointer"
+      >
+        <span className="flex items-center gap-2 truncate">
+          {selectedOpt?.icon && <span className="shrink-0">{selectedOpt.icon}</span>}
+          <span className="font-semibold text-slate-200 truncate">{value || 'Select...'}</span>
+        </span>
+        <span className="text-slate-500 text-[10px] ml-1 shrink-0">▼</span>
+      </button>
+
+      {isOpen && !disabled && (
+        <ul className={`absolute z-50 w-full ${dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} max-h-40 overflow-y-auto bg-[#0f172a] border border-[#334155] rounded-xl shadow-2xl py-1 divide-y divide-white/[0.03] no-scrollbar`}>
+          {options.map((opt) => (
+            <li
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+              className={`px-3.5 py-2 text-xs text-slate-200 hover:bg-indigo-600 hover:text-white cursor-pointer transition flex items-center gap-2.5 ${
+                opt.value === value ? 'bg-indigo-600/30 font-bold text-white' : ''
+              }`}
+            >
+              {opt.icon && <span className="shrink-0">{opt.icon}</span>}
+              <span className="truncate">{opt.label}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 // Reusable Searchable ComboBox Component
 const SearchableSelect = ({
   label,
@@ -65,7 +162,8 @@ const SearchableSelect = ({
   onChange,
   options,
   placeholder,
-  disabled
+  disabled,
+  dropUp,
 }: {
   label: string;
   value: string;
@@ -73,6 +171,7 @@ const SearchableSelect = ({
   options: string[];
   placeholder?: string;
   disabled?: boolean;
+  dropUp?: boolean;
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -134,7 +233,7 @@ const SearchableSelect = ({
           }}
           disabled={disabled}
           placeholder={placeholder || "Type or search..."}
-          className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 pr-8 text-xs text-white outline-none focus:border-indigo-500 transition"
+          className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-2.5 pr-8 text-xs text-white outline-none focus:border-indigo-500 transition"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
           ▼
@@ -142,7 +241,7 @@ const SearchableSelect = ({
       </div>
 
       {isOpen && !disabled && (
-        <ul className="absolute z-50 w-full mt-1.5 max-h-48 overflow-y-auto bg-[#0f172a] border border-[#334155] rounded-xl shadow-2xl py-1 divide-y divide-white/[0.03] scrollbar-thin scrollbar-thumb-indigo-600">
+        <ul className={`absolute z-50 w-full ${dropUp ? 'bottom-full mb-1.5' : 'top-full mt-1.5'} max-h-48 overflow-y-auto bg-[#0f172a] border border-[#334155] rounded-xl shadow-2xl py-1 divide-y divide-white/[0.03] no-scrollbar`}>
           {filteredOptions.length === 0 ? (
             <li className="px-3 py-2 text-xs text-slate-500 italic">No matches. Press click-away to save custom text.</li>
           ) : (
@@ -201,6 +300,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const [linkIg, setLinkIg] = useState('');
   const [linkLi, setLinkLi] = useState('');
   const [linkWeb, setLinkWeb] = useState('');
+  const [linkOther, setLinkOther] = useState('');
   const [note, setNote] = useState('');
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
   const [existingUrl, setExistingUrl] = useState('');
@@ -320,6 +420,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setLinkIg(jobToEdit.instagram || '');
         setLinkLi(jobToEdit.linkedin || '');
         setLinkWeb(jobToEdit.web || '');
+        setLinkOther(jobToEdit.otherlink || '');
         setNote(jobToEdit.note || '');
         setExistingUrl(jobToEdit.buktiurl || '');
         setBuktiFile(null);
@@ -339,6 +440,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setLinkIg('');
         setLinkLi('');
         setLinkWeb('');
+        setLinkOther('');
         setNote('');
         setExistingUrl('');
         setBuktiFile(null);
@@ -393,6 +495,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
     const formattedIg = ensureAbsoluteUrl(linkIg);
     const formattedLi = ensureAbsoluteUrl(linkLi);
     const formattedWeb = ensureAbsoluteUrl(linkWeb);
+    const formattedOther = ensureAbsoluteUrl(linkOther);
 
     if (formattedIg && !isValidUrl(formattedIg)) {
       toast.error('Invalid Instagram Link URL format.');
@@ -404,6 +507,10 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
     }
     if (formattedWeb && !isValidUrl(formattedWeb)) {
       toast.error('Invalid Web Link URL format.');
+      return;
+    }
+    if (formattedOther && !isValidUrl(formattedOther)) {
+      toast.error('Invalid Other Link URL format.');
       return;
     }
 
@@ -423,6 +530,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('linkIg', formattedIg);
       formData.append('linkLi', formattedLi);
       formData.append('linkWeb', formattedWeb);
+      formData.append('linkOther', formattedOther);
       formData.append('note', note);
       formData.append('existingUrl', existingUrl);
 
@@ -460,236 +568,274 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-      <div className="glass w-full max-w-lg rounded-[1.5rem] p-6 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-md font-black uppercase text-white tracking-wider">
-            {jobToEdit ? 'Edit Entry' : 'New Application'}
-          </h2>
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 z-50 animate-fade-in">
+      <div className="glass w-full max-w-5xl rounded-[1.75rem] shadow-2xl border border-white/10 flex flex-col overflow-hidden">
+        {/* Modal Header */}
+        <div className="p-4 md:p-5 px-7 border-b border-white/10 flex justify-between items-center shrink-0 bg-slate-950/40">
+          <div>
+            <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest block mb-0.5">
+              {jobToEdit ? 'Edit Form' : 'New Entry'}
+            </span>
+            <h2 className="text-xl font-black uppercase text-white tracking-wider">
+              {jobToEdit ? 'Edit Application Details' : 'New Application Entry'}
+            </h2>
+          </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white text-2xl font-light transition p-1 cursor-pointer"
+            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer shrink-0 border border-white/5"
             disabled={loading}
+            title="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Company & Category */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Company *</label>
-              <input
-                type="text"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Kategori (Position)</label>
-              <input
-                type="text"
-                value={kategori}
-                onChange={(e) => setKategori(e.target.value)}
-                disabled={loading}
-                placeholder="e.g. Frontend"
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
-              />
-            </div>
-          </div>
+        {/* Form Body - 2 Column Grid */}
+        <form id="job-form" onSubmit={handleSubmit} className="p-6 md:p-7 flex-1 no-scrollbar overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Left Column: Primary Details */}
+            <div className="space-y-3">
+              {/* Company & Category */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">Company *</label>
+                  <input
+                    type="text"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">Kategori (Position)</label>
+                  <input
+                    type="text"
+                    value={kategori}
+                    onChange={(e) => setKategori(e.target.value)}
+                    disabled={loading}
+                    placeholder="e.g. Frontend"
+                    className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+              </div>
 
-          {/* Platform & Career Level */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Platform *</label>
-              <select
-                value={platform}
-                onChange={(e) => setPlatform(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
-              >
-                {PLATFORMS.map((plat) => (
-                  <option key={plat} value={plat} className="bg-[#0f172a] text-white">
-                    {plat}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Career Level</label>
-              <select
-                value={careerLevel}
-                onChange={(e) => setCareerLevel(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
-              >
-                {CAREER_LEVELS.map((lvl) => (
-                  <option key={lvl} value={lvl} className="bg-[#0f172a] text-white">
-                    {lvl}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* App Status & Current Stage */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">App Status *</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
-              >
-                <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
-                <option value="In Progress" className="bg-[#0f172a] text-white">🔵 In Progress</option>
-                <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
-                <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Current Stage *</label>
-              <select
-                value={currentStage}
-                onChange={(e) => setCurrentStage(e.target.value)}
-                disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
-              >
-                {STAGES.map((stg) => (
-                  <option key={stg} value={stg} className="bg-[#0f172a] text-white">
-                    {stg}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Application Date */}
-          <div>
-            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Application Date *</label>
-            <input
-              type="datetime-local"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-              disabled={loading}
-              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
-            />
-          </div>
-
-          {/* Searchable Province & City inputs */}
-          <div className="grid grid-cols-2 gap-3">
-            <SearchableSelect
-              label={`Location (Province) ${loadingRegions ? '⏳' : ''}`}
-              value={province}
-              onChange={setProvince}
-              options={provincesList.map(p => p.nama)}
-              disabled={loading || loadingRegions}
-              placeholder={loadingRegions ? "Loading..." : "Search Province..."}
-            />
-            <SearchableSelect
-              label="Location (City)"
-              value={city}
-              onChange={setCity}
-              options={citiesList.map(c => c.nama)}
-              disabled={loading || loadingRegions}
-              placeholder={loadingRegions ? "Loading..." : "Search City..."}
-            />
-          </div>
-
-          {/* Social Links */}
-          <div>
-            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Links</label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div className="relative flex items-center">
-                <InstagramIcon className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="Instagram Link"
-                  value={linkIg}
-                  onChange={(e) => setLinkIg(e.target.value)}
+              {/* Platform & Career Level */}
+              <div className="grid grid-cols-2 gap-3">
+                <CustomGenericSelect
+                  label="Platform *"
+                  value={platform}
+                  onChange={setPlatform}
                   disabled={loading}
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2.5 pl-9 pr-3 text-[11px] text-white outline-none focus:border-indigo-500 transition"
+                  options={PLATFORMS.map((plat) => ({
+                    value: plat,
+                    label: plat,
+                    icon: <PlatformBrandIcon platform={plat} />,
+                  }))}
+                />
+                <CustomGenericSelect
+                  label="Career Level"
+                  value={careerLevel}
+                  onChange={setCareerLevel}
+                  disabled={loading}
+                  options={CAREER_LEVELS.map((lvl) => ({
+                    value: lvl,
+                    label: lvl,
+                    icon: levelIcons[lvl] || '🏷️',
+                  }))}
                 />
               </div>
-              <div className="relative flex items-center">
-                <LinkedinIcon className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder="LinkedIn Link"
-                  value={linkLi}
-                  onChange={(e) => setLinkLi(e.target.value)}
+
+              {/* App Status & Current Stage */}
+              <div className="grid grid-cols-2 gap-3">
+                <CustomGenericSelect
+                  label="App Status *"
+                  value={status}
+                  onChange={setStatus}
                   disabled={loading}
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2.5 pl-9 pr-3 text-[11px] text-white outline-none focus:border-indigo-500 transition"
+                  options={[
+                    { value: 'Not Started', label: 'Not Started', icon: '🟡' },
+                    { value: 'In Progress', label: 'In Progress', icon: '🔵' },
+                    { value: 'Success', label: 'Success', icon: '🟢' },
+                    { value: 'Failed', label: 'Failed', icon: '🔴' },
+                  ]}
+                />
+                <CustomGenericSelect
+                  label="Current Stage *"
+                  value={currentStage}
+                  onChange={setCurrentStage}
+                  disabled={loading}
+                  options={STAGES.map((stg) => {
+                    const stageIcons: Record<string, string> = {
+                      'Not Started': '⏳',
+                      'Document Screening': '📄',
+                      'Assessment Test': '📝',
+                      'HR Interview': '👥',
+                      'User Interview': '🗣️',
+                      'FGD/LGD': '👥',
+                      'Offering Letter': '📩',
+                      'Contract Signed / Done': '✍️',
+                    };
+                    return {
+                      value: stg,
+                      label: stg,
+                      icon: stageIcons[stg] || '📌',
+                    };
+                  })}
                 />
               </div>
-              <div className="relative flex items-center">
-                <Globe className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
+
+              {/* Application Date */}
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">Application Date *</label>
                 <input
-                  type="text"
-                  placeholder="Website Link"
-                  value={linkWeb}
-                  onChange={(e) => setLinkWeb(e.target.value)}
+                  type="datetime-local"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
                   disabled={loading}
-                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2.5 pl-9 pr-3 text-[11px] text-white outline-none focus:border-indigo-500 transition"
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                />
+              </div>
+
+              {/* Searchable Province & City inputs */}
+              <div className="grid grid-cols-2 gap-3">
+                <SearchableSelect
+                  label={`Location (Province) ${loadingRegions ? '⏳' : ''}`}
+                  value={province}
+                  onChange={setProvince}
+                  options={provincesList.map(p => p.nama)}
+                  disabled={loading || loadingRegions}
+                  dropUp={true}
+                  placeholder={loadingRegions ? "Loading..." : "Search Province..."}
+                />
+                <SearchableSelect
+                  label="Location (City)"
+                  value={city}
+                  onChange={setCity}
+                  options={citiesList.map(c => c.nama)}
+                  disabled={loading || loadingRegions}
+                  dropUp={true}
+                  placeholder={loadingRegions ? "Loading..." : "Search City..."}
                 />
               </div>
             </div>
-          </div>
 
-          {/* Notes */}
-          <div>
-            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Notes</label>
-            <textarea
-              placeholder="Quick notes about interview status, tasks, salary, etc..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              disabled={loading}
-              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition h-16 resize-none"
-            />
-          </div>
-
-          {/* Proof Attachment */}
-          <div>
-            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1 text-indigo-400">
-              Proof Attachment (Upload New)
-            </label>
-            <div className="relative border border-dashed border-[#334155] hover:border-indigo-500 transition rounded-xl p-4 flex flex-col items-center justify-center bg-[#0f172a]/50 cursor-pointer">
-              <input
-                type="file"
-                disabled={loading}
-                onChange={(e) => setBuktiFile(e.target.files?.[0] || null)}
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-              />
-              <Upload className="w-5 h-5 text-slate-500 mb-2" />
-              <span className="text-[10px] text-slate-400 font-semibold">
-                {buktiFile ? buktiFile.name : 'Click to select or drag and drop proof file'}
-              </span>
-              <span className="text-[8px] text-slate-500 mt-1 uppercase">Images or PDF up to 5MB</span>
-            </div>
-
-            {existingUrl && existingUrl !== 'No File' && (
-              <div className="flex items-center gap-1.5 mt-2 bg-indigo-500/10 border border-indigo-500/20 py-1.5 px-3 rounded-lg text-indigo-400">
-                <FileText className="w-3.5 h-3.5" />
-                <span className="text-[9px] font-bold uppercase tracking-wider">Current file preserved</span>
+            {/* Right Column: Links, Notes & Attachment */}
+            <div className="space-y-3">
+              {/* Social Links */}
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">Links</label>
+                <div className="space-y-2">
+                  <div className="relative flex items-center">
+                    <InstagramIcon className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Instagram Link"
+                      value={linkIg}
+                      onChange={(e) => setLinkIg(e.target.value)}
+                      disabled={loading}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                  <div className="relative flex items-center">
+                    <LinkedinIcon className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="LinkedIn Link"
+                      value={linkLi}
+                      onChange={(e) => setLinkLi(e.target.value)}
+                      disabled={loading}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                  <div className="relative flex items-center">
+                    <Globe className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Website Link"
+                      value={linkWeb}
+                      onChange={(e) => setLinkWeb(e.target.value)}
+                      disabled={loading}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                  <div className="relative flex items-center">
+                    <LinkIcon className="w-4 h-4 text-slate-500 absolute left-3 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Other Link"
+                      value={linkOther}
+                      onChange={(e) => setLinkOther(e.target.value)}
+                      disabled={loading}
+                      className="w-full bg-[#0f172a] border border-[#334155] rounded-xl py-2 pl-9 pr-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+                    />
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Submit Button */}
+              {/* Notes */}
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 ml-1 uppercase tracking-wider block mb-1">Notes</label>
+                <textarea
+                  placeholder="Quick notes about interview status, tasks, salary, etc..."
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition h-20 resize-none leading-relaxed"
+                />
+              </div>
+
+              {/* Proof Attachment */}
+              <div>
+                <label className="text-[9px] font-bold text-indigo-400 ml-1 uppercase tracking-wider block mb-1">
+                  Proof Attachment (Upload New)
+                </label>
+                <div className="relative border border-dashed border-[#334155] hover:border-indigo-500 transition rounded-xl p-3.5 flex flex-col items-center justify-center bg-[#0f172a]/50 cursor-pointer">
+                  <input
+                    type="file"
+                    disabled={loading}
+                    onChange={(e) => setBuktiFile(e.target.files?.[0] || null)}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                  <Upload className="w-4 h-4 text-slate-500 mb-1" />
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    {buktiFile ? buktiFile.name : 'Click to select or drag proof file'}
+                  </span>
+                  <span className="text-[8px] text-slate-500 mt-0.5 uppercase">Images or PDF up to 5MB</span>
+                </div>
+
+                {existingUrl && existingUrl !== 'No File' && (
+                  <div className="flex items-center gap-1.5 mt-1.5 bg-indigo-500/10 border border-indigo-500/20 py-1 px-2.5 rounded-lg text-indigo-400">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="text-[9px] font-bold uppercase tracking-wider">Current file preserved</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </form>
+
+        {/* Modal Footer */}
+        <div className="p-4 px-7 border-t border-white/10 flex justify-end gap-3 shrink-0 bg-slate-950/60">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-slate-300 transition cursor-pointer"
+          >
+            Cancel
+          </button>
           <button
             type="submit"
+            form="job-form"
             disabled={loading}
-            className="w-full btn-gradient p-3.5 rounded-xl font-black text-white uppercase mt-2 text-xs tracking-wider cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="px-6 py-2.5 rounded-xl btn-gradient font-black text-white uppercase text-xs tracking-wider cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30"
           >
             {loading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -699,7 +845,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
               'Push Data'
             )}
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -1,0 +1,1 @@
+export const ALL_INDONESIA_REGIONAL_WAGES = [];

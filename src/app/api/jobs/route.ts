@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
     const linkIg = formData.get('linkIg') as string | null;
     const linkLi = formData.get('linkLi') as string | null;
     const linkWeb = formData.get('linkWeb') as string | null;
+    const linkOther = formData.get('linkOther') as string | null;
     const kategori = formData.get('kategori') as string | null; // Position
     const note = formData.get('note') as string | null;
     const existingUrl = formData.get('existingUrl') as string | null;
@@ -118,6 +119,7 @@ export async function POST(req: NextRequest) {
       linkIg: linkIg || undefined,
       linkLi: linkLi || undefined,
       linkWeb: linkWeb || undefined,
+      linkOther: linkOther || undefined,
       kategori: kategori || undefined,
       note: note || undefined,
       buktiurl: fileUrl,

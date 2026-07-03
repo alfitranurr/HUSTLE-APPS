@@ -138,18 +138,22 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
   const stageCounts: { [key: string]: number } = {
     'Not Started': 0,
     'Document Screening': 0,
-    'Online Test': 0,
-    'Technical Test': 0,
-    'Psikotes': 0,
+    'Assessment Test': 0,
     'HR Interview': 0,
     'User Interview': 0,
-    'Presentation Round': 0,
+    'FGD/LGD': 0,
     'Offering Letter': 0,
     'Contract Signed / Done': 0,
   };
 
   jobs.forEach((job) => {
-    const stage = job.currentstage || 'Not Started';
+    let stage = (job.currentstage || 'Not Started').trim();
+    if (stage === 'Online Test' || stage === 'Technical Test' || stage === 'Psikotes') {
+      stage = 'Assessment Test';
+    } else if (stage === 'Presentation Round') {
+      stage = 'FGD/LGD';
+    }
+
     if (stage in stageCounts) {
       stageCounts[stage]++;
     } else {
@@ -176,6 +180,49 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 6);
+  }, [jobs]);
+
+  // E2. Province Demographics (Accent Bars)
+  const provinceData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    jobs.forEach((job) => {
+      const prov = job.province || '-';
+      if (prov !== '-' && prov.trim() !== '') {
+        const clean = prov.replace('Daerah Khusus Ibukota ', 'DKI ').replace('Daerah Istimewa ', 'DI ');
+        counts[clean] = (counts[clean] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 6);
+  }, [jobs]);
+
+  // E3. Level Demographics (Accent Bars)
+  const levelData = useMemo(() => {
+    const counts: { [key: string]: number } = {};
+    jobs.forEach((job) => {
+      const lvl = (job.careerlevel || 'Not Specified').trim();
+      counts[lvl] = (counts[lvl] || 0) + 1;
+    });
+
+    const levelIcons: Record<string, string> = {
+      'Internship': '🌱',
+      'Entry Level / Junior': '🚀',
+      'Associate / Mid-Senior': '⚡',
+      'Senior': '⭐',
+      'Lead / Manager': '👑',
+      'Director / Executive': '🏆',
+      'Not Specified': '❓'
+    };
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ 
+        name,
+        displayName: `${levelIcons[name] || '💼'} ${name}`,
+        value 
+      }))
+      .sort((a, b) => b.value - a.value);
   }, [jobs]);
 
   // F. Category Breakdown Data (Top 5 Categories)
@@ -225,15 +272,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
 
   return (
     <div className="space-y-8">
-
-
-      {/* 3. STATUS, STAGE & CITY BREAKDOWNS (3-Column Accent Bars Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 3. STATUS, STAGE & LEVEL BREAKDOWNS (Always 3-Column Grid on Laptop/Desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* Status Breakdown (Accent Bars) */}
-        <div className="glass p-6 rounded-3xl flex flex-col justify-between min-h-[350px]">
+        <div className="glass p-5 lg:p-6 rounded-3xl flex flex-col justify-between min-h-[300px] lg:min-h-[320px]">
           <div>
-            <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1">Status Breakdown</h3>
-            <p className="text-slate-500 text-[9px] uppercase tracking-wider">Application status share</p>
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">STATUS BREAKDOWN</h3>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Application Status Share</p>
           </div>
 
           <div className="flex-grow overflow-y-auto space-y-4 mt-6">
@@ -242,11 +287,11 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
               return (
                 <div key={item.name} className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-300">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span>{item.name}</span>
+                      <span className="truncate">{item.name}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                       <span className="text-white font-black">{item.value}</span>
                       <span className="text-slate-500 font-mono">({percentage}%)</span>
                     </div>
@@ -264,10 +309,10 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
         </div>
 
         {/* Stage Breakdown (Accent Bars) */}
-        <div className="glass p-6 rounded-3xl flex flex-col justify-between min-h-[350px]">
+        <div className="glass p-5 lg:p-6 rounded-3xl flex flex-col justify-between min-h-[300px] lg:min-h-[320px]">
           <div>
-            <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1">Stage Breakdown</h3>
-            <p className="text-slate-500 text-[9px] uppercase tracking-wider">Recruitment stage share</p>
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">STAGE BREAKDOWN</h3>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Recruitment Stage Share</p>
           </div>
 
           <div className="flex-grow overflow-y-auto space-y-4 mt-6 pr-1 max-h-[240px] scrollbar-thin">
@@ -300,11 +345,51 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
           </div>
         </div>
 
-        {/* City Demographics (Accent Bars) */}
-        <div className="glass p-6 rounded-3xl flex flex-col justify-between min-h-[350px]">
+        {/* Level Demographics (Accent Bars) */}
+        <div className="glass p-5 lg:p-6 rounded-3xl flex flex-col justify-between min-h-[300px] lg:min-h-[320px]">
           <div>
-            <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1">City Demographics</h3>
-            <p className="text-slate-500 text-[9px] uppercase tracking-wider">Urban application distribution</p>
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">LEVEL DEMOGRAPHICS</h3>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Career Level Share</p>
+          </div>
+
+          <div className="flex-grow overflow-y-auto space-y-4 mt-6 pr-1 max-h-[240px] scrollbar-thin">
+            {levelData.length > 0 ? (
+              levelData.map((item) => {
+                const percentage = jobs.length > 0 ? ((item.value / jobs.length) * 100).toFixed(0) : '0';
+                return (
+                  <div key={item.name} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-300">
+                      <span className="truncate mr-2">{item.displayName}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-white font-black">{item.value}</span>
+                        <span className="text-slate-500 font-mono">({percentage}%)</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="h-full flex items-center justify-center py-12">
+                <span className="text-xs text-slate-500 font-bold italic uppercase">No level records</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 3.5 LOCATION DEMOGRAPHICS BREAKDOWNS (City & Province 2-Column Grid) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+        {/* City Demographics (Accent Bars) */}
+        <div className="glass p-5 lg:p-6 rounded-3xl flex flex-col justify-between min-h-[300px] lg:min-h-[320px]">
+          <div>
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">CITY DEMOGRAPHICS</h3>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Urban Location Share</p>
           </div>
 
           <div className="flex-grow overflow-y-auto space-y-4 mt-6 pr-1 max-h-[240px] scrollbar-thin">
@@ -336,6 +421,43 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
             )}
           </div>
         </div>
+
+        {/* Province Demographics (Accent Bars) */}
+        <div className="glass p-5 lg:p-6 rounded-3xl flex flex-col justify-between min-h-[300px] lg:min-h-[320px]">
+          <div>
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">PROVINCE DEMOGRAPHICS</h3>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Regional Province Share</p>
+          </div>
+
+          <div className="flex-grow overflow-y-auto space-y-4 mt-6 pr-1 max-h-[240px] scrollbar-thin">
+            {provinceData.length > 0 ? (
+              provinceData.map((item) => {
+                const percentage = jobs.length > 0 ? ((item.value / jobs.length) * 100).toFixed(0) : '0';
+                return (
+                  <div key={item.name} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase text-slate-300">
+                      <span className="truncate mr-2">{item.name}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-white font-black">{item.value}</span>
+                        <span className="text-slate-500 font-mono">({percentage}%)</span>
+                      </div>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="h-full flex items-center justify-center py-12">
+                <span className="text-xs text-slate-500 font-bold italic uppercase">No province records</span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 4. CATEGORIES & LEADERS (2-Column Grid) */}
@@ -344,8 +466,8 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
         <div className="glass p-6 rounded-3xl flex flex-col justify-between min-h-[340px]">
           <div className="flex justify-between items-start w-full">
             <div>
-              <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1">Top Categories</h3>
-              <p className="text-slate-500 text-[9px] uppercase tracking-wider">Distribution of applications by field</p>
+              <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1">TOP CATEGORIES</h3>
+              <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Job Role Field Share</p>
             </div>
             <button
               onClick={() => setShowCategoriesModal(true)}
@@ -412,11 +534,11 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
         {/* Top Hiring Companies */}
         <div className="glass p-6 rounded-3xl flex flex-col justify-between min-h-[340px]">
           <div>
-            <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1.5">
+            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1.5">
               <Building2 className="w-4 h-4 text-emerald-400" />
-              Top Hiring Companies
+              TOP HIRING COMPANIES
             </h3>
-            <p className="text-slate-500 text-[9px] uppercase tracking-wider">Hiring leaderboard</p>
+            <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Company Hiring Leaderboard</p>
           </div>
 
           <div className="flex-grow flex flex-col justify-center space-y-3 mt-4 w-full">
@@ -445,11 +567,11 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
       {/* Timeline Activity (Full Width at Bottom) */}
       <div className="glass p-6 rounded-[2rem] flex flex-col justify-between min-h-[350px]">
         <div>
-          <h3 className="font-bold text-white uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1.5">
+          <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest mb-1 flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-indigo-400" />
-            Timeline Activity
+            TIMELINE ACTIVITY
           </h3>
-          <p className="text-slate-500 text-[9px] uppercase tracking-wider">Application trends and interview scheduling</p>
+          <p className="text-slate-500 text-[9px] font-bold uppercase tracking-wider">12-Month Applications vs Interviews</p>
         </div>
 
         <div className="h-64 w-full mt-6">
