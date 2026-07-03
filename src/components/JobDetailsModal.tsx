@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { X, Calendar, Globe, FileText, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, Calendar, Globe, FileText, ExternalLink, MapPin, Tag, Briefcase } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
 import { ensureAbsoluteUrl } from '@/lib/utils';
 import { getStatusClass } from './JobTable';
@@ -44,6 +44,10 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
 
   if (!isOpen || !job) return null;
 
+  const locationString = job.province && job.city 
+    ? `${job.city}, ${job.province}` 
+    : job.city || job.province || 'Luar Daerah';
+
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 z-[90] animate-fade-in">
       <div className="glass w-full max-w-lg rounded-[1.5rem] p-6 shadow-2xl border border-white/10 max-h-[90vh] overflow-y-auto">
@@ -57,12 +61,12 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
               {job.company}
             </h2>
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider mt-0.5">
-              Category: {job.kategori || 'Uncategorized'}
+              Position: {job.kategori || 'Unspecified'}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white transition p-1"
+            className="text-slate-500 hover:text-white transition p-1 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -70,45 +74,62 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
 
         {/* Content */}
         <div className="space-y-5">
-          {/* Status & Timeline */}
+          {/* Status & Stage */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5">
               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                Current Status
+                App Status
               </span>
               <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusClass(job.status)}`}>
                 {job.status}
               </span>
             </div>
 
-            <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 flex flex-col justify-center">
+            <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5">
               <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                Record Row Number
+                Current Stage
               </span>
-              <span className="text-xs font-black text-slate-300">
-                Row #{job.rownum}
+              <span className="bg-slate-900 border border-white/5 text-slate-200 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest">
+                {job.currentstage || 'Not Started'}
               </span>
             </div>
           </div>
 
-          {/* Timeline Dates */}
+          {/* Location & Platform */}
           <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-3">
-            <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">
-              Timeline Details
-            </span>
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-[9px] font-black text-indigo-400 block uppercase">Start Date & Time</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Location</span>
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 mt-1">
+                  <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  {locationString}
+                </span>
+              </div>
+              <div>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Platform</span>
+                <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 mt-1">
+                  <Tag className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  {job.platform || 'Other'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Applied Date & Career Level */}
+          <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5 space-y-3">
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Application Date</span>
                 <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 mt-1">
                   <Calendar className="w-3.5 h-3.5 text-slate-500" />
                   {formatDateTime(job.startdate)}
                 </span>
               </div>
               <div>
-                <span className="text-[9px] font-black text-red-400 block uppercase">End Date & Time</span>
+                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Career Level</span>
                 <span className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5 mt-1">
-                  <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                  {formatDateTime(job.enddate)}
+                  <Briefcase className="w-3.5 h-3.5 text-slate-500" />
+                  {job.careerlevel || 'Not Specified'}
                 </span>
               </div>
             </div>
@@ -156,7 +177,7 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
             </div>
           </div>
 
-          {/* Notes Section (Fully visible & formatting-preserved) */}
+          {/* Notes Section */}
           <div className="bg-slate-950/40 p-4 rounded-xl border border-white/5">
             <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block mb-2">
               Application Notes

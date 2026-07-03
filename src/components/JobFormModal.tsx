@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Globe, Upload, FileText } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
@@ -14,6 +14,38 @@ interface JobFormModalProps {
   onSuccess: () => void;
 }
 
+interface ProvinceData {
+  id: string;
+  nama: string;
+}
+
+interface RegencyData {
+  id: string;
+  province_id: string;
+  nama: string;
+}
+
+// Fallback lists of provinces and cities if API fetch fails or offline
+const STATIC_PROVINCES: { [key: string]: string[] } = {
+  'Aceh': ['Kabupaten Simeulue', 'Kabupaten Aceh Singkil', 'Kabupaten Aceh Selatan', 'Kabupaten Aceh Tenggara', 'Kota Sabang', 'Kota Banda Aceh', 'Kota Lhokseumawe', 'Kota Langsa'],
+  'Sumatera Utara': ['Kota Medan', 'Kota Binjai', 'Kota Tebing Tinggi'],
+  'DKI Jakarta': ['Seluruh Provinsi (UMP)', 'Kota Jakarta Pusat', 'Kota Jakarta Selatan', 'Kota Jakarta Timur', 'Kota Jakarta Barat', 'Kota Jakarta Utara'],
+  'Banten': ['Seluruh Provinsi (UMP)', 'Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang', 'Kota Cilegon', 'Kota Serang'],
+  'Jawa Barat': ['Seluruh Provinsi (UMP)', 'Kota Bekasi', 'Kabupaten Bekasi', 'Kota Depok', 'Kota Bogor', 'Kota Bandung', 'Kota Cimahi', 'Kota Tasikmalaya'],
+  'Jawa Tengah': ['Seluruh Provinsi (UMP)', 'Kota Semarang', 'Kota Surakarta (Solo)', 'Kabupaten Kudus'],
+  'DI Yogyakarta': ['Seluruh Provinsi (UMP)', 'Kota Yogyakarta', 'Kabupaten Sleman'],
+  'Jawa Timur': ['Seluruh Provinsi (UMP)', 'Kota Surabaya', 'Kabupaten Gresik', 'Kabupaten Sidoarjo', 'Kota Malang'],
+  'Bali': ['Seluruh Provinsi (UMP)', 'Kota Denpasar', 'Kabupaten Badung'],
+  'Riau': ['Seluruh Provinsi (UMP)', 'Kota Pekanbaru'],
+  'Kepulauan Riau': ['Seluruh Provinsi (UMP)', 'Kota Batam'],
+  'Sulawesi Selatan': ['Seluruh Provinsi (UMP)', 'Kota Makassar'],
+  'Kalimantan Timur': ['Seluruh Provinsi (UMP)', 'Kota Balikpapan', 'Kota Samarinda']
+};
+
+const PLATFORMS = ['LinkedIn', 'JobStreet', 'Glints', '9CV9', 'Kalibrr', 'Tech In Asia', 'Indeed', 'Direct Web', 'Telegram', 'Instagram', 'Other'];
+const CAREER_LEVELS = ['Internship', 'Entry Level / Junior', 'Associate / Mid-Senior', 'Senior', 'Lead / Manager', 'Director / Executive', 'Not Specified'];
+const STAGES = ['Not Started', 'Document Screening', 'Online Test', 'Technical Test', 'Psikotes', 'HR Interview', 'User Interview', 'Presentation Round', 'Offering Letter', 'Contract Signed / Done'];
+
 const formatToDatetimeLocal = (dateStr?: string) => {
   if (!dateStr) return '';
   try {
@@ -26,6 +58,116 @@ const formatToDatetimeLocal = (dateStr?: string) => {
   }
 };
 
+// Reusable Searchable ComboBox Component
+const SearchableSelect = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled
+}: {
+  label: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: string[];
+  placeholder?: string;
+  disabled?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setSearch(value);
+  }
+
+  // Click outside listener to handle focus states and custom text inputs
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        const trimmed = search.trim();
+        // Match case-insensitively with options
+        const matched = options.find(opt => opt.toLowerCase() === trimmed.toLowerCase());
+        if (matched) {
+          onChange(matched);
+          setSearch(matched);
+        } else if (trimmed !== '') {
+          onChange(trimmed); // Allow custom search terms
+        } else {
+          setSearch(value);
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [search, value, options, onChange]);
+
+  const filteredOptions = useMemo(() => {
+    if (!search) return options;
+    return options.filter(opt =>
+      opt.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [options, search]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setIsOpen(true);
+          }}
+          onFocus={() => {
+            setIsOpen(true);
+            setSearch(''); // clear search on focus so user can filter easily
+          }}
+          disabled={disabled}
+          placeholder={placeholder || "Type or search..."}
+          className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 pr-8 text-xs text-white outline-none focus:border-indigo-500 transition"
+        />
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-[10px]">
+          ▼
+        </div>
+      </div>
+
+      {isOpen && !disabled && (
+        <ul className="absolute z-50 w-full mt-1.5 max-h-48 overflow-y-auto bg-[#0f172a] border border-[#334155] rounded-xl shadow-2xl py-1 divide-y divide-white/[0.03] scrollbar-thin scrollbar-thumb-indigo-600">
+          {filteredOptions.length === 0 ? (
+            <li className="px-3 py-2 text-xs text-slate-500 italic">No matches. Press click-away to save custom text.</li>
+          ) : (
+            filteredOptions.map((opt) => (
+              <li
+                key={opt}
+                onClick={() => {
+                  onChange(opt);
+                  setSearch(opt);
+                  setIsOpen(false);
+                }}
+                className={`px-3 py-2 text-xs text-slate-300 hover:bg-indigo-600 hover:text-white cursor-pointer transition ${
+                  opt.toLowerCase() === value.toLowerCase() ? 'bg-indigo-600/30 text-white font-bold' : ''
+                }`}
+              >
+                {opt}
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+};
+
 export const JobFormModal: React.FC<JobFormModalProps> = ({
   isOpen,
   onClose,
@@ -34,6 +176,11 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
 }) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
+
+  // Provinces & Cities API States
+  const [provincesList, setProvincesList] = useState<ProvinceData[]>([]);
+  const [citiesList, setCitiesList] = useState<RegencyData[]>([]);
+  const [loadingRegions, setLoadingRegions] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,9 +196,8 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   // Form Fields State
   const [company, setCompany] = useState('');
   const [kategori, setKategori] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [status, setStatus] = useState('Not Started');
+  const [startDate, setStartDate] = useState(''); // Used for Application Date
+  const [status, setStatus] = useState('Not Started'); // Used for App Status
   const [linkIg, setLinkIg] = useState('');
   const [linkLi, setLinkLi] = useState('');
   const [linkWeb, setLinkWeb] = useState('');
@@ -59,40 +205,151 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
   const [existingUrl, setExistingUrl] = useState('');
 
+  // New Fields States
+  const [platform, setPlatform] = useState('LinkedIn');
+  const [careerLevel, setCareerLevel] = useState('Not Specified');
+  const [currentStage, setCurrentStage] = useState('Not Started');
+  const [province, setProvince] = useState('Daerah Khusus Ibukota Jakarta');
+  const [city, setCity] = useState('Seluruh Provinsi (UMP)');
+
+  useEffect(() => {
+    if (isOpen && provincesList.length === 0) {
+      Promise.resolve().then(() => setLoadingRegions(true));
+      fetch('https://ibnux.github.io/data-indonesia/provinsi.json')
+        .then((res) => {
+          if (!res.ok) throw new Error('API failed');
+          return res.json();
+        })
+        .then((data) => {
+          const sorted = (data as ProvinceData[]).sort((a, b) => a.nama.localeCompare(b.nama));
+          // Append "Lainnya / Luar Negeri" to the end
+          setProvincesList([...sorted, { id: '99', nama: 'Lainnya / Luar Negeri' }]);
+          setLoadingRegions(false);
+        })
+        .catch((err) => {
+          console.warn('Failed to load online provinces list. Falling back to static values.', err);
+          const fallbackProvs = Object.keys(STATIC_PROVINCES).map((name, idx) => ({
+            id: String(idx + 100), // fallback fake ids
+            nama: name
+          }));
+          setProvincesList([...fallbackProvs, { id: '99', nama: 'Lainnya / Luar Negeri' }]);
+          setLoadingRegions(false);
+        });
+    }
+  }, [isOpen, provincesList]);
+
+  // 2. Fetch Cities list dynamically when selected province changes
+  useEffect(() => {
+    if (!province || provincesList.length === 0) return;
+
+    const matchedProvince = provincesList.find(
+      (p) => p.nama.toLowerCase() === province.toLowerCase()
+    );
+
+    if (matchedProvince) {
+      Promise.resolve().then(() => {
+        setLoadingRegions(true);
+        
+        // If "Lainnya / Luar Negeri" is chosen
+        if (matchedProvince.id === '99') {
+          setCitiesList([
+            { id: '9901', province_id: '99', nama: 'Luar Negeri' },
+            { id: '9902', province_id: '99', nama: 'Daerah Lain' }
+          ]);
+          setLoadingRegions(false);
+        }
+        // If using fallback fake IDs (100+)
+        else if (Number(matchedProvince.id) >= 100) {
+          const staticCities = STATIC_PROVINCES[matchedProvince.nama] || ['Seluruh Provinsi (UMP)'];
+          setCitiesList(staticCities.map((cName, idx) => ({
+            id: String(idx + 1000),
+            province_id: matchedProvince.id,
+            nama: cName
+          })));
+          setLoadingRegions(false);
+        } else {
+          fetch(`https://ibnux.github.io/data-indonesia/kabupaten/${matchedProvince.id}.json`)
+            .then((res) => {
+              if (!res.ok) throw new Error('API failed');
+              return res.json();
+            })
+            .then((data) => {
+              const sorted = (data as RegencyData[]).sort((a, b) => a.nama.localeCompare(b.nama));
+              setCitiesList(sorted);
+              setLoadingRegions(false);
+            })
+            .catch((err) => {
+              console.warn('Failed to load online cities. Falling back.', err);
+              const staticCities = STATIC_PROVINCES[matchedProvince.nama] || ['Seluruh Provinsi (UMP)'];
+              setCitiesList(staticCities.map((cName, idx) => ({
+                id: String(idx + 1000),
+                province_id: matchedProvince.id,
+                nama: cName
+              })));
+              setLoadingRegions(false);
+            });
+        }
+      });
+    }
+  }, [province, provincesList]);
+
+  useEffect(() => {
+    if (citiesList.length > 0) {
+      const cityNames = citiesList.map(c => c.nama);
+      // If selected city is not in the loaded list, auto-select the first one
+      if (!cityNames.some(cName => cName.toLowerCase() === city.toLowerCase())) {
+        Promise.resolve().then(() => setCity(cityNames[0]));
+      }
+    }
+  }, [citiesList, city]);
+
   // Load edit data
   useEffect(() => {
-    if (jobToEdit) {
-      setCompany(jobToEdit.company || '');
-      setKategori(jobToEdit.kategori || '');
-      setStartDate(formatToDatetimeLocal(jobToEdit.startdate));
-      setEndDate(formatToDatetimeLocal(jobToEdit.enddate));
-      
-      // Normalize Status
-      let curStatus = jobToEdit.status;
-      if (String(curStatus).toLowerCase() === 'done') curStatus = 'Success';
-      if (String(curStatus).toLowerCase() === 'progress') curStatus = 'In Progress';
-      setStatus(curStatus || 'Not Started');
+    Promise.resolve().then(() => {
+      if (jobToEdit) {
+        setCompany(jobToEdit.company || '');
+        setKategori(jobToEdit.kategori || '');
+        setStartDate(formatToDatetimeLocal(jobToEdit.startdate));
+        
+        // Normalize Status
+        let curStatus = jobToEdit.status;
+        if (String(curStatus).toLowerCase() === 'done') curStatus = 'Success';
+        if (String(curStatus).toLowerCase() === 'progress') curStatus = 'In Progress';
+        setStatus(curStatus || 'Not Started');
 
-      setLinkIg(jobToEdit.instagram || '');
-      setLinkLi(jobToEdit.linkedin || '');
-      setLinkWeb(jobToEdit.web || '');
-      setNote(jobToEdit.note || '');
-      setExistingUrl(jobToEdit.buktiurl || '');
-      setBuktiFile(null);
-    } else {
-      // Reset Form for New Item
-      setCompany('');
-      setKategori('');
-      setStartDate('');
-      setEndDate('');
-      setStatus('Not Started');
-      setLinkIg('');
-      setLinkLi('');
-      setLinkWeb('');
-      setNote('');
-      setExistingUrl('');
-      setBuktiFile(null);
-    }
+        setLinkIg(jobToEdit.instagram || '');
+        setLinkLi(jobToEdit.linkedin || '');
+        setLinkWeb(jobToEdit.web || '');
+        setNote(jobToEdit.note || '');
+        setExistingUrl(jobToEdit.buktiurl || '');
+        setBuktiFile(null);
+
+        // Load new fields
+        setPlatform(jobToEdit.platform || 'LinkedIn');
+        setCareerLevel(jobToEdit.careerlevel || 'Not Specified');
+        setCurrentStage(jobToEdit.currentstage || 'Not Started');
+        setProvince(jobToEdit.province || 'Daerah Khusus Ibukota Jakarta');
+        setCity(jobToEdit.city || 'Seluruh Provinsi (UMP)');
+      } else {
+        // Reset Form for New Item
+        setCompany('');
+        setKategori('');
+        setStartDate('');
+        setStatus('Not Started');
+        setLinkIg('');
+        setLinkLi('');
+        setLinkWeb('');
+        setNote('');
+        setExistingUrl('');
+        setBuktiFile(null);
+
+        setPlatform('LinkedIn');
+        setCareerLevel('Not Specified');
+        setCurrentStage('Not Started');
+        setProvince('Daerah Khusus Ibukota Jakarta');
+        setCity('Seluruh Provinsi (UMP)');
+      }
+    });
   }, [jobToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -111,17 +368,26 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Validations
+    // Validations
     if (!company.trim()) {
       toast.error('Company name is required.');
       return;
     }
-
-    if (startDate && endDate) {
-      if (new Date(endDate) < new Date(startDate)) {
-        toast.error('End Date cannot be earlier than Start Date.');
-        return;
-      }
+    if (!startDate) {
+      toast.error('Application Date is required.');
+      return;
+    }
+    if (!platform) {
+      toast.error('Platform is required.');
+      return;
+    }
+    if (!status) {
+      toast.error('App Status is required.');
+      return;
+    }
+    if (!currentStage) {
+      toast.error('Current Stage is required.');
+      return;
     }
 
     const formattedIg = ensureAbsoluteUrl(linkIg);
@@ -151,14 +417,21 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       }
       formData.append('company', company);
       formData.append('kategori', kategori);
-      formData.append('startDate', startDate);
-      formData.append('endDate', endDate);
+      formData.append('startDate', startDate); // Used for Application Date
+      formData.append('endDate', ''); 
       formData.append('status', status);
       formData.append('linkIg', formattedIg);
       formData.append('linkLi', formattedLi);
       formData.append('linkWeb', formattedWeb);
       formData.append('note', note);
       formData.append('existingUrl', existingUrl);
+
+      // New Fields
+      formData.append('platform', platform);
+      formData.append('careerLevel', careerLevel);
+      formData.append('currentStage', currentStage);
+      formData.append('province', province);
+      formData.append('city', city);
 
       if (buktiFile) {
         formData.append('buktiFile', buktiFile);
@@ -195,7 +468,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
           </h2>
           <button
             onClick={onClose}
-            className="text-slate-500 hover:text-white text-2xl font-light transition"
+            className="text-slate-500 hover:text-white text-2xl font-light transition p-1 cursor-pointer"
             disabled={loading}
           >
             <X className="w-5 h-5" />
@@ -206,7 +479,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
           {/* Company & Category */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Company</label>
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Company *</label>
               <input
                 type="text"
                 value={company}
@@ -217,7 +490,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
               />
             </div>
             <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Kategori</label>
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Kategori (Position)</label>
               <input
                 type="text"
                 value={kategori}
@@ -229,46 +502,104 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
             </div>
           </div>
 
-          {/* Dates */}
+          {/* Platform & Career Level */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Start Date</label>
-              <input
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Platform *</label>
+              <select
+                value={platform}
+                onChange={(e) => setPlatform(e.target.value)}
                 disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
-              />
+                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
+              >
+                {PLATFORMS.map((plat) => (
+                  <option key={plat} value={plat} className="bg-[#0f172a] text-white">
+                    {plat}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
-              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">End Date</label>
-              <input
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Career Level</label>
+              <select
+                value={careerLevel}
+                onChange={(e) => setCareerLevel(e.target.value)}
                 disabled={loading}
-                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
-              />
+                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
+              >
+                {CAREER_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl} className="bg-[#0f172a] text-white">
+                    {lvl}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Status Selection */}
+          {/* App Status & Current Stage */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">App Status *</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                disabled={loading}
+                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
+              >
+                <option value="Not Started" className="bg-[#0f172a] text-white">🟡 Not Started</option>
+                <option value="In Progress" className="bg-[#0f172a] text-white">🔵 In Progress</option>
+                <option value="Success" className="bg-[#0f172a] text-white">🟢 Success</option>
+                <option value="Failed" className="bg-[#0f172a] text-white">🔴 Failed</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Current Stage *</label>
+              <select
+                value={currentStage}
+                onChange={(e) => setCurrentStage(e.target.value)}
+                disabled={loading}
+                className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
+              >
+                {STAGES.map((stg) => (
+                  <option key={stg} value={stg} className="bg-[#0f172a] text-white">
+                    {stg}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Application Date */}
           <div>
-            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
+            <label className="text-[9px] font-bold text-slate-500 ml-1 uppercase tracking-wider block mb-1">Application Date *</label>
+            <input
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              required
               disabled={loading}
-              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition appearance-none cursor-pointer"
-            >
-              <option value="Not Started">🟡 Not Started</option>
-              <option value="In Progress">🔵 In Progress</option>
-              <option value="Psikotes">🧠 Psikotes</option>
-              <option value="Interview">🟣 Interview</option>
-              <option value="Success">🟢 Success</option>
-              <option value="Failed">🔴 Failed</option>
-            </select>
+              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
+            />
+          </div>
+
+          {/* Searchable Province & City inputs */}
+          <div className="grid grid-cols-2 gap-3">
+            <SearchableSelect
+              label={`Location (Province) ${loadingRegions ? '⏳' : ''}`}
+              value={province}
+              onChange={setProvince}
+              options={provincesList.map(p => p.nama)}
+              disabled={loading || loadingRegions}
+              placeholder={loadingRegions ? "Loading..." : "Search Province..."}
+            />
+            <SearchableSelect
+              label="Location (City)"
+              value={city}
+              onChange={setCity}
+              options={citiesList.map(c => c.nama)}
+              disabled={loading || loadingRegions}
+              placeholder={loadingRegions ? "Loading..." : "Search City..."}
+            />
           </div>
 
           {/* Social Links */}
@@ -319,7 +650,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               disabled={loading}
-              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition h-20 resize-none"
+              className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition h-16 resize-none"
             />
           </div>
 

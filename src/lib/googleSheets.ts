@@ -15,6 +15,11 @@ export interface Job {
   note: string;
   buktiurl: string;
   rownum: number;
+  platform?: string;
+  careerlevel?: string;
+  currentstage?: string;
+  province?: string;
+  city?: string;
 }
 
 const SHEET_NAME = 'DataLowongan';
@@ -101,7 +106,7 @@ export async function fetchJobs(): Promise<Job[]> {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${SHEET_NAME}!A:L`,
+      range: `${SHEET_NAME}!A:Q`,
     });
 
     const rows = response.data.values;
@@ -148,7 +153,7 @@ export async function setupDatabase(): Promise<void> {
     throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
   }
 
-  const headers = ['ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori', 'Note', 'BuktiURL'];
+  const headers = ['ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori', 'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City'];
 
   try {
     // Check if the sheet exists
@@ -178,7 +183,7 @@ export async function setupDatabase(): Promise<void> {
     // Set headers and styling
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${SHEET_NAME}!A1:L1`,
+      range: `${SHEET_NAME}!A1:Q1`,
       valueInputOption: 'RAW',
       requestBody: {
         values: [headers],
@@ -263,6 +268,11 @@ export async function saveJob(obj: {
   kategori?: string;
   note?: string;
   buktiurl?: string;
+  platform?: string;
+  careerLevel?: string;
+  currentStage?: string;
+  province?: string;
+  city?: string;
 }): Promise<string> {
   const sheets = getSheetsClient();
   const spreadsheetId = process.env.GOOGLE_SHEET_ID;
@@ -286,6 +296,11 @@ export async function saveJob(obj: {
     (obj.kategori || '').trim(),
     (obj.note || '').trim(),
     (obj.buktiurl || 'No File').trim(),
+    (obj.platform || '').trim(),
+    (obj.careerLevel || '').trim(),
+    (obj.currentStage || '').trim(),
+    (obj.province || '').trim(),
+    (obj.city || '').trim(),
   ];
 
   const parsedRowNum = obj.rowNum ? Number(obj.rowNum) : null;
@@ -294,7 +309,7 @@ export async function saveJob(obj: {
     // Update existing row
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `${SHEET_NAME}!A${parsedRowNum}:L${parsedRowNum}`,
+      range: `${SHEET_NAME}!A${parsedRowNum}:Q${parsedRowNum}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [rowData],
@@ -305,7 +320,7 @@ export async function saveJob(obj: {
     // Append new row
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: `${SHEET_NAME}!A:L`,
+      range: `${SHEET_NAME}!A:Q`,
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       requestBody: {
