@@ -25,11 +25,33 @@ interface RegencyData {
   nama: string;
 }
 
+const normalizeRegionName = (name: string): string => {
+  if (!name) return '';
+  return name.trim().toLowerCase()
+    .replace(/^daerah khusus ibukota\s+/i, 'dki ')
+    .replace(/^d\.k\.i\.\s+/i, 'dki ')
+    .replace(/^daerah istimewa\s+/i, 'di ')
+    .replace(/^d\.i\.\s+/i, 'di ')
+    .replace(/^nanggroe aceh darussalam/i, 'aceh')
+    .replace(/^(kota|kab\.?|kabupaten|adm\.?)\s+/gi, '')
+    .replace(/\s+/g, ' ');
+};
+
+const isMatchingRegion = (r1: string, r2: string): boolean => {
+  if (!r1 || !r2) return false;
+  const n1 = normalizeRegionName(r1);
+  const n2 = normalizeRegionName(r2);
+  if (n1 === n2) return true;
+  if (n1.length > 3 && n2.length > 3 && (n1.includes(n2) || n2.includes(n1))) return true;
+  return false;
+};
+
 // Fallback lists of provinces and cities if API fetch fails or offline
 const STATIC_PROVINCES: { [key: string]: string[] } = {
   'Aceh': ['Kabupaten Simeulue', 'Kabupaten Aceh Singkil', 'Kabupaten Aceh Selatan', 'Kabupaten Aceh Tenggara', 'Kota Sabang', 'Kota Banda Aceh', 'Kota Lhokseumawe', 'Kota Langsa'],
   'Sumatera Utara': ['Kota Medan', 'Kota Binjai', 'Kota Tebing Tinggi'],
-  'DKI Jakarta': ['Seluruh Provinsi (UMP)', 'Kota Jakarta Pusat', 'Kota Jakarta Selatan', 'Kota Jakarta Timur', 'Kota Jakarta Barat', 'Kota Jakarta Utara'],
+  'DKI Jakarta': ['Seluruh Provinsi (UMP)', 'Kota Jakarta Pusat', 'Kota Jakarta Selatan', 'Kota Jakarta Timur', 'Kota Jakarta Barat', 'Kota Jakarta Utara', 'Kabupaten Administrasi Kepulauan Seribu'],
+  'Daerah Khusus Ibukota Jakarta': ['Seluruh Provinsi (UMP)', 'Kota Jakarta Pusat', 'Kota Jakarta Selatan', 'Kota Jakarta Timur', 'Kota Jakarta Barat', 'Kota Jakarta Utara', 'Kabupaten Administrasi Kepulauan Seribu'],
   'Banten': ['Seluruh Provinsi (UMP)', 'Kota Tangerang', 'Kota Tangerang Selatan', 'Kabupaten Tangerang', 'Kota Cilegon', 'Kota Serang'],
   'Jawa Barat': ['Seluruh Provinsi (UMP)', 'Kota Bekasi', 'Kabupaten Bekasi', 'Kota Depok', 'Kota Bogor', 'Kota Bandung', 'Kota Cimahi', 'Kota Tasikmalaya'],
   'Jawa Tengah': ['Seluruh Provinsi (UMP)', 'Kota Semarang', 'Kota Surakarta (Solo)', 'Kabupaten Kudus'],
@@ -189,8 +211,8 @@ const SearchableSelect = ({
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
         const trimmed = search.trim();
-        // Match case-insensitively with options
-        const matched = options.find(opt => opt.toLowerCase() === trimmed.toLowerCase());
+        // Match case-insensitively or via region helper with options
+        const matched = options.find(opt => opt.toLowerCase() === trimmed.toLowerCase() || isMatchingRegion(opt, trimmed));
         if (matched) {
           onChange(matched);
           setSearch(matched);
@@ -209,8 +231,9 @@ const SearchableSelect = ({
 
   const filteredOptions = useMemo(() => {
     if (!search) return options;
+    const s = search.toLowerCase();
     return options.filter(opt =>
-      opt.toLowerCase().includes(search.toLowerCase())
+      opt.toLowerCase().includes(s) || isMatchingRegion(opt, s)
     );
   }, [options, search]);
 
@@ -343,7 +366,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
     if (!province || provincesList.length === 0) return;
 
     const matchedProvince = provincesList.find(
-      (p) => p.nama.toLowerCase() === province.toLowerCase()
+      (p) => p.nama.toLowerCase() === province.toLowerCase() || isMatchingRegion(p.nama, province)
     );
 
     if (matchedProvince) {
@@ -396,9 +419,15 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   useEffect(() => {
     if (citiesList.length > 0) {
       const cityNames = citiesList.map(c => c.nama);
-      // If selected city is not in the loaded list, auto-select the first one
-      if (!cityNames.some(cName => cName.toLowerCase() === city.toLowerCase())) {
-        Promise.resolve().then(() => setCity(cityNames[0]));
+      const matched = cityNames.find(cName => cName.toLowerCase() === city.toLowerCase() || isMatchingRegion(cName, city));
+      if (matched) {
+        if (city.toLowerCase() !== matched.toLowerCase() && !cityNames.some(c => c.toLowerCase() === city.toLowerCase())) {
+          Promise.resolve().then(() => setCity(matched));
+        }
+      } else {
+        if (!city || city.trim() === '') {
+          Promise.resolve().then(() => setCity(cityNames[0]));
+        }
       }
     }
   }, [citiesList, city]);
