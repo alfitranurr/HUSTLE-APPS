@@ -146,6 +146,18 @@ export async function fetchJobs(): Promise<Job[]> {
             obj[header] = String(val).trim();
           }
         });
+
+        // Normalize otherlink from various header aliases or direct 18th column (Column R, colIdx 17)
+        const otherLinkVal = 
+          obj.otherlink ||
+          obj.linkother ||
+          obj['otherlink'] ||
+          obj['linkother'] ||
+          obj['other_link'] ||
+          obj['other'] ||
+          (row[17] ? String(row[17]).trim() : '');
+
+        obj.otherlink = String(otherLinkVal || '');
         obj.rownum = idx + 2; // Rows are 1-indexed, header is row 1
         return obj as unknown as Job;
       })

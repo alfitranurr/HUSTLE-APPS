@@ -1,3 +1,4 @@
+/* cspell:disable */
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -12,11 +13,7 @@ import {
   ChevronLeft, 
   ChevronRight, 
   MapPin,
-  Calendar,
-  Briefcase,
-  Layers,
-  Tag,
-  FileText
+  Calendar
 } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
@@ -167,7 +164,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                   ? `${item.city}, ${item.province}` 
                   : item.city || item.province || 'Luar Daerah';
 
-                const hasLinks = item.instagram || item.linkedin || item.web;
+                const hasLinks = item.instagram || item.linkedin || item.web || item.otherlink;
 
                 return (
                   <div 
@@ -268,6 +265,17 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                                   title="Website"
                                 >
                                   <Globe className="w-3 h-3" />
+                                </a>
+                              )}
+                              {item.otherlink && (
+                                <a 
+                                  href={ensureAbsoluteUrl(item.otherlink)} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="p-1 rounded bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 transition"
+                                  title="Other Link"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
                                 </a>
                               )}
                             </div>
@@ -436,6 +444,17 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                                   <Globe className="w-3 h-3" />
                                 </a>
                               )}
+                              {item.otherlink && (
+                                <a 
+                                  href={ensureAbsoluteUrl(item.otherlink)} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="p-0.5 rounded bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 transition"
+                                  title="Other Link"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              )}
                             </div>
                           </td>
                           <td className="p-3 font-semibold text-slate-200 text-[11px]">{item.kategori || '-'}</td>
@@ -566,11 +585,16 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                               </a>
                             )}
                             {item.web && (
-                              <a href={ensureAbsoluteUrl(item.web)} target="_blank" rel="noreferrer" className="p-0.5 rounded bg-white/5 text-slate-400 hover:text-indigo-400">
+                              <a href={ensureAbsoluteUrl(item.web)} target="_blank" rel="noreferrer" className="p-0.5 rounded bg-white/5 text-slate-400 hover:text-indigo-400" title="Website">
                                 <Globe className="w-3 h-3" />
                               </a>
                             )}
-                            {!item.instagram && !item.linkedin && !item.web && <span className="text-[9px] text-slate-700 font-bold">-</span>}
+                            {item.otherlink && (
+                              <a href={ensureAbsoluteUrl(item.otherlink)} target="_blank" rel="noreferrer" className="p-0.5 rounded bg-white/5 text-slate-400 hover:text-emerald-400" title="Other Link">
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                            {!item.instagram && !item.linkedin && !item.web && !item.otherlink && <span className="text-[9px] text-slate-700 font-bold">-</span>}
                           </div>
                         </div>
 
