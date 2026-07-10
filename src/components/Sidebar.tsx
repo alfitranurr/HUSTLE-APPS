@@ -212,7 +212,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, className = '' }:
             onClick={async () => {
               try {
                 await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
+                window.location.href = '/login?logout=success';
               } catch (err) {
                 console.error('Logout failed:', err);
               }

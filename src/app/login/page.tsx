@@ -1,17 +1,27 @@
+/* cspell:disable */
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import { ShieldAlert, LogIn, Lock, Mail } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 
 export default function LoginPage() {
-  const router = useRouter();
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('logout') === 'success') {
+        toast.info('Anda telah berhasil keluar dari akun.');
+        // Clean URL to avoid repeating toast on refresh
+        window.history.replaceState({}, document.title, '/login');
+      }
+    }
+  }, [toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
