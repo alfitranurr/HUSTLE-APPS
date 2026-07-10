@@ -14,7 +14,8 @@ import {
   ChevronRight, 
   Menu, 
   X, 
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -195,7 +196,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, className = '' }:
         </div>
 
         {/* Sidebar User Profile Footer */}
-        <div className="p-4 border-t border-white/5 space-y-4">
+        <div className="p-4 border-t border-white/5 space-y-3">
           <div className={`flex items-center gap-3 ${isCollapsed ? 'md:justify-center' : ''}`}>
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-sm shrink-0">
               <User className="w-5 h-5" />
@@ -205,6 +206,27 @@ export default function Sidebar({ isCollapsed, setIsCollapsed, className = '' }:
               <p className="text-[9px] text-slate-500 truncate mt-0.5">Free Account</p>
             </div>
           </div>
+
+          {/* Sign Out Button */}
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = '/login';
+              } catch (err) {
+                console.error('Logout failed:', err);
+              }
+            }}
+            className={`flex items-center gap-3 w-full py-2 px-3 rounded-lg text-[10px] font-bold text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent transition cursor-pointer ${
+              isCollapsed ? 'justify-center px-0' : ''
+            }`}
+            title="Sign Out"
+          >
+            <LogOut className="w-4.5 h-4.5 shrink-0" />
+            <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? 'md:hidden opacity-0 w-0' : 'opacity-100'}`}>
+              Sign Out
+            </span>
+          </button>
 
           {/* Collapse Trigger for Desktop */}
           <button
