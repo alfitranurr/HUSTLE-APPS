@@ -233,6 +233,19 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
                   </div>
                 </div>
               </div>
+
+              {/* Scheduled Date & Time (Assessment / Interview) */}
+              {(job.currentstage === 'Assessment Test' || job.currentstage === 'HR Interview' || job.currentstage === 'User Interview') && job.enddate && (
+                <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-indigo-500/20 text-indigo-400">
+                  <span className="text-[9px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">
+                    {job.currentstage === 'Assessment Test' ? 'Assessment Test Schedule' : 'Interview Schedule'}
+                  </span>
+                  <span className="text-xs font-bold flex items-center gap-1.5 mt-0.5">
+                    <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
+                    {formatDateTime(job.enddate)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Right Column: Links, Notes & Attachment */}

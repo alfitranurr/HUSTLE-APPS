@@ -41,6 +41,19 @@ const formatDate = (dateStr?: string) => {
   }
 };
 
+const formatDateTime = (dateStr?: string) => {
+  if (!dateStr) return '---';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '---';
+    const datePart = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const timePart = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    return `${datePart} - ${timePart}`;
+  } catch {
+    return '---';
+  }
+};
+
 // Helper for status classes used in Dashboard Overview
 const getOverviewStatusClass = (status?: string) => {
   const s = String(status || '').toLowerCase();
@@ -110,13 +123,31 @@ export default function DashboardPage() {
   // 3. Filter Upcoming Interviews
   const upcomingInterviews = useMemo(() => {
     const today = new Date().getTime();
-    return jobs.filter((job) => {
-      const isInterview = String(job.status || '').toLowerCase().includes('interview');
-      if (!isInterview) return false;
-      if (!job.enddate) return true; // Show if no end date set yet
-      const interviewTime = new Date(job.enddate).getTime();
-      return interviewTime >= today; // In the future or today
-    });
+    return jobs
+      .filter((job) => {
+        const stage = String(job.currentstage || '').toLowerCase();
+        const isInterviewStage = stage === 'user interview' || stage === 'hr interview';
+        if (!isInterviewStage) return false;
+        if (!job.enddate) return false;
+        const interviewTime = new Date(job.enddate).getTime();
+        return !isNaN(interviewTime) && interviewTime >= today;
+      })
+      .sort((a, b) => new Date(a.enddate).getTime() - new Date(b.enddate).getTime());
+  }, [jobs]);
+
+  // 3.5. Filter Upcoming Assessment Tests
+  const upcomingAssessments = useMemo(() => {
+    const today = new Date().getTime();
+    return jobs
+      .filter((job) => {
+        const stage = String(job.currentstage || '').toLowerCase();
+        const isAssessmentStage = stage === 'assessment test';
+        if (!isAssessmentStage) return false;
+        if (!job.enddate) return false;
+        const assessmentTime = new Date(job.enddate).getTime();
+        return !isNaN(assessmentTime) && assessmentTime >= today;
+      })
+      .sort((a, b) => new Date(a.enddate).getTime() - new Date(b.enddate).getTime());
   }, [jobs]);
 
   // 4. Generate Contribution Heatmap Grid
@@ -256,6 +287,127 @@ export default function DashboardPage() {
           >
             <RotateCw className={`w-4 h-4 ${isValidating ? 'animate-spin' : ''}`} />
           </button>
+        </div>
+      </div>
+
+      {/* Upcoming Schedules (Assessments & Interviews) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fade-in">
+        {/* Card 1: Upcoming Assessment Test */}
+        <div className="glass rounded-[2rem] p-6 space-y-6">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4">
+            <div>
+              <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                Upcoming Assessment Test
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                Your schedule for the next assessment tests
+              </p>
+            </div>
+            <Link 
+              href="/tracker"
+              className="text-[9px] text-slate-400 hover:text-white font-black uppercase tracking-wider flex items-center gap-1 transition border border-white/10 hover:border-white/20 px-3.5 py-1.5 rounded-xl bg-white/5 cursor-pointer"
+            >
+              View Tracker <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {isLoading ? (
+            <div className="py-8 text-center text-slate-500 text-xs uppercase tracking-wider font-bold">
+              Checking schedule...
+            </div>
+          ) : upcomingAssessments.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center text-center gap-2.5 border border-dashed border-white/5 rounded-2xl bg-slate-900/10">
+              <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-500 border border-white/5">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-slate-200 font-extrabold text-[10px] uppercase tracking-wider">No upcoming assessments</p>
+                <p className="text-slate-500 text-[9px] mt-0.5 leading-normal">
+                  No scheduled assessment tests.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 no-scrollbar">
+              {upcomingAssessments.map((item) => (
+                <div 
+                  key={`assessment-${item.id || item.rownum}`} 
+                  className="bg-white/5 border border-white/5 hover:border-cyan-500/30 p-4 rounded-xl transition duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative group animate-fade-in"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wide">{item.company}</h4>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                      {item.kategori || 'Uncategorized'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-300 font-mono bg-slate-950/40 px-3 py-1.5 rounded-lg border border-white/5 shrink-0 self-start sm:self-center">
+                    <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                    <span>{formatDateTime(item.enddate)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Card 2: Upcoming Interviews */}
+        <div className="glass rounded-[2rem] p-6 space-y-6">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4">
+            <div>
+              <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                Upcoming Interviews
+              </h3>
+              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                Your schedule for the next interviews
+              </p>
+            </div>
+            <Link 
+              href="/tracker"
+              className="text-[9px] text-slate-400 hover:text-white font-black uppercase tracking-wider flex items-center gap-1 transition border border-white/10 hover:border-white/20 px-3.5 py-1.5 rounded-xl bg-white/5 cursor-pointer"
+            >
+              View Tracker <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          {isLoading ? (
+            <div className="py-8 text-center text-slate-500 text-xs uppercase tracking-wider font-bold">
+              Checking schedule...
+            </div>
+          ) : upcomingInterviews.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center text-center gap-2.5 border border-dashed border-white/5 rounded-2xl bg-slate-900/10">
+              <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-slate-500 border border-white/5">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-slate-200 font-extrabold text-[10px] uppercase tracking-wider">No upcoming interviews</p>
+                <p className="text-slate-500 text-[9px] mt-0.5 leading-normal">
+                  Apply to more jobs to schedule an interview!
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 no-scrollbar">
+              {upcomingInterviews.map((item) => (
+                <div 
+                  key={`interview-${item.id || item.rownum}`} 
+                  className="bg-white/5 border border-white/5 hover:border-purple-500/30 p-4 rounded-xl transition duration-150 flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative group animate-fade-in"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-purple-400 uppercase tracking-wide">{item.company}</h4>
+                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                      {item.currentstage || 'Interview Stage'} - {item.kategori || 'Uncategorized'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-300 font-mono bg-slate-950/40 px-3 py-1.5 rounded-lg border border-white/5 shrink-0 self-start sm:self-center">
+                    <Clock className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                    <span>{formatDateTime(item.enddate)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -574,71 +726,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Row 4: Upcoming Interviews (Full Width) */}
-      <div className="glass rounded-[2rem] p-6 space-y-6">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
-          <div>
-            <h3 className="font-extrabold text-white uppercase text-[10px] tracking-widest">
-              Upcoming Interviews
-            </h3>
-            <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-              Your schedule for the next interviews
-            </p>
-          </div>
-          <Link 
-            href="/tracker"
-            className="text-[9px] text-slate-400 hover:text-white font-black uppercase tracking-wider flex items-center gap-1 transition border border-white/10 hover:border-white/20 px-4 py-2 rounded-xl bg-white/5 cursor-pointer"
-          >
-            View Calendar <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {isLoading ? (
-          <div className="py-12 text-center text-slate-500 text-xs uppercase tracking-wider font-bold">
-            Checking schedule...
-          </div>
-        ) : upcomingInterviews.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-center gap-3 border border-dashed border-white/5 rounded-2xl bg-slate-900/10">
-            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-slate-500 border border-white/5">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-slate-200 font-extrabold text-xs uppercase tracking-wider">No upcoming interviews</p>
-              <p className="text-slate-500 text-[10px] mt-0.5 leading-normal">
-                Take a break or apply to more jobs to schedule an interview!
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {upcomingInterviews.map((item) => (
-              <div 
-                key={`interview-${item.id || item.rownum}`} 
-                className="bg-white/5 border border-white/5 hover:border-indigo-500/30 p-5 rounded-2xl transition duration-150 space-y-3 relative group"
-              >
-                <div className="absolute top-4 right-4 bg-purple-500/10 text-purple-400 text-[8px] font-black tracking-widest px-2 py-0.5 rounded border border-purple-500/20 uppercase">
-                  Interview Stage
-                </div>
-                <div>
-                  <h4 className="text-sm font-black text-indigo-400">{item.company}</h4>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                    {item.kategori || 'Uncategorized'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-300 font-mono bg-slate-950/40 p-2.5 rounded-xl border border-white/5">
-                  <Clock className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>{formatDate(item.enddate || item.startdate)}</span>
-                </div>
-                {item.note && (
-                  <p className="text-[10px] text-slate-400 leading-normal line-clamp-2">
-                    {item.note}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Form Modal */}
       <JobFormModal

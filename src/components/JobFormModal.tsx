@@ -319,6 +319,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const [company, setCompany] = useState('');
   const [kategori, setKategori] = useState('');
   const [startDate, setStartDate] = useState(''); // Used for Application Date
+  const [endDate, setEndDate] = useState(''); // Used for scheduled Assessment/Interview
   const [status, setStatus] = useState('Not Started'); // Used for App Status
   const [linkIg, setLinkIg] = useState('');
   const [linkLi, setLinkLi] = useState('');
@@ -439,6 +440,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setCompany(jobToEdit.company || '');
         setKategori(jobToEdit.kategori || '');
         setStartDate(formatToDatetimeLocal(jobToEdit.startdate));
+        setEndDate(formatToDatetimeLocal(jobToEdit.enddate));
         
         // Normalize Status
         let curStatus = jobToEdit.status;
@@ -465,6 +467,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setCompany('');
         setKategori('');
         setStartDate('');
+        setEndDate('');
         setStatus('Not Started');
         setLinkIg('');
         setLinkLi('');
@@ -506,6 +509,10 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
     }
     if (!startDate) {
       toast.error('Application Date is required.');
+      return;
+    }
+    if ((currentStage === 'Assessment Test' || currentStage === 'HR Interview' || currentStage === 'User Interview') && !endDate) {
+      toast.error(`Schedule Date & Time is required for ${currentStage}.`);
       return;
     }
     if (!platform) {
@@ -554,7 +561,8 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('company', company);
       formData.append('kategori', kategori);
       formData.append('startDate', startDate); // Used for Application Date
-      formData.append('endDate', ''); 
+      const finalEndDate = (currentStage === 'Assessment Test' || currentStage === 'HR Interview' || currentStage === 'User Interview') ? endDate : '';
+      formData.append('endDate', finalEndDate);
       formData.append('status', status);
       formData.append('linkIg', formattedIg);
       formData.append('linkLi', formattedLi);
@@ -727,6 +735,23 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
                   className="w-full bg-[#0f172a] border border-[#334155] rounded-xl p-3 text-xs text-white outline-none focus:border-indigo-500 transition"
                 />
               </div>
+
+              {/* Schedule Date & Time (Conditional) */}
+              {(currentStage === 'Assessment Test' || currentStage === 'HR Interview' || currentStage === 'User Interview') && (
+                <div className="animate-fade-in space-y-1">
+                  <label className="text-[9px] font-bold text-indigo-400 ml-1 uppercase tracking-wider block">
+                    {currentStage === 'Assessment Test' ? 'Assessment Test Schedule *' : 'Interview Schedule *'}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    required
+                    disabled={loading}
+                    className="w-full bg-[#0f172a] border border-indigo-500/30 text-indigo-300 rounded-xl p-3 text-xs outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+              )}
 
               {/* Searchable Province & City inputs */}
               <div className="grid grid-cols-2 gap-3">
