@@ -1,3 +1,4 @@
+/* cspell:disable */
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -27,6 +28,7 @@ const fetcher = async (url: string) => {
 
 const CAREER_LEVELS = [
   'Internship', 
+  'Kontrak/PKWT',
   'Entry Level / Junior', 
   'Associate / Mid-Senior', 
   'Senior', 
@@ -53,7 +55,7 @@ export default function TrackerPage() {
     revalidateOnReconnect: true,
   });
 
-  const jobs: Job[] = data?.data || [];
+  const jobs: Job[] = useMemo(() => data?.data || [], [data?.data]);
 
   const uniqueProvinces = useMemo(() => {
     return Array.from(new Set(jobs.map(j => j.province).filter((p): p is string => typeof p === 'string' && p.trim() !== ''))).sort();
@@ -313,6 +315,7 @@ export default function TrackerPage() {
                 {CAREER_LEVELS.map((lvl) => {
                   const levelIcons: Record<string, string> = {
                     'Internship': '🌱',
+                    'Kontrak/PKWT': '📄',
                     'Entry Level / Junior': '🚀',
                     'Associate / Mid-Senior': '⚡',
                     'Senior': '⭐',

@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
-import { ensureAbsoluteUrl } from '@/lib/utils';
+import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { useToast } from './Toast';
 import { JobDetailsModal } from './JobDetailsModal';
 
@@ -299,18 +299,40 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                     {/* Footer Actions */}
                     <div className="flex items-center justify-between pt-1 border-t border-white/5">
                       <div>
-                        {item.buktiurl && item.buktiurl !== 'No File' ? (
-                          <a 
-                            href={ensureAbsoluteUrl(item.buktiurl)} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold transition"
-                          >
-                            <ExternalLink className="w-3 h-3" /> Proof
-                          </a>
-                        ) : (
-                          <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">No Proof</span>
-                        )}
+                        {(() => {
+                          const proofUrls = getProofUrls(item.buktiurl);
+                          if (proofUrls.length === 0) {
+                            return <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">No Proof</span>;
+                          }
+                          if (proofUrls.length === 1) {
+                            return (
+                              <a 
+                                href={ensureAbsoluteUrl(proofUrls[0])} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold transition"
+                              >
+                                <ExternalLink className="w-3 h-3" /> Proof
+                              </a>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center gap-1 flex-wrap">
+                              {proofUrls.map((url, idx) => (
+                                <a 
+                                  key={idx}
+                                  href={ensureAbsoluteUrl(url)} 
+                                  target="_blank" 
+                                  rel="noreferrer" 
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-bold transition"
+                                  title={`Proof #${idx + 1}`}
+                                >
+                                  <ExternalLink className="w-3 h-3" /> #{idx + 1}
+                                </a>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center gap-1">
@@ -608,13 +630,28 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
 
                       <div className="flex items-center justify-between mt-1 pt-2 border-t border-white/5">
                         <div>
-                          {item.buktiurl && item.buktiurl !== 'No File' ? (
-                            <a href={ensureAbsoluteUrl(item.buktiurl)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[9px] text-indigo-400 font-bold uppercase tracking-wider">
-                              <ExternalLink className="w-3 h-3" /> View Proof
-                            </a>
-                          ) : (
-                            <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">No Proof</span>
-                          )}
+                          {(() => {
+                            const proofUrls = getProofUrls(item.buktiurl);
+                            if (proofUrls.length === 0) {
+                              return <span className="text-[8px] text-slate-600 font-bold uppercase tracking-wider">No Proof</span>;
+                            }
+                            if (proofUrls.length === 1) {
+                              return (
+                                <a href={ensureAbsoluteUrl(proofUrls[0])} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[9px] text-indigo-400 font-bold uppercase tracking-wider hover:underline">
+                                  <ExternalLink className="w-3 h-3" /> View Proof
+                                </a>
+                              );
+                            }
+                            return (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {proofUrls.map((url, idx) => (
+                                  <a key={idx} href={ensureAbsoluteUrl(url)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[9px] text-indigo-400 font-bold uppercase tracking-wider hover:underline">
+                                    <ExternalLink className="w-3 h-3" /> Proof #{idx + 1}
+                                  </a>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                         
                         <div className="flex items-center gap-3">

@@ -1,6 +1,7 @@
+/* cspell:disable */
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useSyncExternalStore } from 'react';
 import { 
   ResponsiveContainer, 
   BarChart, 
@@ -17,13 +18,7 @@ import { Job } from '@/lib/googleSheets';
 import { 
   Eye, 
   X, 
-  Send, 
-  Users, 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
   TrendingUp,
-  Layers,
   Building2
 } from 'lucide-react';
 
@@ -31,13 +26,27 @@ interface DashboardChartsProps {
   jobs: Job[];
 }
 
-export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
-  const [mounted, setMounted] = useState(false);
-  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: string | number }>;
+}
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-950/95 border border-white/10 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 shadow-2xl backdrop-blur-md">
+        <p className="capitalize">{`${payload[0].name}: ${payload[0].value}`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const emptySubscribe = () => () => {};
+
+export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
 
   useEffect(() => {
     if (showCategoriesModal) {
@@ -208,6 +217,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
 
     const levelIcons: Record<string, string> = {
       'Internship': '🌱',
+      'Kontrak/PKWT': '📄',
       'Entry Level / Junior': '🚀',
       'Associate / Mid-Senior': '⚡',
       'Senior': '⭐',
@@ -257,16 +267,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ jobs }) => {
       .slice(0, 5);
   }, [jobs]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-slate-950/95 border border-white/10 px-3 py-2 rounded-xl text-xs font-bold text-slate-200 shadow-2xl backdrop-blur-md">
-          <p className="capitalize">{`${payload[0].name}: ${payload[0].value}`}</p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   if (!mounted) return null;
 

@@ -4,7 +4,7 @@
 import React from 'react';
 import { X, Calendar, Globe, FileText, ExternalLink, MapPin, Tag, Briefcase } from 'lucide-react';
 import { Job } from '@/lib/googleSheets';
-import { ensureAbsoluteUrl } from '@/lib/utils';
+import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { getStatusClass } from './JobTable';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
 
@@ -322,29 +322,41 @@ export const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ isOpen, onClos
 
               {/* Proof Attachment */}
               <div className="bg-slate-950/60 p-3.5 rounded-2xl border border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">
-                      Proof File
-                    </span>
-                    <span className="text-xs text-slate-300 font-semibold">
-                      {job.buktiurl && job.buktiurl !== 'No File' ? 'Attachment Uploaded' : 'No Attachment'}
-                    </span>
-                  </div>
-                </div>
-                {job.buktiurl && job.buktiurl !== 'No File' ? (
-                  <a
-                    href={ensureAbsoluteUrl(job.buktiurl)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black text-white transition shadow-md uppercase tracking-wider cursor-pointer"
-                  >
-                    Open File <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : null}
+                {(() => {
+                  const proofUrls = getProofUrls(job.buktiurl);
+                  return (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">
+                            Proof File
+                          </span>
+                          <span className="text-xs text-slate-300 font-semibold">
+                            {proofUrls.length > 0 ? `${proofUrls.length} Attachment${proofUrls.length > 1 ? 's' : ''}` : 'No Attachment'}
+                          </span>
+                        </div>
+                      </div>
+                      {proofUrls.length > 0 ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {proofUrls.map((url, idx) => (
+                            <a
+                              key={idx}
+                              href={ensureAbsoluteUrl(url)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-black text-white transition shadow-md uppercase tracking-wider cursor-pointer"
+                            >
+                              {proofUrls.length > 1 ? `Proof #${idx + 1}` : 'Open File'} <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>

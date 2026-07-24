@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Globe, Upload, FileText, Link as LinkIcon } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon, PlatformBrandIcon } from './BrandIcons';
 import { Job } from '@/lib/googleSheets';
-import { ensureAbsoluteUrl } from '@/lib/utils';
+import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { useToast } from './Toast';
 
 interface JobFormModalProps {
@@ -65,6 +65,7 @@ const STATIC_PROVINCES: { [key: string]: string[] } = {
 };
 
 const PLATFORMS = [
+  'Gmail',
   'LinkedIn',
   'Instagram',
   'Direct Web',
@@ -79,9 +80,10 @@ const PLATFORMS = [
   'Other'
 ];
 
-const CAREER_LEVELS = ['Internship', 'Entry Level / Junior', 'Associate / Mid-Senior', 'Senior', 'Lead / Manager', 'Director / Executive', 'Not Specified'];
+const CAREER_LEVELS = ['Internship', 'Kontrak/PKWT', 'Entry Level / Junior', 'Associate / Mid-Senior', 'Senior', 'Lead / Manager', 'Director / Executive', 'Not Specified'];
 const levelIcons: Record<string, string> = {
   'Internship': '🌱',
+  'Kontrak/PKWT': '📄',
   'Entry Level / Junior': '🚀',
   'Associate / Mid-Senior': '⚡',
   'Senior': '⭐',
@@ -326,11 +328,11 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
   const [linkWeb, setLinkWeb] = useState('');
   const [linkOther, setLinkOther] = useState('');
   const [note, setNote] = useState('');
-  const [buktiFile, setBuktiFile] = useState<File | null>(null);
-  const [existingUrl, setExistingUrl] = useState('');
+  const [buktiFiles, setBuktiFiles] = useState<File[]>([]);
+  const [existingUrls, setExistingUrls] = useState<string[]>([]);
 
   // New Fields States
-  const [platform, setPlatform] = useState('LinkedIn');
+  const [platform, setPlatform] = useState('Gmail');
   const [careerLevel, setCareerLevel] = useState('Not Specified');
   const [currentStage, setCurrentStage] = useState('Not Started');
   const [province, setProvince] = useState('Daerah Khusus Ibukota Jakarta');
@@ -453,11 +455,11 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setLinkWeb(jobToEdit.web || '');
         setLinkOther(jobToEdit.otherlink || '');
         setNote(jobToEdit.note || '');
-        setExistingUrl(jobToEdit.buktiurl || '');
-        setBuktiFile(null);
+        setExistingUrls(getProofUrls(jobToEdit.buktiurl));
+        setBuktiFiles([]);
 
         // Load new fields
-        setPlatform(jobToEdit.platform || 'LinkedIn');
+        setPlatform(jobToEdit.platform || 'Gmail');
         setCareerLevel(jobToEdit.careerlevel || 'Not Specified');
         setCurrentStage(jobToEdit.currentstage || 'Not Started');
         setProvince(jobToEdit.province || 'Daerah Khusus Ibukota Jakarta');
@@ -474,10 +476,10 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
         setLinkWeb('');
         setLinkOther('');
         setNote('');
-        setExistingUrl('');
-        setBuktiFile(null);
+        setExistingUrls([]);
+        setBuktiFiles([]);
 
-        setPlatform('LinkedIn');
+        setPlatform('Gmail');
         setCareerLevel('Not Specified');
         setCurrentStage('Not Started');
         setProvince('Daerah Khusus Ibukota Jakarta');
@@ -569,7 +571,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('linkWeb', formattedWeb);
       formData.append('linkOther', formattedOther);
       formData.append('note', note);
-      formData.append('existingUrl', existingUrl);
+      formData.append('existingUrl', existingUrls.join(', '));
 
       // New Fields
       formData.append('platform', platform);
@@ -578,8 +580,10 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('province', province);
       formData.append('city', city);
 
-      if (buktiFile) {
-        formData.append('buktiFile', buktiFile);
+      if (buktiFiles.length > 0) {
+        buktiFiles.forEach((file) => {
+          formData.append('buktiFiles', file);
+        });
       }
 
       const response = await fetch('/api/jobs', {
@@ -844,26 +848,76 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
               {/* Proof Attachment */}
               <div>
                 <label className="text-[9px] font-bold text-indigo-400 ml-1 uppercase tracking-wider block mb-1">
-                  Proof Attachment (Upload New)
+                  Proof Attachment (Upload New / Multiple)
                 </label>
                 <div className="relative border border-dashed border-[#334155] hover:border-indigo-500 transition rounded-xl p-3.5 flex flex-col items-center justify-center bg-[#0f172a]/50 cursor-pointer">
                   <input
                     type="file"
+                    multiple
                     disabled={loading}
-                    onChange={(e) => setBuktiFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files.length > 0) {
+                        const selected = Array.from(e.target.files);
+                        setBuktiFiles((prev) => [...prev, ...selected]);
+                      }
+                    }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                   <Upload className="w-4 h-4 text-slate-500 mb-1" />
                   <span className="text-[10px] text-slate-400 font-semibold">
-                    {buktiFile ? buktiFile.name : 'Click to select or drag proof file'}
+                    Click to select or drag proof file(s)
                   </span>
                   <span className="text-[8px] text-slate-500 mt-0.5 uppercase">Images or PDF up to 5MB</span>
                 </div>
 
-                {existingUrl && existingUrl !== 'No File' && (
-                  <div className="flex items-center gap-1.5 mt-1.5 bg-indigo-500/10 border border-indigo-500/20 py-1 px-2.5 rounded-lg text-indigo-400">
-                    <FileText className="w-3.5 h-3.5" />
-                    <span className="text-[9px] font-bold uppercase tracking-wider">Current file preserved</span>
+                {/* Existing attachments list */}
+                {existingUrls.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block ml-1">
+                      Existing Attachment(s):
+                    </span>
+                    {existingUrls.map((url, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-indigo-500/10 border border-indigo-500/20 py-1.5 px-3 rounded-lg text-indigo-300">
+                        <a href={ensureAbsoluteUrl(url)} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 truncate hover:underline">
+                          <FileText className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                          <span className="text-[10px] font-bold truncate">Attachment #{idx + 1}</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setExistingUrls((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-red-400 p-0.5 transition cursor-pointer shrink-0 ml-2"
+                          title="Remove file"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Newly selected files list */}
+                {buktiFiles.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block ml-1">
+                      New File(s) to Upload ({buktiFiles.length}):
+                    </span>
+                    {buktiFiles.map((file, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-slate-800/80 border border-slate-700 py-1.5 px-3 rounded-lg text-slate-200">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <FileText className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                          <span className="text-[10px] font-medium truncate">{file.name}</span>
+                          <span className="text-[9px] text-slate-400 shrink-0">({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBuktiFiles((prev) => prev.filter((_, i) => i !== idx))}
+                          className="text-slate-400 hover:text-red-400 p-0.5 transition cursor-pointer shrink-0 ml-2"
+                          title="Remove file"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

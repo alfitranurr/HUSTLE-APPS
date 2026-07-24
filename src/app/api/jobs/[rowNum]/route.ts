@@ -4,6 +4,7 @@ import {
   deleteJob,
   deleteFileFromDrive,
 } from '@/lib/googleSheets';
+import { getProofUrls } from '@/lib/utils';
 
 interface RouteParams {
   params: Promise<{
@@ -24,15 +25,17 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 1. Fetch current jobs to see if this row has an active file attachment
+    // 1. Fetch current jobs to see if this row has active file attachments
     const jobs = await fetchJobs();
     const targetJob = jobs.find(job => job.rownum === parsedRowNum);
 
-    if (targetJob) {
-      const fileUrl = targetJob.buktiurl;
-      // 2. If it has a file in Drive, trash it
-      if (fileUrl && fileUrl.includes('drive.google.com')) {
-        await deleteFileFromDrive(fileUrl);
+    if (targetJob && targetJob.buktiurl) {
+      const urls = getProofUrls(targetJob.buktiurl);
+      // 2. If it has files in Drive, trash them
+      for (const url of urls) {
+        if (url.includes('drive.google.com')) {
+          await deleteFileFromDrive(url);
+        }
       }
     }
 

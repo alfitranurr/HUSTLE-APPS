@@ -5,6 +5,7 @@ import {
   uploadFileToDrive,
   deleteFileFromDrive,
 } from '@/lib/googleSheets';
+import { getProofUrls } from '@/lib/utils';
 
 // GET: Fetch all jobs and calculate summary statistics
 export async function GET() {
@@ -67,7 +68,6 @@ export async function POST(req: NextRequest) {
     const kategori = formData.get('kategori') as string | null; // Position
     const note = formData.get('note') as string | null;
     const existingUrl = formData.get('existingUrl') as string | null;
-    const buktiFile = formData.get('buktiFile') as File | null;
     
     // New Fields
     const platform = formData.get('platform') as string | null;
@@ -83,30 +83,66 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let fileUrl = existingUrl || 'No File';
+    // Extract existing preserved URLs
+    const preservedUrls = getProofUrls(existingUrl || undefined);
 
-    // If a file is uploaded, send it to Google Drive
-    if (buktiFile && buktiFile.name && buktiFile.size > 0) {
-      try {
-        const arrayBuffer = await buktiFile.arrayBuffer();
-        const fileBuffer = Buffer.from(arrayBuffer);
-
-        // Upload file to Google Drive
-        fileUrl = await uploadFileToDrive(fileBuffer, buktiFile.name, buktiFile.type);
-
-        // If there was an old file in Drive, send it to the trash
-        if (existingUrl && existingUrl.includes('drive.google.com')) {
-          await deleteFileFromDrive(existingUrl);
+    // Get all uploaded file objects (supporting both 'buktiFiles' and 'buktiFile')
+    const rawFiles = [
+      ...(formData.getAll('buktiFiles') as File[]),
+      ...(formData.getAll('buktiFile') as File[])
+    ];
+    
+    // Deduplicate files by reference/name
+    const uploadedFiles: File[] = [];
+    const seenFileKeys = new Set<string>();
+    for (const f of rawFiles) {
+      if (f && f.name && f.size > 0) {
+        const key = `${f.name}_${f.size}`;
+        if (!seenFileKeys.has(key)) {
+          seenFileKeys.add(key);
+          uploadedFiles.push(f);
         }
+      }
+    }
+
+    const newlyUploadedUrls: string[] = [];
+    for (const file of uploadedFiles) {
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
+        const uploadedUrl = await uploadFileToDrive(fileBuffer, file.name, file.type);
+        newlyUploadedUrls.push(uploadedUrl);
       } catch (uploadError: unknown) {
         const err = uploadError as Error;
         console.error('File upload failed:', err);
         return NextResponse.json(
-          { success: false, error: `File upload failed: ${err.message}` },
+          { success: false, error: `File upload failed for ${file.name}: ${err.message}` },
           { status: 500 }
         );
       }
     }
+
+    // Cleanup old files that were removed in edit form
+    const parsedRowNum = rowNum ? Number(rowNum) : null;
+    if (parsedRowNum) {
+      try {
+        const jobs = await fetchJobs();
+        const currentJob = jobs.find(j => j.rownum === parsedRowNum);
+        if (currentJob && currentJob.buktiurl) {
+          const oldUrls = getProofUrls(currentJob.buktiurl);
+          for (const oldUrl of oldUrls) {
+            if (oldUrl.includes('drive.google.com') && !preservedUrls.includes(oldUrl)) {
+              await deleteFileFromDrive(oldUrl);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to cleanup old drive files:', err);
+      }
+    }
+
+    const allUrls = [...preservedUrls, ...newlyUploadedUrls];
+    const fileUrl = allUrls.length > 0 ? allUrls.join(', ') : 'No File';
 
     // Save record to Google Sheets
     const result = await saveJob({
