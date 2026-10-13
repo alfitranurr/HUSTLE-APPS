@@ -12,7 +12,8 @@ const SERIES = [
 
 const AXIS = { stroke: '#94a3b8', fontSize: 12, tickLine: false, axisLine: false } as const;
 
-export function TimelineChart({ data }: { data: TimelinePoint[] }) {
+/** `onSelect` receives the month that was clicked. */
+export function TimelineChart({ data, onSelect }: { data: TimelinePoint[]; onSelect?: (point: TimelinePoint) => void }) {
   return (
     <div>
       <ul className="mb-3 flex flex-wrap gap-4 text-xs text-slate-600" aria-label="Legend">
@@ -25,7 +26,16 @@ export function TimelineChart({ data }: { data: TimelinePoint[] }) {
       </ul>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 480, height: 256 }}>
-          <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+          <LineChart
+            data={data}
+            margin={{ top: 8, right: 12, left: -16, bottom: 0 }}
+            onClick={(state) => {
+              // Index first; the label is a fallback for clicks between ticks.
+              const point = data[Number(state.activeTooltipIndex)] ?? data.find((p) => p.name === state.activeLabel);
+              if (point && onSelect) onSelect(point);
+            }}
+            style={onSelect ? { cursor: 'pointer' } : undefined}
+          >
             <CartesianGrid vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="name" {...AXIS} dy={8} />
             <YAxis allowDecimals={false} {...AXIS} />

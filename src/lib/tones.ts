@@ -28,6 +28,10 @@ interface ToneClasses {
   soft: string;
   /** Raw colour for charts / SVG. */
   hex: string;
+  /** Faded row background on hover/focus for clickable rows. */
+  hover: string;
+  /** Row label colour while its row is hovered. */
+  hoverText: string;
 }
 
 export const TONES: Record<Tone, ToneClasses> = {
@@ -38,6 +42,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-indigo-600',
     soft: 'bg-indigo-50',
     hex: '#6366f1',
+    hover: 'hover:bg-indigo-50/70 focus-visible:bg-indigo-50/70',
+    hoverText: 'group-hover:text-indigo-700',
   },
   sky: {
     bar: 'bg-sky-500',
@@ -46,6 +52,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-sky-600',
     soft: 'bg-sky-50',
     hex: '#0ea5e9',
+    hover: 'hover:bg-sky-50/70 focus-visible:bg-sky-50/70',
+    hoverText: 'group-hover:text-sky-700',
   },
   cyan: {
     bar: 'bg-cyan-500',
@@ -54,6 +62,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-cyan-600',
     soft: 'bg-cyan-50',
     hex: '#06b6d4',
+    hover: 'hover:bg-cyan-50/70 focus-visible:bg-cyan-50/70',
+    hoverText: 'group-hover:text-cyan-700',
   },
   teal: {
     bar: 'bg-teal-500',
@@ -62,6 +72,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-teal-600',
     soft: 'bg-teal-50',
     hex: '#14b8a6',
+    hover: 'hover:bg-teal-50/70 focus-visible:bg-teal-50/70',
+    hoverText: 'group-hover:text-teal-700',
   },
   emerald: {
     bar: 'bg-emerald-500',
@@ -70,6 +82,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-emerald-600',
     soft: 'bg-emerald-50',
     hex: '#10b981',
+    hover: 'hover:bg-emerald-50/70 focus-visible:bg-emerald-50/70',
+    hoverText: 'group-hover:text-emerald-700',
   },
   amber: {
     bar: 'bg-amber-400',
@@ -78,6 +92,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-amber-600',
     soft: 'bg-amber-50',
     hex: '#f59e0b',
+    hover: 'hover:bg-amber-50/70 focus-visible:bg-amber-50/70',
+    hoverText: 'group-hover:text-amber-700',
   },
   orange: {
     bar: 'bg-orange-500',
@@ -86,6 +102,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-orange-600',
     soft: 'bg-orange-50',
     hex: '#f97316',
+    hover: 'hover:bg-orange-50/70 focus-visible:bg-orange-50/70',
+    hoverText: 'group-hover:text-orange-700',
   },
   rose: {
     bar: 'bg-rose-500',
@@ -94,6 +112,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-rose-600',
     soft: 'bg-rose-50',
     hex: '#f43f5e',
+    hover: 'hover:bg-rose-50/70 focus-visible:bg-rose-50/70',
+    hoverText: 'group-hover:text-rose-700',
   },
   violet: {
     bar: 'bg-violet-500',
@@ -102,6 +122,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-violet-600',
     soft: 'bg-violet-50',
     hex: '#8b5cf6',
+    hover: 'hover:bg-violet-50/70 focus-visible:bg-violet-50/70',
+    hoverText: 'group-hover:text-violet-700',
   },
   fuchsia: {
     bar: 'bg-fuchsia-500',
@@ -110,6 +132,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-fuchsia-600',
     soft: 'bg-fuchsia-50',
     hex: '#d946ef',
+    hover: 'hover:bg-fuchsia-50/70 focus-visible:bg-fuchsia-50/70',
+    hoverText: 'group-hover:text-fuchsia-700',
   },
   slate: {
     bar: 'bg-slate-400',
@@ -118,6 +142,8 @@ export const TONES: Record<Tone, ToneClasses> = {
     text: 'text-slate-600',
     soft: 'bg-slate-100',
     hex: '#94a3b8',
+    hover: 'hover:bg-slate-50/70 focus-visible:bg-slate-50/70',
+    hoverText: 'group-hover:text-slate-700',
   },
 };
 

@@ -1,8 +1,11 @@
 import { formatPercent } from '@/lib/format';
-import type { JobStats } from '@/lib/stats';
+import { biggestDrop, type FunnelStep, type JobStats, type RejectionPoint } from '@/lib/stats';
+
+/** Rejection points need a few applications at that stage before the rate means anything. */
+const MIN_REACHED_FOR_HOTSPOT = 3;
 
 /** Plain-language suggestions derived from the funnel numbers. */
-export function buildInsights(stats: JobStats): string[] {
+export function buildInsights(stats: JobStats, funnel: FunnelStep[], rejections: RejectionPoint[]): string[] {
   if (stats.total === 0) return ['Add a few applications to unlock insights about your search.'];
   const tips: string[] = [];
 
@@ -12,6 +15,22 @@ export function buildInsights(stats: JobStats): string[] {
     );
   } else if (stats.interviewRate >= 25) {
     tips.push(`${formatPercent(stats.interviewRate)} of applications reach an interview — your CV is working. Focus on interview preparation.`);
+  }
+
+  const drop = biggestDrop(funnel);
+  if (drop) {
+    tips.push(
+      `Most applications stall between ${drop.from.label} and ${drop.to.label}: ${drop.to.reached} of ${drop.from.reached} moved on. Put your next effort into that step.`
+    );
+  }
+
+  const hotspot = rejections
+    .filter((point) => point.reached >= MIN_REACHED_FOR_HOTSPOT)
+    .sort((a, b) => b.rate - a.rate)[0];
+  if (hotspot && hotspot.rate >= 25) {
+    tips.push(
+      `${hotspot.label} is where you are turned down most: ${hotspot.rejected} of ${hotspot.reached} (${formatPercent(hotspot.rate)}) were rejected there.`
+    );
   }
 
   if (stats.interviews >= 3 && stats.offers === 0) {

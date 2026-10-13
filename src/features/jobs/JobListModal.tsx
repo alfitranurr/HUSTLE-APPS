@@ -11,23 +11,14 @@ import { Modal } from '@/components/ui/Modal';
 import { cn } from '@/lib/cn';
 import { STATUS_TONE } from '@/lib/constants';
 import { formatDate } from '@/lib/format';
-import { SEGMENTS, type Segment } from '@/lib/stats';
-import { TONES, type Tone } from '@/lib/tones';
+import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
 import { DEFAULT_SORT, sortJobs } from './filters';
-
-const SEGMENT_TONE: Record<Segment, Tone> = {
-  all: 'indigo',
-  active: 'sky',
-  interviews: 'violet',
-  offers: 'emerald',
-  rejected: 'rose',
-  noResponse: 'slate',
-};
+import { selectionHref, type JobSelection } from './selection';
 
 interface JobListModalProps {
   /** Which group to list; null closes the dialog. */
-  segment: Segment | null;
+  selection: JobSelection | null;
   /** Jobs to pick from (already narrowed by any page-level timeframe). */
   jobs: Job[];
   /** Extra context under the title, e.g. the active timeframe. */
@@ -36,51 +27,55 @@ interface JobListModalProps {
   onOpen: (job: Job) => void;
 }
 
-/** "Which companies are behind this number?" — the drill-down for stat cards. */
-export function JobListModal({ segment, jobs, context, onClose, onOpen }: JobListModalProps) {
+/** "Which companies are behind this number?" — the drill-down for every card. */
+export function JobListModal({ selection, jobs, context, onClose, onOpen }: JobListModalProps) {
   const [query, setQuery] = useState('');
+  const inGroup = useMemo(() => (selection ? jobs.filter(selection.match) : []), [jobs, selection]);
 
   const list = useMemo(() => {
-    if (!segment) return [];
     const q = query.trim().toLowerCase();
-    return sortJobs(
-      jobs.filter((job) => SEGMENTS[segment].match(job)),
-      DEFAULT_SORT
-    ).filter((job) => !q || `${job.company} ${job.position}`.toLowerCase().includes(q));
-  }, [jobs, segment, query]);
+    return sortJobs(inGroup, DEFAULT_SORT).filter(
+      (job) => !q || `${job.company} ${job.position}`.toLowerCase().includes(q)
+    );
+  }, [inGroup, query]);
 
-  if (!segment) return null;
-  const total = jobs.filter((job) => SEGMENTS[segment].match(job)).length;
-  const href = segment === 'all' ? '/tracker' : `/tracker?segment=${segment}`;
+  if (!selection) return null;
+  const total = inGroup.length;
+  const href = selectionHref(selection);
 
   return (
     <Modal
       open
       onClose={onClose}
       size="lg"
-      accent={SEGMENT_TONE[segment]}
-      title={`${SEGMENTS[segment].label} · ${total}`}
+      accent={selection.tone}
+      title={`${selection.title} · ${total}`}
       description={context ?? 'Newest first. Select a company to see its details.'}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
-          <Link
-            href={href}
-            onClick={onClose}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-          >
-            Open in Applications
-            <ArrowUpRight className="size-4" />
-          </Link>
+          {href && (
+            <Link
+              href={href}
+              onClick={onClose}
+              className="inline-flex h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            >
+              Open in Applications
+              <ArrowUpRight className="size-4" />
+            </Link>
+          )}
         </>
       }
     >
       {total > 6 && (
         <label className="relative mb-4 block">
           <span className="sr-only">Search companies</span>
-          <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400" />
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-400"
+          />
           <Input
             data-autofocus
             type="search"
@@ -117,7 +112,9 @@ export function JobListModal({ segment, jobs, context, onClose, onOpen }: JobLis
                 <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                   <StageBadge stage={job.stage} />
                   <StatusBadge status={job.status} />
-                  <span className="w-24 text-right text-xs text-slate-500 tabular-nums">{formatDate(job.appliedAt)}</span>
+                  <span className="w-24 text-right text-xs text-slate-500 tabular-nums">
+                    {formatDate(job.appliedAt)}
+                  </span>
                 </span>
               </button>
             </li>

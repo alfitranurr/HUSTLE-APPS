@@ -1,18 +1,10 @@
 import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { JOB_STAGES, STAGE_TONE, type JobStage } from '@/lib/constants';
+import { JOB_STAGES, STAGE_SHORT_LABEL, STAGE_TONE, type JobStage } from '@/lib/constants';
 import { formatDate } from '@/lib/format';
 import { displayStageDate } from '@/lib/stageDates';
 import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
-
-const LABEL: Partial<Record<JobStage, string>> = {
-  'Not Started': 'Applied',
-  'Document Screening': 'Screening',
-  'Assessment Test': 'Test',
-  'Offering Letter': 'Offer',
-  'Contract Signed / Done': 'Signed',
-};
 
 type StepState = 'done' | 'current' | 'failed' | 'upcoming';
 
@@ -22,7 +14,7 @@ function buildSteps(job: Job) {
   return JOB_STAGES.map((stage, i) => {
     const state: StepState = i < current ? 'done' : i === current ? (failed ? 'failed' : 'current') : 'upcoming';
     const date = i <= current ? displayStageDate(job, stage) : '';
-    return { stage, label: LABEL[stage] ?? stage, state, date: date ? formatDate(date) : '' };
+    return { stage, label: STAGE_SHORT_LABEL[stage], state, date: date ? formatDate(date) : '' };
   });
 }
 
