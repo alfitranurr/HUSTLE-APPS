@@ -16,7 +16,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { useToast } from './Toast';
 import { JobDetailsModal } from './JobDetailsModal';
@@ -56,7 +56,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [lastGlobalSortKey, setLastGlobalSortKey] = useState<'company' | 'status' | 'startdate'>('startdate');
   const [lastGlobalSortAsc, setLastGlobalSortAsc] = useState<boolean>(false);
-  const [rowToDelete, setRowToDelete] = useState<number | null>(null);
+  const [rowToDelete, setRowToDelete] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
 
@@ -126,7 +126,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
     setDeleteLoading(true);
 
     try {
-      const response = await fetch(`/api/jobs/${rowToDelete}`, {
+      const response = await fetch(`/api/jobs/${encodeURIComponent(rowToDelete)}`, {
         method: 'DELETE',
       });
       const result = await response.json();
@@ -351,7 +351,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                           <Edit className="w-3 h-3" />
                         </button>
                         <button 
-                          onClick={() => setRowToDelete(item.rownum)} 
+                          onClick={() => setRowToDelete(item.id)} 
                           className="p-1 rounded bg-white/5 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition cursor-pointer"
                           title="Delete"
                         >
@@ -521,7 +521,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                                 <Edit className="w-3.5 h-3.5" />
                               </button>
                               <button 
-                                onClick={() => setRowToDelete(item.rownum)} 
+                                onClick={() => setRowToDelete(item.id)} 
                                 className="p-1 rounded hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 transition cursor-pointer" 
                                 title="Delete"
                               >
@@ -661,7 +661,7 @@ export const JobTable: React.FC<JobTableProps> = ({ jobs, onEdit, onDeleteSucces
                           <button onClick={() => onEdit(item)} className="text-slate-400 hover:text-indigo-400 flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider cursor-pointer">
                             <Edit className="w-3 h-3" /> Edit
                           </button>
-                          <button onClick={() => setRowToDelete(item.rownum)} className="text-slate-400 hover:text-rose-400 flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider cursor-pointer">
+                          <button onClick={() => setRowToDelete(item.id)} className="text-slate-400 hover:text-rose-400 flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider cursor-pointer">
                             <Trash2 className="w-3 h-3" /> Delete
                           </button>
                         </div>

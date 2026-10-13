@@ -18,7 +18,7 @@ import {
   Briefcase,
   Users
 } from 'lucide-react';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { JobFormModal } from '@/components/JobFormModal';
 
 const fetcher = async (url: string) => {

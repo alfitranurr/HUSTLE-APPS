@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { X, Sparkles, Check } from 'lucide-react';
-import { InterviewQuestion } from '@/lib/googleSheets';
+import type { InterviewQuestion } from '@/lib/types';
 
 interface InterviewModalProps {
   isOpen: boolean;

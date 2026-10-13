@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Globe, Upload, FileText, Link as LinkIcon } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon, PlatformBrandIcon } from './BrandIcons';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { useToast } from './Toast';
 
@@ -556,10 +556,6 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
 
     try {
       const formData = new FormData();
-      if (jobToEdit) {
-        formData.append('rowNum', String(jobToEdit.rownum));
-        formData.append('id', jobToEdit.id || '');
-      }
       formData.append('company', company);
       formData.append('kategori', kategori);
       formData.append('startDate', startDate); // Used for Application Date
@@ -571,7 +567,7 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('linkWeb', formattedWeb);
       formData.append('linkOther', formattedOther);
       formData.append('note', note);
-      formData.append('existingUrl', existingUrls.join(', '));
+      existingUrls.forEach((url) => formData.append('keepUrls', url));
 
       // New Fields
       formData.append('platform', platform);
@@ -580,14 +576,10 @@ export const JobFormModal: React.FC<JobFormModalProps> = ({
       formData.append('province', province);
       formData.append('city', city);
 
-      if (buktiFiles.length > 0) {
-        buktiFiles.forEach((file) => {
-          formData.append('buktiFiles', file);
-        });
-      }
+      buktiFiles.forEach((file) => formData.append('files', file));
 
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
+      const response = await fetch(jobToEdit ? `/api/jobs/${encodeURIComponent(jobToEdit.id)}` : '/api/jobs', {
+        method: jobToEdit ? 'PUT' : 'POST',
         body: formData,
       });
 

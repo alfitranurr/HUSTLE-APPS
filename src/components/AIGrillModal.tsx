@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { X, Flame, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
-import { InterviewQuestion } from '@/lib/googleSheets';
+import type { InterviewQuestion } from '@/lib/types';
 
 interface AIGrillModalProps {
   isOpen: boolean;

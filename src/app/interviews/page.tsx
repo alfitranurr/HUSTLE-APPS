@@ -16,7 +16,7 @@ import {
   BookOpen, 
   Check
 } from 'lucide-react';
-import { InterviewQuestion } from '@/lib/googleSheets';
+import type { InterviewQuestion } from '@/lib/types';
 import { InterviewModal } from '@/components/InterviewModal';
 import { AIGrillModal } from '@/components/AIGrillModal';
 
@@ -127,10 +127,10 @@ export default function InterviewsPage() {
     editId?: string
   ) => {
     if (editId) {
-      await fetch('/api/interviews', {
+      await fetch(`/api/interviews/${encodeURIComponent(editId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editId, ...formData }),
+        body: JSON.stringify(formData),
       });
     } else {
       await fetch('/api/interviews', {
@@ -144,17 +144,17 @@ export default function InterviewsPage() {
 
   const handleToggleStatus = async (q: InterviewQuestion) => {
     const newStatus = q.status === 'Mastered' ? 'Practice Needed' : 'Mastered';
-    await fetch('/api/interviews', {
+    await fetch(`/api/interviews/${encodeURIComponent(q.id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: q.id, status: newStatus }),
+      body: JSON.stringify({ status: newStatus }),
     });
     mutate();
   };
 
   const handleDelete = async (id: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus pertanyaan latihan ini?')) {
-      await fetch(`/api/interviews?id=${encodeURIComponent(id)}`, {
+      await fetch(`/api/interviews/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
       mutate();

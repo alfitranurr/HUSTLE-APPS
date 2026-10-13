@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { X, Calendar, Globe, FileText, ExternalLink, MapPin, Tag, Briefcase } from 'lucide-react';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { ensureAbsoluteUrl, getProofUrls } from '@/lib/utils';
 import { getStatusClass } from './JobTable';
 import { InstagramIcon, LinkedinIcon } from './BrandIcons';

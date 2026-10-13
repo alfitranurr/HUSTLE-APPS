@@ -1,672 +1,318 @@
 /* cspell:disable */
-import { google } from 'googleapis';
+import 'server-only';
+import { Readable } from 'node:stream';
+import { google, type drive_v3, type sheets_v4 } from 'googleapis';
 import { JWT, OAuth2Client } from 'google-auth-library';
-import { Readable } from 'stream';
+import { getServerEnv } from './env';
+import type { InterviewQuestion, Job } from './types';
 
-export interface Job {
-  id: string;
-  timestamp: string;
-  company: string;
-  startdate: string;
-  enddate: string;
-  status: string;
-  instagram: string;
-  linkedin: string;
-  web: string;
-  kategori: string;
-  note: string;
-  buktiurl: string;
-  rownum: number;
-  platform?: string;
-  careerlevel?: string;
-  currentstage?: string;
-  province?: string;
-  city?: string;
-  otherlink?: string;
-}
-
-export interface InterviewQuestion {
-  id: string;
-  category: string;
-  question: string;
-  situation: string;
-  task: string;
-  action: string;
-  result: string;
-  targetcompany: string;
-  difficulty: 'Easy' | 'Medium' | 'Hard';
-  status: 'Mastered' | 'Practice Needed';
-  rownum: number;
-}
+export type { InterviewQuestion, Job };
 
 const SHEET_NAME = 'DataLowongan';
 const INTERVIEWS_SHEET_NAME = 'Interviews';
 
-function cleanEnvValue(val?: string): string | undefined {
-  if (!val) return undefined;
-  let clean = val.trim();
-  if (clean.startsWith('"') && clean.endsWith('"')) {
-    clean = clean.substring(1, clean.length - 1);
-  } else if (clean.startsWith("'") && clean.endsWith("'")) {
-    clean = clean.substring(1, clean.length - 1);
-  }
-  return clean.trim();
-}
+const JOB_HEADERS = [
+  'ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web',
+  'Kategori', 'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink',
+];
+const INTERVIEW_HEADERS = [
+  'ID', 'Category', 'Question', 'Situation', 'Task', 'Action', 'Result', 'TargetCompany', 'Difficulty', 'Status',
+];
 
-// Helper to get Google Auth Client (OAuth2 or JWT Service Account)
+// ---------------------------------------------------------------------------
+// Clients
+// ---------------------------------------------------------------------------
+
+let authClient: OAuth2Client | JWT | undefined;
+
 function getAuthClient(): OAuth2Client | JWT {
-  const clientId = cleanEnvValue(process.env.GOOGLE_CLIENT_ID);
-  const clientSecret = cleanEnvValue(process.env.GOOGLE_CLIENT_SECRET);
-  const refreshToken = cleanEnvValue(process.env.GOOGLE_REFRESH_TOKEN);
+  if (authClient) return authClient;
+  const env = getServerEnv();
 
-  console.log('googleSheets.ts - loaded env values (cleaned):', {
-    clientId: JSON.stringify(clientId),
-    clientSecret: JSON.stringify(clientSecret),
-    refreshToken: JSON.stringify(refreshToken),
-  });
-
-  if (clientId && clientSecret && refreshToken) {
-    const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      'http://localhost:8080/oauth2callback'
-    );
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
-    });
-    return oauth2Client;
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REFRESH_TOKEN) {
+    const oauth = new google.auth.OAuth2(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET);
+    oauth.setCredentials({ refresh_token: env.GOOGLE_REFRESH_TOKEN });
+    authClient = oauth;
+    return oauth;
   }
 
-  // Fallback to Service Account
-  const serviceAccountKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!serviceAccountKey) {
-    throw new Error('Missing Google Auth variables (OAuth2 variables or GOOGLE_SERVICE_ACCOUNT_KEY) in environment variables');
-  }
-
-  let credentials;
+  let credentials: { client_email?: string; private_key?: string };
   try {
-    credentials = JSON.parse(serviceAccountKey);
+    credentials = JSON.parse(env.GOOGLE_SERVICE_ACCOUNT_KEY ?? '');
   } catch {
-    throw new Error('Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY JSON. Ensure it is a valid single-line JSON string.');
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON');
   }
 
-  return new JWT({
+  authClient = new JWT({
     email: credentials.client_email,
     key: credentials.private_key,
-    scopes: [
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/drive',
-    ],
+    scopes: ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive'],
+  });
+  return authClient;
+}
+
+function sheetsClient(): sheets_v4.Sheets {
+  return google.sheets({ version: 'v4', auth: getAuthClient() as OAuth2Client });
+}
+
+function driveClient(): drive_v3.Drive {
+  return google.drive({ version: 'v3', auth: getAuthClient() as OAuth2Client });
+}
+
+// ---------------------------------------------------------------------------
+// Sheet helpers
+// ---------------------------------------------------------------------------
+
+async function getNumericSheetId(title: string): Promise<number | undefined> {
+  const spreadsheet = await sheetsClient().spreadsheets.get({ spreadsheetId: getServerEnv().GOOGLE_SHEET_ID });
+  return spreadsheet.data.sheets?.find((s) => s.properties?.title === title)?.properties?.sheetId ?? undefined;
+}
+
+async function ensureSheet(title: string, headers: string[]): Promise<void> {
+  if ((await getNumericSheetId(title)) !== undefined) return;
+  const spreadsheetId = getServerEnv().GOOGLE_SHEET_ID;
+  const sheets = sheetsClient();
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: { requests: [{ addSheet: { properties: { title, gridProperties: { frozenRowCount: 1 } } } }] },
+  });
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${title}!A1`,
+    valueInputOption: 'RAW',
+    requestBody: { values: [headers] },
   });
 }
 
-// Get Google Sheets Client
-export function getSheetsClient() {
-  const auth = getAuthClient();
-  return google.sheets({ version: 'v4', auth: auth as unknown as JWT });
+async function deleteSheetRow(title: string, rowNum: number): Promise<void> {
+  const sheetId = await getNumericSheetId(title);
+  if (sheetId === undefined) throw new Error(`Sheet '${title}' not found`);
+  await sheetsClient().spreadsheets.batchUpdate({
+    spreadsheetId: getServerEnv().GOOGLE_SHEET_ID,
+    requestBody: {
+      requests: [
+        { deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowNum - 1, endIndex: rowNum } } },
+      ],
+    },
+  });
 }
 
-// Get Google Drive Client
-export function getDriveClient() {
-  const auth = getAuthClient();
-  return google.drive({ version: 'v3', auth: auth as unknown as JWT });
+/** Writes a row as plain text. RAW (not USER_ENTERED) prevents formula injection like "=IMPORTXML(...)". */
+async function writeRow(range: string, values: string[]): Promise<void> {
+  await sheetsClient().spreadsheets.values.update({
+    spreadsheetId: getServerEnv().GOOGLE_SHEET_ID,
+    range,
+    valueInputOption: 'RAW',
+    requestBody: { values: [values] },
+  });
 }
 
-// Fetch all jobs
+async function appendRow(range: string, values: string[]): Promise<void> {
+  await sheetsClient().spreadsheets.values.append({
+    spreadsheetId: getServerEnv().GOOGLE_SHEET_ID,
+    range,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [values] },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Jobs
+// ---------------------------------------------------------------------------
+
 export async function fetchJobs(): Promise<Job[]> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!spreadsheetId) {
-    throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
-  }
-
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: `${SHEET_NAME}!A:R`,
-    });
-
-    const rows = response.data.values;
-    if (!rows || rows.length < 2) return [];
-
-    // Parse headers exactly as in Apps Script: trimmed, lowercased, spaces removed
-    const headers = rows[0].map(h => String(h).trim().replace(/\s+/g, '').toLowerCase());
-    const dataRows = rows.slice(1);
-
-    return dataRows
-      .map((row, idx) => {
-        const obj: Record<string, string | number> = {};
-        headers.forEach((header, colIdx) => {
-          const val = row[colIdx];
-          // Handle Date or empty columns
-          if (val === undefined || val === null) {
-            obj[header] = '';
-          } else {
-            obj[header] = String(val).trim();
-          }
-        });
-
-        // Normalize otherlink from various header aliases or direct 18th column (Column R, colIdx 17)
-        const otherLinkVal = 
-          obj.otherlink ||
-          obj.linkother ||
-          obj['otherlink'] ||
-          obj['linkother'] ||
-          obj['other_link'] ||
-          obj['other'] ||
-          (row[17] ? String(row[17]).trim() : '');
-
-        obj.otherlink = String(otherLinkVal || '');
-        obj.rownum = idx + 2; // Rows are 1-indexed, header is row 1
-        return obj as unknown as Job;
-      })
-      // Ensure company name is present
-      .filter(item => item.company && item.company.trim() !== '');
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('Error fetching jobs:', err);
-    // If the sheet does not exist, let's auto-setup/create it
-    if (err.message && err.message.includes('NOT_FOUND')) {
-      await setupDatabase();
-      return [];
-    }
-    throw err;
-  }
-}
-
-// Setup Sheet headers if empty or non-existent
-export async function setupDatabase(): Promise<void> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!spreadsheetId) {
-    throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
-  }
-
-  const headers = ['ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori', 'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink'];
-
-  try {
-    // Check if the sheet exists
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheetExists = spreadsheet.data.sheets?.some(
-      s => s.properties?.title === SHEET_NAME
-    );
-
-    if (!sheetExists) {
-      // Add sheet
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: {
-                  title: SHEET_NAME,
-                },
-              },
-            },
-          ],
-        },
-      });
-    }
-
-    // Set headers and styling
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${SHEET_NAME}!A1:R1`,
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: [headers],
-      },
-    });
-
-    // Bold, custom styling for headers and freeze row 1
-    const freshSpreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const numericSheetId = freshSpreadsheet.data.sheets?.find(
-      s => s.properties?.title === SHEET_NAME
-    )?.properties?.sheetId;
-
-    if (numericSheetId !== undefined) {
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              setBasicFilter: {
-                filter: {
-                  range: {
-                    sheetId: numericSheetId,
-                    startRowIndex: 0,
-                    endRowIndex: 1,
-                    startColumnIndex: 0,
-                    endColumnIndex: headers.length,
-                  },
-                },
-              },
-            },
-            {
-              updateSheetProperties: {
-                properties: {
-                  sheetId: numericSheetId,
-                  gridProperties: {
-                    frozenRowCount: 1,
-                  },
-                },
-                fields: 'gridProperties.frozenRowCount',
-              },
-            },
-            {
-              repeatCell: {
-                range: {
-                  sheetId: numericSheetId,
-                  startRowIndex: 0,
-                  endRowIndex: 1,
-                },
-                cell: {
-                  userEnteredFormat: {
-                    backgroundColor: { red: 0.12, green: 0.16, blue: 0.23 }, // #1e293b
-                    textFormat: {
-                      foregroundColor: { red: 1.0, green: 1.0, blue: 1.0 },
-                      bold: true,
-                    },
-                  },
-                },
-                fields: 'userEnteredFormat(backgroundColor,textFormat)',
-              },
-            },
-          ],
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error setting up database:', error);
-    throw error;
-  }
-}
-
-// Save job record (append or update)
-export async function saveJob(obj: {
-  id?: string;
-  rowNum?: number | string;
-  company: string;
-  startDate?: string;
-  endDate?: string;
-  status: string;
-  linkIg?: string;
-  linkLi?: string;
-  linkWeb?: string;
-  kategori?: string;
-  note?: string;
-  buktiurl?: string;
-  platform?: string;
-  careerLevel?: string;
-  currentStage?: string;
-  province?: string;
-  city?: string;
-  linkOther?: string;
-}): Promise<string> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!spreadsheetId) {
-    throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
-  }
-
-  const id = obj.id || 'ID-' + new Date().getTime();
-  const timestamp = new Date().toISOString();
-  const rowData = [
-    id,
-    timestamp,
-    obj.company.trim(),
-    (obj.startDate || '').trim(),
-    (obj.endDate || '').trim(),
-    obj.status.trim(),
-    (obj.linkIg || '').trim(),
-    (obj.linkLi || '').trim(),
-    (obj.linkWeb || '').trim(),
-    (obj.kategori || '').trim(),
-    (obj.note || '').trim(),
-    (obj.buktiurl || 'No File').trim(),
-    (obj.platform || '').trim(),
-    (obj.careerLevel || '').trim(),
-    (obj.currentStage || '').trim(),
-    (obj.province || '').trim(),
-    (obj.city || '').trim(),
-    (obj.linkOther || '').trim(),
-  ];
-
-  const parsedRowNum = obj.rowNum ? Number(obj.rowNum) : null;
-
-  if (parsedRowNum && !isNaN(parsedRowNum)) {
-    // Update existing row
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: `${SHEET_NAME}!A${parsedRowNum}:R${parsedRowNum}`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [rowData],
-      },
-    });
-    return 'Updated';
-  } else {
-    // Append new row
-    await sheets.spreadsheets.values.append({
-      spreadsheetId,
-      range: `${SHEET_NAME}!A:R`,
-      valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
-      requestBody: {
-        values: [rowData],
-      },
-    });
-    return 'Appended';
-  }
-}
-
-// Delete job record by row number
-export async function deleteJob(rowNum: number): Promise<string> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
-  if (!spreadsheetId) {
-    throw new Error('Missing GOOGLE_SHEET_ID in environment variables');
-  }
-
-  try {
-    // Get the sheetId of 'DataLowongan'
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === SHEET_NAME);
-    const numericSheetId = sheet?.properties?.sheetId;
-
-    if (numericSheetId === undefined) {
-      throw new Error(`Sheet '${SHEET_NAME}' not found in the spreadsheet.`);
-    }
-
-    // Delete the row
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId,
-      requestBody: {
-        requests: [
-          {
-            deleteDimension: {
-              range: {
-                sheetId: numericSheetId,
-                dimension: 'ROWS',
-                startIndex: rowNum - 1, // 0-based
-                endIndex: rowNum, // exclusive
-              },
-            },
-          },
-        ],
-      },
-    });
-    return 'Deleted';
-  } catch (error) {
-    console.error(`Error deleting row ${rowNum}:`, error);
-    throw error;
-  }
-}
-
-// Extract Google Drive File ID from Drive URL
-export function getDriveFileId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-  if (match && match[1]) return match[1];
-  const fileIdParam = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (fileIdParam && fileIdParam[1]) return fileIdParam[1];
-  return null;
-}
-
-// Delete/Trash file from Google Drive
-export async function deleteFileFromDrive(fileUrl: string): Promise<void> {
-  const fileId = getDriveFileId(fileUrl);
-  if (!fileId) return;
-
-  const drive = getDriveClient();
-  try {
-    // Set trashed: true to send it to the trash folder
-    await drive.files.update({
-      fileId,
-      supportsAllDrives: true,
-      requestBody: {
-        trashed: true,
-      },
-    });
-  } catch (error) {
-    console.error(`Failed to trash file ${fileId}:`, error);
-  }
-}
-
-// Upload file to Google Drive folder
-export async function uploadFileToDrive(
-  fileBuffer: Buffer,
-  fileName: string,
-  mimeType: string
-): Promise<string> {
-  const drive = getDriveClient();
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-
-  if (!folderId) {
-    throw new Error('Missing GOOGLE_DRIVE_FOLDER_ID in environment variables');
-  }
-
-  // Create stream/Buffer readable metadata
-  const fileMetadata = {
-    name: fileName,
-    parents: [folderId],
-  };
-
-  const media = {
-    mimeType,
-    body: new Readable({
-      read() {
-        this.push(fileBuffer);
-        this.push(null);
-      },
-    }),
-  };
-
-  try {
-    const file = await drive.files.create({
-      requestBody: fileMetadata,
-      media: media,
-      fields: 'id,webViewLink',
-      supportsAllDrives: true,
-    });
-
-    const fileId = file.data.id;
-    if (!fileId) {
-      throw new Error('Drive file upload response missing ID');
-    }
-
-    // Set permission to anyone with link can view (reader)
-    await drive.permissions.create({
-      fileId: fileId,
-      supportsAllDrives: true,
-      requestBody: {
-        role: 'reader',
-        type: 'anyone',
-      },
-    });
-
-    // Fetch the shareable webViewLink
-    const fileData = await drive.files.get({
-      fileId,
-      fields: 'webViewLink',
-      supportsAllDrives: true,
-    });
-
-    return fileData.data.webViewLink || '';
-  } catch (error) {
-    console.error('Error uploading file to Drive:', error);
-    throw error;
-  }
-}
-
-// Ensure Interviews Sheet Exists with Headers
-async function ensureInterviewsSheetExists(): Promise<void> {
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) return;
-
-  try {
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
-    const sheetExists = spreadsheet.data.sheets?.some(
-      (s) => s.properties?.title === INTERVIEWS_SHEET_NAME
-    );
-
-    if (!sheetExists) {
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [
-            {
-              addSheet: {
-                properties: {
-                  title: INTERVIEWS_SHEET_NAME,
-                },
-              },
-            },
-          ],
-        },
-      });
-
-      // Add Headers
-      await sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${INTERVIEWS_SHEET_NAME}!A1:J1`,
-        valueInputOption: 'USER_ENTERED',
-        requestBody: {
-          values: [
-            ['ID', 'Category', 'Question', 'Situation', 'Task', 'Action', 'Result', 'TargetCompany', 'Difficulty', 'Status'],
-          ],
-        },
-      });
-    }
-  } catch (err) {
-    console.error('Error checking/creating Interviews sheet:', err);
-  }
-}
-
-// Fetch all interview questions
-export async function fetchInterviewQuestions(): Promise<InterviewQuestion[]> {
-  await ensureInterviewsSheetExists();
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
-
-  const response = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: `${INTERVIEWS_SHEET_NAME}!A2:J`,
+  await ensureSheet(SHEET_NAME, JOB_HEADERS);
+  const response = await sheetsClient().spreadsheets.values.get({
+    spreadsheetId: getServerEnv().GOOGLE_SHEET_ID,
+    range: `${SHEET_NAME}!A:R`,
   });
 
   const rows = response.data.values;
-  if (!rows || rows.length === 0) return [];
+  if (!rows || rows.length < 2) return [];
 
-  return rows.map((row, index) => ({
-    id: row[0] || `iq_${Date.now()}_${index}`,
-    category: row[1] || 'General',
-    question: row[2] || '',
-    situation: row[3] || '',
-    task: row[4] || '',
-    action: row[5] || '',
-    result: row[6] || '',
-    targetcompany: row[7] || '',
-    difficulty: (row[8] as InterviewQuestion['difficulty']) || 'Medium',
-    status: (row[9] as InterviewQuestion['status']) || 'Practice Needed',
-    rownum: index + 2,
-  })).filter(q => q.question.trim() !== '');
+  const headers = rows[0].map((h) => String(h).trim().replace(/\s+/g, '').toLowerCase());
+  return rows
+    .slice(1)
+    .map((row, idx) => {
+      const obj: Record<string, string | number> = {};
+      headers.forEach((header, col) => {
+        obj[header] = row[col] === undefined || row[col] === null ? '' : String(row[col]).trim();
+      });
+      obj.otherlink = String(obj.otherlink || obj.linkother || (row[17] ? String(row[17]).trim() : ''));
+      obj.rownum = idx + 2; // header is row 1
+      return obj as unknown as Job;
+    })
+    .filter((job) => job.company);
 }
 
-// Add new interview question
-export async function addInterviewQuestion(
-  data: Omit<InterviewQuestion, 'id' | 'rownum'>
-): Promise<InterviewQuestion> {
-  await ensureInterviewsSheetExists();
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
+export async function findJobById(id: string): Promise<Job | undefined> {
+  return (await fetchJobs()).find((job) => job.id === id);
+}
 
-  const newId = `iq_${Date.now()}`;
-  const values = [
-    [
-      newId,
-      data.category,
-      data.question,
-      data.situation || '',
-      data.task || '',
-      data.action || '',
-      data.result || '',
-      data.targetcompany || '',
-      data.difficulty || 'Medium',
-      data.status || 'Practice Needed',
-    ],
+export interface SaveJobInput {
+  id?: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  linkIg: string;
+  linkLi: string;
+  linkWeb: string;
+  linkOther: string;
+  kategori: string;
+  note: string;
+  buktiurl: string;
+  platform: string;
+  careerLevel: string;
+  currentStage: string;
+  province: string;
+  city: string;
+}
+
+export async function saveJob(input: SaveJobInput): Promise<'Updated' | 'Appended'> {
+  const existing = input.id ? await findJobById(input.id) : undefined;
+  if (input.id && !existing) throw new JobNotFoundError();
+
+  const row = [
+    existing?.id || `ID-${Date.now()}`,
+    new Date().toISOString(),
+    input.company,
+    input.startDate,
+    input.endDate,
+    input.status,
+    input.linkIg,
+    input.linkLi,
+    input.linkWeb,
+    input.kategori,
+    input.note,
+    input.buktiurl || 'No File',
+    input.platform,
+    input.careerLevel,
+    input.currentStage,
+    input.province,
+    input.city,
+    input.linkOther,
   ];
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${INTERVIEWS_SHEET_NAME}!A:J`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values },
-  });
-
-  const updatedList = await fetchInterviewQuestions();
-  const created = updatedList.find((q) => q.id === newId);
-  return created || { ...data, id: newId, rownum: updatedList.length + 1 };
+  if (existing) {
+    await writeRow(`${SHEET_NAME}!A${existing.rownum}:R${existing.rownum}`, row);
+    return 'Updated';
+  }
+  await appendRow(`${SHEET_NAME}!A:R`, row);
+  return 'Appended';
 }
 
-// Update interview question
-export async function updateInterviewQuestion(
-  id: string,
-  data: Partial<InterviewQuestion>
-): Promise<void> {
-  const list = await fetchInterviewQuestions();
-  const target = list.find((q) => q.id === id);
-  if (!target) throw new Error(`Interview question with ID ${id} not found`);
-
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
-
-  const updated: InterviewQuestion = { ...target, ...data };
-  const values = [
-    [
-      updated.id,
-      updated.category,
-      updated.question,
-      updated.situation,
-      updated.task,
-      updated.action,
-      updated.result,
-      updated.targetcompany,
-      updated.difficulty,
-      updated.status,
-    ],
-  ];
-
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${INTERVIEWS_SHEET_NAME}!A${target.rownum}:J${target.rownum}`,
-    valueInputOption: 'USER_ENTERED',
-    requestBody: { values },
-  });
+export class JobNotFoundError extends Error {
+  constructor() {
+    super('Application not found');
+  }
 }
 
-// Delete interview question
+export async function deleteJobById(id: string): Promise<Job> {
+  const job = await findJobById(id);
+  if (!job) throw new JobNotFoundError();
+  await deleteSheetRow(SHEET_NAME, job.rownum);
+  return job;
+}
+
+// ---------------------------------------------------------------------------
+// Drive
+// ---------------------------------------------------------------------------
+
+export function getDriveFileId(url: string): string | null {
+  return url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] ?? url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ?? null;
+}
+
+/**
+ * Trashes a file, but only if it lives in the app's upload folder. URLs come
+ * from sheet data, so never trust them to point at a file we own.
+ */
+export async function trashUploadedFile(fileUrl: string): Promise<void> {
+  const fileId = getDriveFileId(fileUrl);
+  if (!fileId) return;
+
+  const drive = driveClient();
+  try {
+    const file = await drive.files.get({ fileId, fields: 'parents', supportsAllDrives: true });
+    if (!file.data.parents?.includes(getServerEnv().GOOGLE_DRIVE_FOLDER_ID)) {
+      console.warn('[drive] refusing to trash a file outside the upload folder');
+      return;
+    }
+    await drive.files.update({ fileId, supportsAllDrives: true, requestBody: { trashed: true } });
+  } catch (error) {
+    console.error('[drive] failed to trash file:', error instanceof Error ? error.message : error);
+  }
+}
+
+/** Uploads into the app folder. Files stay private to the Drive owner (no public link sharing). */
+export async function uploadFileToDrive(buffer: Buffer, fileName: string, mimeType: string): Promise<string> {
+  const file = await driveClient().files.create({
+    requestBody: { name: fileName, parents: [getServerEnv().GOOGLE_DRIVE_FOLDER_ID] },
+    media: { mimeType, body: Readable.from(buffer) },
+    fields: 'id,webViewLink',
+    supportsAllDrives: true,
+  });
+  if (!file.data.id) throw new Error('Drive upload returned no file id');
+  return file.data.webViewLink || `https://drive.google.com/file/d/${file.data.id}/view`;
+}
+
+// ---------------------------------------------------------------------------
+// Interview questions
+// ---------------------------------------------------------------------------
+
+type InterviewInput = Omit<InterviewQuestion, 'id' | 'rownum'>;
+
+function interviewRow(id: string, q: InterviewInput): string[] {
+  return [id, q.category, q.question, q.situation, q.task, q.action, q.result, q.targetcompany, q.difficulty, q.status];
+}
+
+export async function fetchInterviewQuestions(): Promise<InterviewQuestion[]> {
+  await ensureSheet(INTERVIEWS_SHEET_NAME, INTERVIEW_HEADERS);
+  const response = await sheetsClient().spreadsheets.values.get({
+    spreadsheetId: getServerEnv().GOOGLE_SHEET_ID,
+    range: `${INTERVIEWS_SHEET_NAME}!A2:J`,
+  });
+
+  return (response.data.values ?? [])
+    .map((row, index) => ({
+      id: String(row[0] || ''),
+      category: row[1] || 'Behavioral',
+      question: row[2] || '',
+      situation: row[3] || '',
+      task: row[4] || '',
+      action: row[5] || '',
+      result: row[6] || '',
+      targetcompany: row[7] || '',
+      difficulty: (['Easy', 'Medium', 'Hard'].includes(row[8]) ? row[8] : 'Medium') as InterviewQuestion['difficulty'],
+      status: (row[9] === 'Mastered' ? 'Mastered' : 'Practice Needed') as InterviewQuestion['status'],
+      rownum: index + 2,
+    }))
+    .filter((q) => q.id && q.question.trim() !== '');
+}
+
+export async function addInterviewQuestion(data: InterviewInput): Promise<InterviewQuestion> {
+  await ensureSheet(INTERVIEWS_SHEET_NAME, INTERVIEW_HEADERS);
+  const id = `iq_${Date.now()}`;
+  await appendRow(`${INTERVIEWS_SHEET_NAME}!A:J`, interviewRow(id, data));
+  return { ...data, id, rownum: 0 };
+}
+
+export async function updateInterviewQuestion(id: string, data: Partial<InterviewInput>): Promise<void> {
+  const target = (await fetchInterviewQuestions()).find((q) => q.id === id);
+  if (!target) throw new InterviewNotFoundError();
+  const merged: InterviewInput = { ...target, ...data };
+  await writeRow(`${INTERVIEWS_SHEET_NAME}!A${target.rownum}:J${target.rownum}`, interviewRow(id, merged));
+}
+
 export async function deleteInterviewQuestion(id: string): Promise<void> {
-  const list = await fetchInterviewQuestions();
-  const target = list.find((q) => q.id === id);
-  if (!target) throw new Error(`Interview question with ID ${id} not found`);
-
-  const sheets = getSheetsClient();
-  const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-  if (!spreadsheetId) throw new Error('Missing GOOGLE_SHEET_ID');
-
-  // Clear row values
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId,
-    range: `${INTERVIEWS_SHEET_NAME}!A${target.rownum}:J${target.rownum}`,
-  });
+  const target = (await fetchInterviewQuestions()).find((q) => q.id === id);
+  if (!target) throw new InterviewNotFoundError();
+  await deleteSheetRow(INTERVIEWS_SHEET_NAME, target.rownum);
 }
 
+export class InterviewNotFoundError extends Error {
+  constructor() {
+    super('Interview question not found');
+  }
+}

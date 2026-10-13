@@ -1,16 +1,12 @@
 /* cspell:disable */
-import { NextResponse } from 'next/server';
+import { HttpError, ok, withAuth } from '@/lib/server/http';
+import { grillSchema } from '@/lib/validation';
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { question, answer, situation, task, action, result } = body;
+export const POST = withAuth(async (request) => {
+    const { answer, situation, task, action, result } = grillSchema.parse(await request.json());
 
-    if (!question || (!answer && !action)) {
-      return NextResponse.json(
-        { success: false, error: 'Question and answer details are required for AI Grill analysis' },
-        { status: 400 }
-      );
+    if (!answer && !action) {
+      throw new HttpError(400, 'Write an answer first.');
     }
 
     const fullAnswer = answer || `Situation: ${situation || '-'}. Task: ${task || '-'}. Action: ${action || '-'}. Result: ${result || '-'}`;
@@ -70,13 +66,5 @@ export async function POST(request: Request) {
       suggestions: suggestions.length > 0 ? suggestions : ['Pertahankan struktur jawaban ini saat sesi wawancara langsung!'],
     };
 
-    return NextResponse.json({ success: true, data: feedback });
-  } catch (error: unknown) {
-    const err = error as Error;
-    console.error('API /api/interviews/grill error:', err);
-    return NextResponse.json(
-      { success: false, error: err.message || 'Failed to process AI Grill analysis' },
-      { status: 500 }
-    );
-  }
-}
+    return ok(feedback);
+});

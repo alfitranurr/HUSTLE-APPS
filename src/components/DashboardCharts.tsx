@@ -14,7 +14,7 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { 
   Eye, 
   X, 

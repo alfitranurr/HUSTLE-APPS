@@ -1,15 +1,17 @@
 /**
- * Ensures a URL starts with a protocol (http:// or https://).
- * If it doesn't, it prepends https://.
+ * Returns a safe absolute http(s) URL for use in an href, or '' if the value
+ * can't be turned into one (e.g. javascript:, data:, protocol-relative //host).
  */
 export function ensureAbsoluteUrl(url?: string): string {
-  if (!url) return '';
-  const trimmed = url.trim();
+  const trimmed = url?.trim();
   if (!trimmed) return '';
-  if (/^(https?:\/\/|mailto:|tel:|\/)/i.test(trimmed)) {
-    return trimmed;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
+  } catch {
+    return '';
   }
-  return `https://${trimmed}`;
 }
 
 export function getProofUrls(buktiurl?: string): string[] {
@@ -19,4 +21,3 @@ export function getProofUrls(buktiurl?: string): string[] {
     .map((url) => url.trim())
     .filter((url) => url.length > 0 && url !== 'No File');
 }
-

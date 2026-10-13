@@ -13,7 +13,7 @@ import {
   Layers,
   LayoutGrid
 } from 'lucide-react';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { JobTable } from '@/components/JobTable';
 import { JobFormModal } from '@/components/JobFormModal';
 

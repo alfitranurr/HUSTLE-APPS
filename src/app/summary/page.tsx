@@ -12,7 +12,7 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
-import { Job } from '@/lib/googleSheets';
+import type { Job } from '@/lib/types';
 import { DashboardCharts } from '@/components/DashboardCharts';
 
 const fetcher = async (url: string) => {
