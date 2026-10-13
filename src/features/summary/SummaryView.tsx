@@ -9,10 +9,20 @@ import { Modal } from '@/components/ui/Modal';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
+import { JobListModal } from '@/features/jobs/JobListModal';
+import { useJobDialogs } from '@/features/jobs/useJobDialogs';
 import { useJobs } from '@/hooks/useJobs';
 import { STAGE_TONE, STATUS_TONE, type JobStage, type JobStatus } from '@/lib/constants';
 import { shortProvince } from '@/lib/format';
-import { computeJobStats, countBy, filterByTimeframe, monthlyTimeline, TIMEFRAMES, type Timeframe } from '@/lib/stats';
+import {
+  computeJobStats,
+  countBy,
+  filterByTimeframe,
+  monthlyTimeline,
+  TIMEFRAMES,
+  type Segment,
+  type Timeframe,
+} from '@/lib/stats';
 import { BreakdownList } from './BreakdownList';
 import { buildInsights } from './insights';
 import { PositionsChart } from './PositionsChart';
@@ -21,7 +31,9 @@ import { TimelineChart } from './TimelineChart';
 const stripRegionPrefix = (city: string) => city.replace(/^(Kota|Kabupaten)\s+/i, '');
 
 export function SummaryView() {
-  const { jobs: allJobs, isLoading } = useJobs();
+  const { jobs: allJobs, isLoading, mutate } = useJobs();
+  const { handlers, dialogs } = useJobDialogs(mutate);
+  const [segment, setSegment] = useState<Segment | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [showAllPositions, setShowAllPositions] = useState(false);
 
@@ -52,7 +64,14 @@ export function SummaryView() {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard label="Applications" value={stats.total} tone="indigo" icon={<Briefcase className="size-4" />} loading={isLoading} />
+        <StatCard
+          label="Applications"
+          value={stats.total}
+          tone="indigo"
+          icon={<Briefcase className="size-4" />}
+          loading={isLoading}
+          onClick={() => setSegment('all')}
+        />
         <StatCard
           label="Interview rate"
           value={`${stats.interviewRate}%`}
@@ -60,6 +79,7 @@ export function SummaryView() {
           tone="violet"
           icon={<MessagesSquare className="size-4" />}
           loading={isLoading}
+          onClick={() => setSegment('interviews')}
         />
         <StatCard
           label="Offer rate"
@@ -68,6 +88,7 @@ export function SummaryView() {
           tone="emerald"
           icon={<Trophy className="size-4" />}
           loading={isLoading}
+          onClick={() => setSegment('offers')}
         />
         <StatCard
           label="Rejected"
@@ -76,6 +97,7 @@ export function SummaryView() {
           tone="rose"
           icon={<XCircle className="size-4" />}
           loading={isLoading}
+          onClick={() => setSegment('rejected')}
         />
       </div>
 
@@ -174,6 +196,21 @@ export function SummaryView() {
           </div>
         </>
       )}
+
+      <JobListModal
+        key={segment ?? 'closed'}
+        segment={segment}
+        jobs={jobs}
+        context={
+          timeframe === 'all' ? undefined : `${TIMEFRAMES.find((t) => t.value === timeframe)?.label}, newest first.`
+        }
+        onClose={() => setSegment(null)}
+        onOpen={(job) => {
+          setSegment(null);
+          handlers.onView(job);
+        }}
+      />
+      {dialogs}
 
       <Modal open={showAllPositions} onClose={() => setShowAllPositions(false)} title="All positions" accent="indigo">
         <BreakdownList items={data.positions} total={stats.total} tone="indigo" />
