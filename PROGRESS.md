@@ -9,14 +9,15 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | | |
 |---|---|
 | **Production** | https://hustle-apps-six.vercel.app — commit `284a922` (merge PR #3), 14 Okt 2026 |
-| **Menunggu merge** | PR #4 — Insights: funnel, penolakan per tahap, konversi per posisi, profil bertab, drill-down di semua kartu, konfirmasi sign out |
+| **Menunggu merge** | PR #4 — Insights (drill-down semua kartu, konfirmasi sign out) · PR #5 — Interview prep P1–P3 + P8 (di atas PR #4) |
 | **Tooling** | GitHub CLI (`gh`) dan Vercel CLI terpasang & login; folder lokal ter-link ke project Vercel `hustle-apps` |
 
 ## Checklist tindakan
 
 - [x] Merge PR #1, #2, #3 (live di production)
 - [x] Pulihkan `LastUpdated` 90 lamaran yang tereset oleh perbaikan stage (backup dulu, lalu restore; Needs follow-up kembali 106)
-- [ ] **Merge PR #4** (Insights) → deploy otomatis ke production
+- [ ] **Merge PR #4** (Insights), lalu **PR #5** (Interview prep) → deploy otomatis ke production
+- [ ] Buka Interview prep → **Add starter questions**, lalu tulis jawaban STAR untuk pertanyaan Behavioral dan isi catatan tes
 - [ ] **Rotasi `GOOGLE_CLIENT_SECRET` & `GOOGLE_REFRESH_TOKEN`** — pernah tercetak di log Vercel oleh kode lama. Reset di Google Cloud Console, lalu masukkan nilai baru ke Vercel + `.env.local` _(harus dilakukan pemilik akun)_
 - [ ] Jalankan pembersihan data dari UI: banner stage di Applications + "Close as no response" di Dashboard (183 lamaran terbuka, mayoritas > 60 hari tanpa kabar)
 - [ ] Lengkapi Platform / Level / Lokasi di lamaran lama (baru 21–24 dari 201 terisi) agar kartu Application profile bermakna
@@ -35,6 +36,7 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | PR #2 · `e31ff5e`, `25d2e19` | Kartu statistik → daftar perusahaan; filter Group; deep link `/tracker?segment=` | ✅ live 14 Okt |
 | PR #3 · `a5300b7`, `13108d4` | Status No Response, perbaikan stage massal, bulk delete, quick filter chips, form per card, tanpa scroll horizontal | ✅ live 14 Okt |
 | PR #4 | Insights I1–I4 + drill-down semua kartu + konfirmasi sign out | 🟡 menunggu merge |
+| PR #5 | Interview prep: perbaikan skor Answer check, starter pack 20 pertanyaan, kategori Assessment / Test + kolom Notes, popup lebih lebar | 🟡 menunggu merge |
 
 ### Detail PR #4 — Insights
 | Item | Perubahan | Status |
@@ -106,20 +108,20 @@ Kondisi 14 Okt 2026: bank pertanyaan **kosong (0)**, padahal 8 lamaran sudah sam
 
 | # | Rekomendasi | Alasan | Prioritas | Status |
 |---|---|---|---|---|
-| P1 | **Bug Answer check**: kalau draft STAR sudah tersimpan, jawaban yang diketik selalu dianggap mencakup S/T/A/R → skor terlalu tinggi. Nilai hanya teks yang diketik (draft dipakai hanya bila kolom jawaban kosong) | Skor menyesatkan | Tinggi | ⬜ |
-| P2 | **Starter pack**: tambah 10–15 pertanyaan umum sekali klik (HR, behavioral, Data Analyst: SQL/Excel/studi kasus) | Bank kosong; memulai dari nol berat | Tinggi | ⬜ |
-| P3 | Kategori **Assessment / Test** (SQL, Excel, logika, psikotes) + catatan materi | Penolakan terbanyak di tahap Test | Tinggi | ⬜ |
+| P1 | ~~Bug Answer check~~ **diperbaiki**: kalau draft STAR sudah tersimpan, jawaban yang diketik selalu dianggap mencakup S/T/A/R → skor terlalu tinggi. Nilai hanya teks yang diketik (draft dipakai hanya bila kolom jawaban kosong) | Skor menyesatkan | Tinggi | 🟡 PR #5 |
+| P2 | **Starter pack**: tambah 10–15 pertanyaan umum sekali klik (HR, behavioral, Data Analyst: SQL/Excel/studi kasus) | Bank kosong; memulai dari nol berat | Tinggi | 🟡 PR #5 (20 pertanyaan: HR, Salary, Behavioral, Leadership, Technical, Assessment) |
+| P3 | Kategori **Assessment / Test** (SQL, Excel, logika, psikotes) + catatan materi | Penolakan terbanyak di tahap Test | Tinggi | 🟡 PR #5 (kolom Notes = K; kategori tes tanpa STAR & tanpa Answer check) |
 | P4 | Hubungkan pertanyaan ke **lamaran** (pilih dari daftar perusahaan, bukan teks bebas) + tombol "Prep" di detail lamaran yang sedang Test/Interview | Persiapan per perusahaan langsung dari tracker | Sedang | ⬜ |
 | P5 | **Mode latihan**: kartu acak + timer 2 menit, buka draft STAR setelahnya; catat terakhir dilatih & jumlah latihan | Status Mastered saja tidak menunjukkan kapan terakhir berlatih | Sedang | ⬜ |
 | P6 | Simpan **skor Answer check terakhir** per pertanyaan + tren | Melihat kemajuan | Rendah | ⬜ |
 | P7 | Stat card bisa diklik → filter daftar (konsisten dengan halaman lain); quick filter chips | Konsistensi | Rendah | ⬜ |
-| P8 | Kartu STAR 4 kolom terlalu sempit di grid 2 kolom layar lebar → 2×2 | Teks panjang sulit dibaca | Rendah | ⬜ |
+| P8 | Kartu STAR 4 kolom terlalu sempit di grid 2 kolom layar lebar → 2×2 | Teks panjang sulit dibaca | Rendah | 🟡 PR #5 (+ popup pertanyaan & Answer check diperlebar) |
 
 ---
 
 ## Catatan teknis
 
-- **Kolom Sheet `DataLowongan` (A–U):** `LastUpdated` (S), `ContractDate` (T), `StageDates` (U, JSON). Tab `Interviews` dan `Settings` dibuat otomatis.
+- **Kolom Sheet `DataLowongan` (A–U):** `LastUpdated` (S), `ContractDate` (T), `StageDates` (U, JSON). Tab `Interviews` (A–K, `Notes` di K ditambahkan otomatis) dan `Settings` dibuat otomatis.
 - **Env wajib:** `OWNER_EMAIL`, `LOGIN_PASSWORD` (≥ 8), `JWT_SECRET` (≥ 32), `GOOGLE_SHEET_ID`, `GOOGLE_DRIVE_FOLDER_ID`, dan kredensial Google (OAuth atau service account). Lihat `.env.example`.
 - **Deploy:** merge ke `master` → Vercel deploy production otomatis. Perubahan env di Vercel butuh redeploy (`vercel redeploy https://hustle-apps-six.vercel.app --target production`).
 - **Deep link Applications:** `/tracker?segment=&status=&stage=&position=&careerLevel=&province=&search=&from=&to=&followUp=yes` (divalidasi di server).

@@ -112,10 +112,14 @@ export const INTERVIEW_CATEGORIES = [
   'Behavioral',
   'Technical',
   'HR / General',
+  'Assessment / Test',
   'System Design',
   'Leadership',
   'Salary & Culture',
 ] as const;
+
+/** Prepared with notes, not a STAR story (SQL test, psikotes, case study…). */
+export const NOTES_ONLY_CATEGORIES: readonly string[] = ['Assessment / Test'];
 
 export const DIFFICULTIES = ['Easy', 'Medium', 'Hard'] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];

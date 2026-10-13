@@ -47,6 +47,7 @@ export function AnswerCheckModal({ question, onClose }: { question: InterviewQue
     <Modal
       open
       onClose={onClose}
+      size="lg"
       accent="amber"
       title="Answer check"
       description={question.question}
