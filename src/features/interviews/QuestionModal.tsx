@@ -28,6 +28,10 @@ const EMPTY: InterviewQuestionInput = {
 interface QuestionModalProps {
   open: boolean;
   question: InterviewQuestion | null;
+  /** Prefilled values for a new question. */
+  defaults?: Partial<InterviewQuestionInput>;
+  /** Company names from the applications, suggested in Target company. */
+  companies?: string[];
   onClose: () => void;
   onSaved: () => void;
 }
@@ -42,10 +46,10 @@ function Section({ title, description, children }: { title: string; description?
   );
 }
 
-export function QuestionModal({ open, question, onClose, onSaved }: QuestionModalProps) {
+export function QuestionModal({ open, question, defaults, companies = [], onClose, onSaved }: QuestionModalProps) {
   const toast = useToast();
   const [values, setValues] = useState<InterviewQuestionInput>(() => {
-    if (!question) return EMPTY;
+    if (!question) return { ...EMPTY, ...defaults };
     const { category, question: text, situation, task, action, result, targetCompany, difficulty, status, notes } = question;
     return { category, question: text, situation, task, action, result, targetCompany, difficulty, status, notes };
   });
@@ -120,8 +124,18 @@ export function QuestionModal({ open, question, onClose, onSaved }: QuestionModa
               <Field label="Category">
                 <Select options={INTERVIEW_CATEGORIES} value={values.category} onChange={(e) => set('category', e.target.value)} />
               </Field>
-              <Field label="Target company" hint="Optional">
-                <Input value={values.targetCompany} onChange={(e) => set('targetCompany', e.target.value)} />
+              <Field label="Target company" hint="Optional · suggestions from your applications">
+                <Input
+                  list="question-companies"
+                  autoComplete="off"
+                  value={values.targetCompany}
+                  onChange={(e) => set('targetCompany', e.target.value)}
+                />
+                <datalist id="question-companies">
+                  {companies.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
               </Field>
               <Field label="Difficulty">
                 <Select

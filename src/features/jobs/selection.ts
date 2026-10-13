@@ -63,6 +63,13 @@ export const selectPosition = (position: string, tone: Tone = 'indigo'): JobSele
   filters: { position },
 });
 
+export const selectCompany = (company: string): JobSelection => ({
+  title: company,
+  tone: 'indigo',
+  match: (job) => same(job.company, company),
+  filters: { search: company },
+});
+
 /** Applications whose applied date falls in [from, to] (yyyy-mm-dd). */
 export const selectApplied = (label: string, from: string, to: string): JobSelection => ({
   title: `Applied in ${label}`,

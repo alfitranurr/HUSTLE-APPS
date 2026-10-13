@@ -1,15 +1,17 @@
 'use client';
 
-import { CalendarCheck, CalendarClock, Pencil } from 'lucide-react';
+import { CalendarCheck, CalendarClock, MessagesSquare, Pencil } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PlatformBrandIcon } from '@/components/BrandIcons';
 import { Badge, StageBadge, StatusBadge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { CONTRACT_STAGES, SCHEDULED_STAGES, STATUS_TONE } from '@/lib/constants';
+import { CONTRACT_STAGES, PREP_STAGES, SCHEDULED_STAGES, STATUS_TONE } from '@/lib/constants';
 import { cn } from '@/lib/cn';
 import { needsFollowUp } from '@/lib/followUp';
 import { formatDate, formatDateTime, formatLocation, formatRelative } from '@/lib/format';
+import { isActive } from '@/lib/stats';
 import type { Job } from '@/lib/types';
 import { AttachmentList, JobLinkList } from './JobLinks';
 import { StageTimeline } from './StageTimeline';
@@ -64,6 +66,7 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
   if (!job) return null;
   const showSchedule = SCHEDULED_STAGES.includes(job.stage) && job.scheduledAt;
   const showContract = CONTRACT_STAGES.includes(job.stage) && job.contractDate;
+  const showPrep = isActive(job) && PREP_STAGES.includes(job.stage);
 
   return (
     <Modal
@@ -78,6 +81,16 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
+          {showPrep && (
+            <Link
+              href={`/interviews?company=${encodeURIComponent(job.company)}`}
+              onClick={onClose}
+              className={buttonClasses('secondary')}
+            >
+              <MessagesSquare className="size-4" />
+              Interview prep
+            </Link>
+          )}
           <Button icon={<Pencil className="size-4" />} onClick={() => onEdit(job)}>
             Edit
           </Button>

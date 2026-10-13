@@ -1,11 +1,12 @@
 'use client';
 
-import { Building2, Check, ChevronDown, Pencil, Sparkles, Trash2 } from 'lucide-react';
+import { Building2, Check, ChevronDown, Pencil, Sparkles, Timer, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button, IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 import { DIFFICULTY_TONE, NOTES_ONLY_CATEGORIES, STAR_PARTS } from '@/lib/constants';
+import { formatRelative } from '@/lib/format';
 import { TONES } from '@/lib/tones';
 import type { InterviewQuestion } from '@/lib/types';
 
@@ -42,6 +43,12 @@ export function QuestionCard({ question: q, onToggleMastered, onCheck, onEdit, o
                 {q.targetCompany}
               </span>
             )}
+            <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+              <Timer className="size-3.5" />
+              {q.practiceCount > 0
+                ? `Practised ${q.practiceCount}× · ${formatRelative(q.lastPracticedAt)}`
+                : 'Not practised yet'}
+            </span>
           </div>
           <h3 className="text-base font-semibold text-slate-900">{q.question}</h3>
         </div>
