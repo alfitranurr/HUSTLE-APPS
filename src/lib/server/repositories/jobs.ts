@@ -1,6 +1,7 @@
 import 'server-only';
 import { JOB_STAGES, JOB_STATUSES, type JobStage, type JobStatus } from '@/lib/constants';
 import type { Job } from '@/lib/types';
+import { advanceStageDates, parseStageDates, serializeStageDates } from '@/lib/stageDates';
 import { splitAttachmentCell } from '@/lib/urls';
 import { appendRow, columnLetter, deleteRow, ensureSheet, NotFoundError, readValues, writeValues } from '../google/sheet';
 
@@ -10,7 +11,7 @@ const SHEET = 'DataLowongan';
 const COLUMNS = [
   'ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori',
   'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink', 'LastUpdated',
-  'ContractDate',
+  'ContractDate', 'StageDates',
 ] as const;
 type Column = (typeof COLUMNS)[number];
 
@@ -59,6 +60,7 @@ function toJob(get: (column: Column) => string): Job {
     appliedAt: get('StartDate') || get('Timestamp'),
     scheduledAt: get('EndDate'),
     contractDate: get('ContractDate'),
+    stageDates: parseStageDates(get('StageDates')),
     status: normalizeStatus(get('Status')),
     stage: normalizeStage(get('CurrentStage')),
     platform: get('Platform'),
@@ -100,6 +102,7 @@ function toCells(job: Job): string[] {
     OtherLink: job.links.other,
     LastUpdated: job.updatedAt,
     ContractDate: job.contractDate,
+    StageDates: serializeStageDates(job.stageDates),
   };
   return COLUMNS.map((column) => values[column]);
 }
@@ -122,7 +125,7 @@ async function readAll(): Promise<StoredJob[]> {
   };
   const index = new Map(COLUMNS.map((c) => [c, indexOf(c)]));
 
-  // Columns added after the original layout (LastUpdated, ContractDate) get their header once.
+  // Columns added after the original layout (LastUpdated, ContractDate, StageDates) get their header once.
   if (!headerChecked) {
     headerChecked = true;
     const missing = COLUMNS.map((name, i) => ({ name, i })).filter(({ i }) => !header[i]);
@@ -170,14 +173,26 @@ async function writeJob(row: number, job: Job) {
 export async function createJob(data: JobData): Promise<Job> {
   await ensureSheet(SHEET, COLUMNS);
   const now = new Date().toISOString();
-  const job: Job = { ...data, id: `ID-${Date.now()}`, createdAt: now, updatedAt: now };
+  const job: Job = {
+    ...data,
+    stageDates: advanceStageDates(data.stageDates, data.stage),
+    id: `ID-${Date.now()}`,
+    createdAt: now,
+    updatedAt: now,
+  };
   await appendRow(`${SHEET}!A:${LAST_COLUMN}`, toCells(job));
   return job;
 }
 
 export async function updateJob(id: string, data: JobData): Promise<{ before: Job; after: Job }> {
   const { job: before, row } = await find(id);
-  const after: Job = { ...data, id, createdAt: before.createdAt, updatedAt: new Date().toISOString() };
+  const after: Job = {
+    ...data,
+    stageDates: advanceStageDates(data.stageDates, data.stage, before.stage),
+    id,
+    createdAt: before.createdAt,
+    updatedAt: new Date().toISOString(),
+  };
   await writeJob(row, after);
   return { before, after };
 }
@@ -187,7 +202,13 @@ export type JobPatch = Partial<Pick<Job, 'stage' | 'status'>>;
 /** Small updates (stage change from the board, "followed up"). Always bumps `updatedAt`. */
 export async function patchJob(id: string, patch: JobPatch): Promise<Job> {
   const { job, row } = await find(id);
-  const after: Job = { ...job, ...patch, updatedAt: new Date().toISOString() };
+  const stage = patch.stage ?? job.stage;
+  const after: Job = {
+    ...job,
+    ...patch,
+    stageDates: advanceStageDates(job.stageDates, stage, job.stage),
+    updatedAt: new Date().toISOString(),
+  };
   await writeJob(row, after);
   return after;
 }

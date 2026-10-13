@@ -42,7 +42,7 @@ function SortHeader({ label, sortKey, sort, onSort, className }: {
 export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[980px] text-left text-sm">
+      <table className="w-full min-w-[61.25rem] text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
           <tr>
             <SortHeader label="Company" sortKey="company" sort={sort} onSort={onSort} className="pl-5" />
@@ -60,7 +60,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
         <tbody className="divide-y divide-slate-100">
           {jobs.map((job) => (
             <tr key={job.id} className="transition-colors hover:bg-slate-50/70">
-              <td className={cn('min-w-[220px] border-l-4 py-3 pr-3 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
+              <td className={cn('min-w-[13.75rem] border-l-4 py-3 pr-3 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
                 <button
                   type="button"
                   onClick={() => actions.onView(job)}
@@ -68,7 +68,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                 >
                   {job.company}
                 </button>
-                <p className="max-w-[260px] text-xs text-slate-500">{job.position || '—'}</p>
+                <p className="max-w-[16.25rem] text-xs text-slate-500">{job.position || '—'}</p>
               </td>
               <td className="px-3 py-3">
                 {hasLinks(job) || job.attachments.length > 0 ? (
@@ -90,7 +90,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                   <span className="text-slate-400">—</span>
                 )}
               </td>
-              <td className="max-w-[200px] truncate px-3 py-3 text-slate-600 2xl:max-w-[340px]" title={formatLocation(job)}>
+              <td className="max-w-[12.5rem] truncate px-3 py-3 text-slate-600 2xl:max-w-[21.25rem]" title={formatLocation(job)}>
                 {formatLocation(job)}
               </td>
               <td className="px-3 py-3 whitespace-nowrap text-slate-600">{job.platform || '—'}</td>

@@ -1,22 +1,55 @@
 'use client';
 
-import { Pencil } from 'lucide-react';
+import { CalendarCheck, CalendarClock, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { PlatformBrandIcon } from '@/components/BrandIcons';
-import { StageBadge, StatusBadge } from '@/components/ui/Badge';
+import { Badge, StageBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { CONTRACT_STAGES, SCHEDULED_STAGES, STATUS_TONE } from '@/lib/constants';
+import { cn } from '@/lib/cn';
+import { needsFollowUp } from '@/lib/followUp';
 import { formatDate, formatDateTime, formatLocation, formatRelative } from '@/lib/format';
 import type { Job } from '@/lib/types';
-import { AttachmentLinks, JobLinkButtons } from './JobLinks';
-import { StageStepper } from './StageStepper';
+import { AttachmentList, JobLinkList } from './JobLinks';
+import { StageTimeline } from './StageTimeline';
 
-function Item({ label, children }: { label: string; children: ReactNode }) {
+/** Bordered card with a small uppercase heading; every section of the popup uses it. */
+function Panel({ title, count, children, className }: { title: string; count?: number; children: ReactNode; className?: string }) {
   return (
-    <div>
-      <dt className="text-xs font-medium text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-slate-900">{children}</dd>
+    <section className={cn('rounded-xl border border-slate-200 bg-white p-4', className)}>
+      <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
+        {title}
+        {count !== undefined && count > 0 && (
+          <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[0.6875rem] text-slate-600 tabular-nums">{count}</span>
+        )}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 py-2.5">
+      <dt className="shrink-0 text-sm text-slate-500">{label}</dt>
+      <dd className="text-right text-sm font-medium text-slate-900">{children}</dd>
+    </div>
+  );
+}
+
+function Highlight({ tone, icon, title, subtitle }: { tone: 'violet' | 'emerald'; icon: ReactNode; title: string; subtitle: string }) {
+  const styles = {
+    violet: 'border-violet-500 bg-violet-50 text-violet-900',
+    emerald: 'border-emerald-500 bg-emerald-50 text-emerald-900',
+  }[tone];
+  return (
+    <div className={`flex items-center gap-3 rounded-lg border-l-4 px-4 py-3 ${styles}`}>
+      {icon}
+      <div className="text-sm">
+        <p className="font-semibold">{title}</p>
+        <p className="opacity-80">{subtitle}</p>
+      </div>
     </div>
   );
 }
@@ -30,6 +63,7 @@ interface JobDetailsModalProps {
 export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) {
   if (!job) return null;
   const showSchedule = SCHEDULED_STAGES.includes(job.stage) && job.scheduledAt;
+  const showContract = CONTRACT_STAGES.includes(job.stage) && job.contractDate;
 
   return (
     <Modal
@@ -50,64 +84,76 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
         </>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={job.status} />
           <StageBadge stage={job.stage} />
+          {needsFollowUp(job) && <Badge tone="amber">Follow up</Badge>}
         </div>
 
-        <div className="rounded-xl border border-slate-200 px-3 py-4">
-          <StageStepper stage={job.stage} status={job.status} />
-        </div>
-
-        {CONTRACT_STAGES.includes(job.stage) && job.contractDate && (
-          <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-4 py-3 text-sm">
-            <p className="font-semibold text-emerald-900">Contract date · {formatDate(job.contractDate)}</p>
-            <p className="text-emerald-700">{formatRelative(job.contractDate)}</p>
+        <Panel title="Progress">
+          <div className="pt-1">
+            <StageTimeline job={job} />
           </div>
-        )}
+        </Panel>
 
-        {showSchedule && (
-          <div className="rounded-lg border-l-4 border-violet-500 bg-violet-50 px-4 py-3 text-sm">
-            <p className="font-semibold text-violet-900">
-              {job.stage === 'Assessment Test' ? 'Assessment' : 'Interview'} · {formatDateTime(job.scheduledAt)}
-            </p>
-            <p className="text-violet-700">{formatRelative(job.scheduledAt)}</p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <div className="space-y-4 lg:col-span-2">
+            {(showSchedule || showContract) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {showSchedule && (
+                  <Highlight
+                    tone="violet"
+                    icon={<CalendarClock className="size-5 shrink-0 text-violet-500" />}
+                    title={`${job.stage === 'Assessment Test' ? 'Assessment' : 'Interview'} · ${formatDateTime(job.scheduledAt)}`}
+                    subtitle={formatRelative(job.scheduledAt)}
+                  />
+                )}
+                {showContract && (
+                  <Highlight
+                    tone="emerald"
+                    icon={<CalendarCheck className="size-5 shrink-0 text-emerald-600" />}
+                    title={`Contract · ${formatDate(job.contractDate)}`}
+                    subtitle={formatRelative(job.contractDate)}
+                  />
+                )}
+              </div>
+            )}
+
+            <Panel title="Notes">
+              {job.note ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">{job.note}</p>
+              ) : (
+                <p className="text-sm text-slate-400">No notes yet.</p>
+              )}
+            </Panel>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Panel title="Links" count={Object.values(job.links).filter(Boolean).length}>
+                <JobLinkList job={job} />
+              </Panel>
+              <Panel title="Attachments" count={job.attachments.length}>
+                <AttachmentList urls={job.attachments} />
+              </Panel>
+            </div>
           </div>
-        )}
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-          <Item label="Applied">{formatDate(job.appliedAt)}</Item>
-          <Item label="Platform">
-            <span className="inline-flex items-center gap-1.5">
-              <PlatformBrandIcon platform={job.platform} className="size-4" />
-              {job.platform || '—'}
-            </span>
-          </Item>
-          <Item label="Career level">{job.careerLevel || '—'}</Item>
-          <Item label="Location">{formatLocation(job)}</Item>
-          <Item label="Last updated">{formatDate(job.updatedAt)}</Item>
-        </dl>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <section>
-            <h3 className="mb-2 text-xs font-medium text-slate-500">Links</h3>
-            <JobLinkButtons job={job} />
-          </section>
-          <section>
-            <h3 className="mb-2 text-xs font-medium text-slate-500">Attachments</h3>
-            <AttachmentLinks urls={job.attachments} />
-          </section>
+          <Panel title="Details" className="self-start">
+            <dl className="-my-2.5 divide-y divide-slate-100">
+              <Row label="Applied">{formatDate(job.appliedAt)}</Row>
+              <Row label="Platform">
+                <span className="inline-flex items-center gap-1.5">
+                  <PlatformBrandIcon platform={job.platform} className="size-4" />
+                  {job.platform || '—'}
+                </span>
+              </Row>
+              <Row label="Career level">{job.careerLevel || '—'}</Row>
+              <Row label="Location">{formatLocation(job)}</Row>
+              {job.contractDate && <Row label="Contract date">{formatDate(job.contractDate)}</Row>}
+              <Row label="Last updated">{formatDate(job.updatedAt)}</Row>
+            </dl>
+          </Panel>
         </div>
-
-        <section>
-          <h3 className="mb-2 text-xs font-medium text-slate-500">Notes</h3>
-          {job.note ? (
-            <p className="rounded-lg bg-slate-50 p-3 text-sm whitespace-pre-wrap text-slate-700">{job.note}</p>
-          ) : (
-            <p className="text-sm text-slate-500">No notes yet.</p>
-          )}
-        </section>
       </div>
     </Modal>
   );

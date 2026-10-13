@@ -1,4 +1,5 @@
 import type { Difficulty, JobStage, JobStatus, MasteryStatus } from './constants';
+import type { StageDates } from './stageDates';
 
 export type { Difficulty, JobStage, JobStatus, MasteryStatus };
 
@@ -12,6 +13,8 @@ export interface Job {
   scheduledAt: string;
   /** Contract (start) date once an offer is made or signed, yyyy-mm-dd. */
   contractDate: string;
+  /** When each pipeline stage was reached; the first stage uses `appliedAt`. */
+  stageDates: StageDates;
   status: JobStatus;
   stage: JobStage;
   platform: string;

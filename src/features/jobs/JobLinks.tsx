@@ -38,48 +38,52 @@ export function JobLinkIcons({ job, className }: { job: Job; className?: string 
   );
 }
 
-/** Labelled link buttons, used in the details view. */
-export function JobLinkButtons({ job }: { job: Job }) {
+const ROW =
+  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-700 ring-1 ring-slate-200 transition-colors hover:bg-slate-50';
+
+/** Full-width rows of the reference links, for the details view. */
+export function JobLinkList({ job }: { job: Job }) {
   const present = LINKS.filter(({ key }) => safeHref(job.links[key]));
-  if (present.length === 0) return <p className="text-sm text-slate-500">No links added.</p>;
+  if (present.length === 0) return <p className="text-sm text-slate-400">No links added.</p>;
   return (
-    <div className="flex flex-wrap gap-2">
-      {present.map(({ key, label, icon: Icon, hover }) => (
-        <a
-          key={key}
-          href={safeHref(job.links[key])}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200 transition-colors',
-            hover
-          )}
-        >
-          <Icon className="size-4" />
-          {label}
-        </a>
-      ))}
-    </div>
+    <ul className="space-y-2">
+      {present.map(({ key, label, icon: Icon }) => {
+        const href = safeHref(job.links[key]);
+        return (
+          <li key={key}>
+            <a href={href} target="_blank" rel="noopener noreferrer" className={ROW}>
+              <Icon className="size-4 shrink-0 text-slate-500" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium text-slate-900">{label}</span>
+                <span className="block truncate text-xs text-slate-500">{new URL(href).host}</span>
+              </span>
+              <ExternalLink className="size-4 shrink-0 text-slate-400" />
+            </a>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-export function AttachmentLinks({ urls, compact = false }: { urls: string[]; compact?: boolean }) {
+/** Full-width rows of the proof attachments, for the details view. */
+export function AttachmentList({ urls }: { urls: string[] }) {
   const safe = urls.map(safeHref).filter(Boolean);
-  if (safe.length === 0) return compact ? null : <p className="text-sm text-slate-500">No attachments.</p>;
+  if (safe.length === 0) return <p className="text-sm text-slate-400">No attachments.</p>;
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <ul className="space-y-2">
       {safe.map((url, i) => (
-        <a
-          key={url}
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 transition-colors hover:bg-indigo-100"
-        >
-          <Paperclip className="size-3" />
-          {safe.length > 1 ? `File ${i + 1}` : 'Attachment'}
-        </a>
+        <li key={url}>
+          <a href={url} target="_blank" rel="noopener noreferrer" className={ROW}>
+            <Paperclip className="size-4 shrink-0 text-indigo-500" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium text-slate-900">Attachment {i + 1}</span>
+              <span className="block truncate text-xs text-slate-500">Google Drive</span>
+            </span>
+            <ExternalLink className="size-4 shrink-0 text-slate-400" />
+          </a>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }

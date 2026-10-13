@@ -3,6 +3,17 @@ import { google, type drive_v3, type sheets_v4 } from 'googleapis';
 import { JWT, OAuth2Client } from 'google-auth-library';
 import { getServerEnv } from '@/lib/env';
 
+// Retry transient failures (DNS hiccups, resets, 5xx/429). Only idempotent
+// methods: a retried POST (append, delete row) could apply twice.
+google.options({
+  retryConfig: {
+    retry: 3,
+    noResponseRetries: 3,
+    retryDelay: 300,
+    httpMethodsToRetry: ['GET', 'HEAD', 'OPTIONS', 'PUT'],
+  },
+});
+
 let authClient: OAuth2Client | JWT | undefined;
 
 /** OAuth (Drive owner's refresh token) when configured, otherwise the service account. */

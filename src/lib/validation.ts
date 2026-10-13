@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { DIFFICULTIES, INTERVIEW_CATEGORIES, JOB_STAGES, JOB_STATUSES, MASTERY_STATUSES } from './constants';
+import { ISO_DATE } from './stageDates';
 
 /** Shared request schemas (server-side source of truth; the forms mirror the rules). */
 
@@ -29,6 +30,20 @@ export const jobFieldsSchema = z.object({
   appliedAt: required(40),
   scheduledAt: optional(40),
   contractDate: optional(40),
+  /** JSON object { stage: 'yyyy-mm-dd' } sent by the form. */
+  stageDates: z
+    .string()
+    .max(2000)
+    .default('{}')
+    .transform((value, ctx) => {
+      try {
+        return JSON.parse(value || '{}') as unknown;
+      } catch {
+        ctx.addIssue({ code: 'custom', message: 'must be valid JSON' });
+        return z.NEVER;
+      }
+    })
+    .pipe(z.partialRecord(z.enum(JOB_STAGES), z.string().regex(ISO_DATE, 'must be a yyyy-mm-dd date'))),
   status: z.enum(JOB_STATUSES),
   stage: z.enum(JOB_STAGES),
   platform: required(80),

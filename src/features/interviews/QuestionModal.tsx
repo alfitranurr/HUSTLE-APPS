@@ -125,7 +125,7 @@ export function QuestionModal({ open, question, onClose, onSaved }: QuestionModa
               key={part.key}
               label={
                 <span className="inline-flex items-center gap-2">
-                  <span className={cn('grid size-5 place-items-center rounded text-[11px] font-bold text-white', TONES[part.tone].bar)}>
+                  <span className={cn('grid size-5 place-items-center rounded text-[0.6875rem] font-bold text-white', TONES[part.tone].bar)}>
                     {part.letter}
                   </span>
                   {part.label}

@@ -7,6 +7,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import {
   CAREER_LEVELS,
   CONTRACT_STAGES,
@@ -17,7 +18,8 @@ import {
   type JobStage,
   type JobStatus,
 } from '@/lib/constants';
-import { toDateInput, toDateTimeLocal } from '@/lib/format';
+import { toDateInput, toDateKey, toDateTimeLocal } from '@/lib/format';
+import { pruneStageDates, type StageDates } from '@/lib/stageDates';
 import type { Job } from '@/lib/types';
 import { safeHref } from '@/lib/urls';
 import { AttachmentField, validateFiles } from './AttachmentField';
@@ -84,9 +86,9 @@ function validate(values: FormValues, files: File[]): Errors {
   return errors;
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <fieldset className="space-y-4">
+    <fieldset className={cn('space-y-4', className)}>
       <legend className="mb-1 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
         <span aria-hidden className="h-3 w-1 rounded-full bg-indigo-500" />
         {title}
@@ -110,7 +112,17 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
+  const [stageDates, setStageDates] = useState<StageDates>(job?.stageDates ?? {});
   const regions = useRegions(values.province);
+
+  /** Moving to a stage stamps today's date on it (editable below) unless it already has one. */
+  const changeStage = (stage: JobStage) => {
+    set('stage', stage);
+    if (stage !== 'Not Started' && !stageDates[stage]) {
+      setStageDates((d) => ({ ...d, [stage]: toDateKey(new Date()) }));
+    }
+  };
+  const reachedStages = JOB_STAGES.slice(1, JOB_STAGES.indexOf(values.stage) + 1);
 
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) => {
     setValues((v) => ({ ...v, [key]: value }));
@@ -130,6 +142,7 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
     for (const [key, value] of Object.entries(values)) form.append(key, value);
     if (!needsSchedule) form.set('scheduledAt', '');
     if (!needsContract) form.set('contractDate', '');
+    form.set('stageDates', JSON.stringify(pruneStageDates(stageDates, values.stage)));
     keptAttachments.forEach((url) => form.append('keepAttachments', url));
     files.forEach((file) => form.append('files', file));
 
@@ -199,7 +212,7 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
               />
             </Field>
             <Field label="Current stage" required>
-              <Select options={JOB_STAGES} value={values.stage} onChange={(e) => set('stage', e.target.value as JobStage)} />
+              <Select options={JOB_STAGES} value={values.stage} onChange={(e) => changeStage(e.target.value as JobStage)} />
             </Field>
             <Field label="Applied on" required error={errors.appliedAt}>
               <Input
@@ -315,6 +328,28 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
             error={errors.files}
             disabled={saving}
           />
+        </Section>
+
+        <Section title="Stage dates" className="md:col-span-2">
+          <p className="-mt-2 text-sm text-slate-500">
+            When each stage was reached. Filled in automatically when the stage changes; adjust or backfill as needed. The
+            first stage uses the application date.
+          </p>
+          {reachedStages.length === 0 ? (
+            <p className="text-sm text-slate-400">Move the application past “Not Started” to track stage dates.</p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {reachedStages.map((stage) => (
+                <Field key={stage} label={stage}>
+                  <Input
+                    type="date"
+                    value={stageDates[stage] ?? ''}
+                    onChange={(e) => setStageDates((d) => ({ ...d, [stage]: e.target.value || undefined }))}
+                  />
+                </Field>
+              ))}
+            </div>
+          )}
         </Section>
       </form>
     </Modal>

@@ -62,6 +62,19 @@ body {
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
+/*
+ * Default density. Desktop screens with OS display scaling of 125–175%
+ * (typical Windows laptops) make the UI look oversized at 100% browser zoom,
+ * so scale every rem-based size to 80% there. Phones, tablets, 100%-scaled
+ * monitors and 2x Retina screens keep the normal size. Breakpoints are not
+ * affected: media queries always use the browser's default font size.
+ */
+@media (min-width: 64rem) and (min-resolution: 1.25dppx) and (max-resolution: 1.75dppx) {
+  html {
+    font-size: 80%;
+  }
+}
+
 ::selection {
   background: var(--color-indigo-100);
 }

@@ -9,6 +9,7 @@ const COLUMNS: [header: string, value: (job: Job) => string][] = [
   ['Applied', (j) => formatDate(j.appliedAt)],
   ['Scheduled', (j) => (j.scheduledAt ? formatDateTime(j.scheduledAt) : '')],
   ['Contract date', (j) => (j.contractDate ? formatDate(j.contractDate) : '')],
+  ['Stage dates', (j) => Object.entries(j.stageDates).map(([stage, date]) => `${stage}: ${formatDate(date)}`).join('; ')],
   ['Platform', (j) => j.platform],
   ['Career level', (j) => j.careerLevel],
   ['City', (j) => j.city],

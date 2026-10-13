@@ -40,8 +40,8 @@ export function AppShell({ ownerName, children }: { ownerName: string; children:
         </div>
       </header>
 
-      <div className={cn('transition-[padding] duration-200', collapsed ? 'md:pl-[72px]' : 'md:pl-60')}>
-        <main id="main" className="mx-auto w-full max-w-[2200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 2xl:px-12">
+      <div className={cn('transition-[padding] duration-200', collapsed ? 'md:pl-[4.5rem]' : 'md:pl-60')}>
+        <main id="main" className="mx-auto w-full max-w-[137.5rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8 2xl:px-12">
           {children}
         </main>
       </div>

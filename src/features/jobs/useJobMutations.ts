@@ -4,6 +4,7 @@ import type { KeyedMutator } from 'swr';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/api';
 import { CONTRACT_STAGES, SCHEDULED_STAGES, type JobStage } from '@/lib/constants';
+import { advanceStageDates } from '@/lib/stageDates';
 import type { Job } from '@/lib/types';
 import { patchJob, type JobPatchBody } from './jobApi';
 
@@ -29,7 +30,13 @@ export function useJobMutations(mutate: KeyedMutator<Job[]>) {
     if (job.stage === stage) return;
     const status = stage === 'Contract Signed / Done' ? 'Success' : job.status;
     try {
-      await apply(job, { stage }, { ...job, stage, status, updatedAt: new Date().toISOString() });
+      await apply(job, { stage }, {
+        ...job,
+        stage,
+        status,
+        stageDates: advanceStageDates(job.stageDates, stage, job.stage),
+        updatedAt: new Date().toISOString(),
+      });
       toast.success(`${job.company} moved to ${stage}.`);
       if (SCHEDULED_STAGES.includes(stage)) toast.info('Open the application to add the schedule date.');
       if (CONTRACT_STAGES.includes(stage) && !job.contractDate) toast.info('Open the application to add the contract date.');

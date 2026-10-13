@@ -56,16 +56,16 @@ export function ActivityHeatmap({ jobs }: { jobs: Job[] }) {
       <CardContent>
         {/* Cells grow with the card (min 11px) so wide screens use the space; capped to stay compact. */}
         <div className="overflow-x-auto pb-1">
-          <div className="grid min-w-[700px] max-w-[1500px] grid-cols-[auto_1fr] gap-x-2">
+          <div className="grid min-w-[43.75rem] max-w-[93.75rem] grid-cols-[auto_1fr] gap-x-2">
             <span />
-            <div className="relative h-5 text-[11px] text-slate-500">
+            <div className="relative h-5 text-[0.6875rem] text-slate-500">
               {months.map((m) => (
                 <span key={`${m.label}-${m.column}`} className="absolute" style={{ left: `${(m.column / WEEKS) * 100}%` }}>
                   {m.label}
                 </span>
               ))}
             </div>
-            <div className="grid grid-rows-7 gap-[3px] text-[10px] text-slate-400">
+            <div className="grid grid-rows-7 gap-[3px] text-[0.625rem] text-slate-400">
               {['Mon', '', 'Wed', '', 'Fri', '', ''].map((d, i) => (
                 <span key={i} className="flex items-center">
                   {d}
@@ -96,7 +96,7 @@ export function ActivityHeatmap({ jobs }: { jobs: Job[] }) {
         <div className="mt-3 flex items-center justify-end gap-1.5 text-xs text-slate-500">
           Less
           {LEVELS.map((c) => (
-            <span key={c} className={cn('size-[11px] rounded-[3px]', c)} />
+            <span key={c} className={cn('size-[0.6875rem] rounded-[3px]', c)} />
           ))}
           More
         </div>

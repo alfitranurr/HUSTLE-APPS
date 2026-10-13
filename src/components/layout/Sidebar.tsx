@@ -69,7 +69,7 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
         className={cn(
           'fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-[transform,width] duration-200',
           mobileOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full md:translate-x-0',
-          collapsed ? 'md:w-[72px]' : 'md:w-60'
+          collapsed ? 'md:w-[4.5rem]' : 'md:w-60'
         )}
         aria-label="Main navigation"
       >
