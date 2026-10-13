@@ -1,47 +1,46 @@
 import 'server-only';
-import { trashUploadedFile, uploadFileToDrive, type Job, type SaveJobInput } from '@/lib/googleSheets';
-import { getProofUrls } from '@/lib/utils';
-import { jobFormSchema } from '@/lib/validation';
+import type { Job } from '@/lib/types';
+import { jobFieldsSchema } from '@/lib/validation';
+import { uploadFile } from './google/drive';
+import type { JobData } from './repositories/jobs';
 import { validateUploads } from './uploads';
 
-const FIELDS = Object.keys(jobFormSchema.shape) as (keyof typeof jobFormSchema.shape)[];
+const FIELDS = Object.keys(jobFieldsSchema.shape) as (keyof typeof jobFieldsSchema.shape)[];
 
 /**
- * Parses the multipart job form, uploads new attachments and works out which
- * existing attachments to keep. Only URLs already stored on the job can be
- * kept, so the client can't inject or delete arbitrary Drive files.
+ * Turns the multipart job form into repository data: validates fields, uploads
+ * new attachments and decides which existing attachments to keep. Only URLs
+ * already stored on the job can be kept, so a client can never inject or
+ * delete arbitrary Drive files.
  */
-export async function buildJobFromForm(
+export async function parseJobForm(
   formData: FormData,
   existing?: Job
-): Promise<{ input: Omit<SaveJobInput, 'id'>; removedUrls: string[] }> {
+): Promise<{ data: JobData; removedAttachments: string[] }> {
   const raw: Record<string, string | undefined> = {};
   for (const field of FIELDS) {
     const value = formData.get(field);
     raw[field] = typeof value === 'string' ? value : undefined;
   }
-  const fields = jobFormSchema.parse(raw);
+  const { instagram, linkedin, website, otherLink, ...fields } = jobFieldsSchema.parse(raw);
 
-  const files = formData.getAll('files').filter((f): f is File => f instanceof File);
-  const uploads = await validateUploads(files);
+  // Validate every file before uploading any of them.
+  const uploads = await validateUploads(formData.getAll('files').filter((f): f is File => f instanceof File));
 
-  const storedUrls = getProofUrls(existing?.buktiurl);
-  const requestedKeep = new Set(formData.getAll('keepUrls').map(String));
-  const keptUrls = storedUrls.filter((url) => requestedKeep.has(url));
-  const removedUrls = storedUrls.filter((url) => !requestedKeep.has(url));
+  const keep = new Set(formData.getAll('keepAttachments').map(String));
+  const stored = existing?.attachments ?? [];
+  const kept = stored.filter((url) => keep.has(url));
+  const removedAttachments = stored.filter((url) => !keep.has(url));
 
-  const uploadedUrls: string[] = [];
-  for (const upload of uploads) {
-    uploadedUrls.push(await uploadFileToDrive(upload.buffer, upload.name, upload.mimeType));
-  }
+  const uploaded: string[] = [];
+  for (const file of uploads) uploaded.push(await uploadFile(file.buffer, file.name, file.mimeType));
 
-  const allUrls = [...keptUrls, ...uploadedUrls];
   return {
-    input: { ...fields, buktiurl: allUrls.length > 0 ? allUrls.join(', ') : 'No File' },
-    removedUrls,
+    data: {
+      ...fields,
+      links: { instagram, linkedin, website, other: otherLink },
+      attachments: [...kept, ...uploaded],
+    },
+    removedAttachments,
   };
-}
-
-export async function trashFiles(urls: string[]) {
-  await Promise.all(urls.filter((u) => u.includes('drive.google.com')).map(trashUploadedFile));
 }

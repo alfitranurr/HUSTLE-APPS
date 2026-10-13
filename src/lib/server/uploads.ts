@@ -1,10 +1,11 @@
 import 'server-only';
+import { MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILES } from '@/lib/constants';
 import { HttpError } from './http';
 
 /** Vercel caps request bodies at 4.5 MB, so keep uploads comfortably below it. */
-export const MAX_FILES = 5;
-export const MAX_FILE_BYTES = 4 * 1024 * 1024;
-export const MAX_TOTAL_BYTES = 4.4 * 1024 * 1024;
+const MAX_FILES = MAX_UPLOAD_FILES;
+const MAX_FILE_BYTES = MAX_UPLOAD_FILE_MB * 1024 * 1024;
+const MAX_TOTAL_BYTES = 4.4 * 1024 * 1024;
 
 const SIGNATURES: { mime: string; ext: string[]; matches: (b: Buffer) => boolean }[] = [
   { mime: 'application/pdf', ext: ['pdf'], matches: (b) => b.subarray(0, 4).toString('latin1') === '%PDF' },

@@ -1,11 +1,10 @@
-import { fetchJobs, saveJob } from '@/lib/googleSheets';
-import { buildJobFromForm } from '@/lib/server/jobForm';
 import { ok, withAuth } from '@/lib/server/http';
+import { parseJobForm } from '@/lib/server/jobForm';
+import { createJob, listJobs } from '@/lib/server/repositories/jobs';
 
-export const GET = withAuth(async () => ok(await fetchJobs()));
+export const GET = withAuth(async () => ok(await listJobs()));
 
 export const POST = withAuth(async (req) => {
-  const { input } = await buildJobFromForm(await req.formData());
-  await saveJob(input);
-  return ok(null, { status: 201 });
+  const { data } = await parseJobForm(await req.formData());
+  return ok(await createJob(data), { status: 201 });
 });

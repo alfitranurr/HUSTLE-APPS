@@ -1,0 +1,24 @@
+/**
+ * Returns a safe absolute http(s) URL for use in an href, or '' if the value
+ * can't be turned into one (e.g. javascript:, data:, protocol-relative //host).
+ */
+export function safeHref(url?: string): string {
+  const trimmed = url?.trim();
+  if (!trimmed) return '';
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed.replace(/^\/+/, '')}`;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.href : '';
+  } catch {
+    return '';
+  }
+}
+
+/** Splits the stored attachment cell ("url1, url2" or "No File") into URLs. */
+export function splitAttachmentCell(cell?: string): string[] {
+  if (!cell || cell === 'No File') return [];
+  return cell
+    .split(/[\n,]+/)
+    .map((url) => url.trim())
+    .filter((url) => url.length > 0 && url !== 'No File');
+}

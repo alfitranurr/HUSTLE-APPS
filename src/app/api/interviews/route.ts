@@ -1,10 +1,10 @@
-import { addInterviewQuestion, fetchInterviewQuestions } from '@/lib/googleSheets';
 import { ok, withAuth } from '@/lib/server/http';
-import { interviewSchema } from '@/lib/validation';
+import { createQuestion, listQuestions } from '@/lib/server/repositories/interviews';
+import { interviewCreateSchema } from '@/lib/validation';
 
-export const GET = withAuth(async () => ok(await fetchInterviewQuestions()));
+export const GET = withAuth(async () => ok(await listQuestions()));
 
 export const POST = withAuth(async (req) => {
-  const input = interviewSchema.parse(await req.json());
-  return ok(await addInterviewQuestion(input), { status: 201 });
+  const input = interviewCreateSchema.parse(await req.json());
+  return ok(await createQuestion(input), { status: 201 });
 });

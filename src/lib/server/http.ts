@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { readSession, SESSION_COOKIE } from '@/lib/auth';
+import { NotFoundError } from './google/sheet';
 
 /** Thrown inside handlers to return a specific status + user-safe message. */
 export class HttpError extends Error {
@@ -29,6 +30,7 @@ export async function getSession() {
 
 function toResponse(error: unknown) {
   if (error instanceof HttpError) return fail(error.status, error.message);
+  if (error instanceof NotFoundError) return fail(404, error.message);
   if (error instanceof z.ZodError) {
     const first = error.issues[0];
     const field = first?.path.join('.');

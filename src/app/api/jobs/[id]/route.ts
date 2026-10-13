@@ -1,29 +1,22 @@
-import { deleteJobById, findJobById, JobNotFoundError, saveJob } from '@/lib/googleSheets';
-import { HttpError, ok, withAuth } from '@/lib/server/http';
-import { buildJobFromForm, trashFiles } from '@/lib/server/jobForm';
-import { getProofUrls } from '@/lib/utils';
+import { trashFiles } from '@/lib/server/google/drive';
+import { ok, withAuth } from '@/lib/server/http';
+import { parseJobForm } from '@/lib/server/jobForm';
+import { deleteJob, getJob, updateJob } from '@/lib/server/repositories/jobs';
 
 type Ctx = { params: Promise<{ id: string }> };
 
 export const PUT = withAuth<Ctx>(async (req, { params }) => {
   const { id } = await params;
-  const existing = await findJobById(id);
-  if (!existing) throw new HttpError(404, 'Application not found');
-
-  const { input, removedUrls } = await buildJobFromForm(await req.formData(), existing);
-  await saveJob({ ...input, id });
-  await trashFiles(removedUrls);
-  return ok(null);
+  const existing = await getJob(id);
+  const { data, removedAttachments } = await parseJobForm(await req.formData(), existing);
+  const { after } = await updateJob(id, data);
+  await trashFiles(removedAttachments);
+  return ok(after);
 });
 
 export const DELETE = withAuth<Ctx>(async (_req, { params }) => {
   const { id } = await params;
-  try {
-    const job = await deleteJobById(id);
-    await trashFiles(getProofUrls(job.buktiurl));
-    return ok(null);
-  } catch (error) {
-    if (error instanceof JobNotFoundError) throw new HttpError(404, error.message);
-    throw error;
-  }
+  const job = await deleteJob(id);
+  await trashFiles(job.attachments);
+  return ok(null);
 });

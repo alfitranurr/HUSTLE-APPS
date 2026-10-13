@@ -1,34 +1,32 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
+import type { ReactNode } from 'react';
+import { ToastProvider } from '@/components/ui/Toast';
 import './globals.css';
-import { ToastProvider } from '@/components/Toast';
-import LayoutWrapper from '@/components/LayoutWrapper';
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: '--font-sans',
+const jakarta = Plus_Jakarta_Sans({
+  variable: '--font-jakarta',
   subsets: ['latin'],
   display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: 'Hustle.Nunn Pro | Job Application Tracker',
-  description: "Don't Give Up Until You Get Hired. Premium Application Tracker.",
+  title: { default: 'Hustle · Job search tracker', template: '%s · Hustle' },
+  description: 'Track job applications, interviews and weekly goals in one place.',
+  robots: { index: false, follow: false },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#ffffff',
+};
+
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en" className={`${plusJakartaSans.variable} h-full antialiased`}>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-      </head>
-      <body className="font-sans min-h-full flex flex-col bg-[#020617] text-slate-300">
-        <ToastProvider>
-          <LayoutWrapper>{children}</LayoutWrapper>
-        </ToastProvider>
+    <html lang="en" className={`${jakarta.variable} h-full antialiased`}>
+      <body className="min-h-full bg-white font-sans text-slate-900">
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

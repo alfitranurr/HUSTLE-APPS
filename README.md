@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hustle — job search tracker
 
-## Getting Started
+A private, single-user web app to track job applications, upcoming tests and
+interviews, weekly goals and STAR interview answers. Data lives in a Google
+Sheet; proof-of-application files are stored in a Google Drive folder.
 
-First, run the development server:
+Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and Recharts.
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # then fill in every value
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app validates its configuration at startup and refuses to run if a
+required variable is missing or too weak (see `.env.example`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script              | What it does                 |
+| ------------------- | ---------------------------- |
+| `npm run dev`       | Development server           |
+| `npm run build`     | Production build             |
+| `npm run lint`      | ESLint                       |
+| `npm run typecheck` | TypeScript, no emit          |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project structure
 
-## Learn More
+```
+src/
+  app/                    Routes only (thin pages + API route handlers)
+    (app)/                Authenticated pages, wrapped in the app shell
+    api/                  JSON API: auth, jobs, interviews
+    login/                Sign-in page
+  components/
+    ui/                   Design-system primitives (Button, Card, Modal, ...)
+    layout/               App shell, sidebar, page header
+  features/               Feature modules: dashboard, jobs, summary, interviews, auth
+  hooks/                  Shared client hooks
+  lib/                    Framework-agnostic logic: constants, types, formatting, stats
+    server/               Server-only code (never imported by client components)
+      google/             Sheets + Drive clients and helpers
+      repositories/       Sheet rows <-> domain objects
+  proxy.ts                Auth gate for pages and API (Next.js 16 "middleware")
+```
 
-To learn more about Next.js, take a look at the following resources:
+Conventions:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **One source of truth** for statuses, stages, platforms and colours: `src/lib/constants.ts` and `src/lib/tones.ts`.
+- **Domain types** in `src/lib/types.ts`; sheet column names never leak past `lib/server/repositories`.
+- **Validation** with zod in `src/lib/validation.ts`, shared by API routes and mirrored in forms.
+- API responses are always `{ success: true, data }` or `{ success: false, error }`; use `apiFetch` on the client.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Design
 
-## Deploy on Vercel
+White base with coloured accent lines: every card carries a coloured top line,
+list rows a coloured left edge that follows the application status, and the
+brand stripe is a multi-colour gradient (`.accent-rainbow`). Colours come from
+named tones (`TONES` in `src/lib/tones.ts`) so they stay consistent.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Security
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Every page and API route requires a valid session (checked in `proxy.ts` and again in each handler).
+- Session: HMAC-signed, httpOnly, SameSite=Lax cookie (Secure outside development), 7-day expiry.
+- Login is rate-limited and compares credentials in constant time.
+- Cross-origin writes to the API are rejected.
+- Sheet writes use `RAW` input so values are never evaluated as formulas.
+- Uploads: max 5 files, 4 MB each, PDF/PNG/JPG/WebP verified by file signature; files stay private in Drive.
+- Only files inside the configured Drive folder can be deleted.
+- Security headers (CSP, HSTS, X-Frame-Options, etc.) are set in `next.config.ts`.
+- Secrets are only read server-side via `src/lib/env.ts`; nothing is exposed with `NEXT_PUBLIC_`.
