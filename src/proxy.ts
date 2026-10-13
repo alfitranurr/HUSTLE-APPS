@@ -1,52 +1,52 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { verifyToken } from './lib/auth';
+import { NextResponse, type NextRequest } from 'next/server';
+import { readSession, SESSION_COOKIE } from '@/lib/auth';
+
+const PUBLIC_API = new Set(['/api/auth/login']);
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function isCrossOrigin(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  if (!origin) return false;
+  try {
+    return new URL(origin).host !== request.nextUrl.host;
+  } catch {
+    return true; // "null" or malformed origin
+  }
+}
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.cookies.get('session')?.value;
-  const jwtSecret = process.env.JWT_SECRET || 'hustle-apps-fallback-secret-2026';
+  const isApi = pathname.startsWith('/api/');
 
-  // 1. Bypass check for Next.js internals, public static assets, and auth APIs
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/auth') ||
-    pathname.includes('.') // matches favicon.ico, images, files
-  ) {
-    return NextResponse.next();
+  // Reject cross-site writes to the API (CSRF defence on top of SameSite=Lax).
+  if (isApi && !SAFE_METHODS.has(request.method) && isCrossOrigin(request)) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
-  // 2. Authentication check
-  if (!session) {
-    // If not authenticated and trying to access any private app page, redirect to /login
-    if (pathname !== '/login') {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-    return NextResponse.next();
+  if (isApi && PUBLIC_API.has(pathname)) return NextResponse.next();
+
+  const session = await readSession(request.cookies.get(SESSION_COOKIE)?.value);
+
+  if (isApi) {
+    return session
+      ? NextResponse.next()
+      : NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 3. Verify session token
-  const payload = await verifyToken(session, jwtSecret);
-
-  if (!payload || payload.email !== 'alfitranurr@gmail.com') {
-    // Session is invalid, expired, or email does not match. Redirect to /login & clear cookie.
-    if (pathname !== '/login') {
-      const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('session');
-      return response;
-    }
-    return NextResponse.next();
-  }
-
-  // 4. Authenticated user trying to access /login -> redirect to /dashboard
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return session ? NextResponse.redirect(new URL('/dashboard', request.url)) : NextResponse.next();
+  }
+
+  if (!session) {
+    const response = NextResponse.redirect(new URL('/login', request.url));
+    if (request.cookies.has(SESSION_COOKIE)) response.cookies.delete(SESSION_COOKIE);
+    return response;
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Apply proxy to all routes except API files that are not auth related (we want proxy to protect pages)
-  matcher: ['/((?!api/jobs|api/interviews).*)'],
+  // Everything except Next internals and static files served from /public.
+  matcher: ['/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)'],
 };

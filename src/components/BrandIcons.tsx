@@ -4,7 +4,7 @@ type IconProps = React.SVGProps<SVGSVGElement> & {
   className?: string;
 };
 
-export const InstagramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-pink-400', ...props }) => (
+export const InstagramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-pink-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -24,7 +24,7 @@ export const InstagramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-p
   </svg>
 );
 
-export const LinkedinIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-blue-400', ...props }) => (
+export const LinkedinIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-blue-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -44,7 +44,7 @@ export const LinkedinIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-bl
   </svg>
 );
 
-export const JobStreetIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-amber-400', ...props }) => (
+export const JobStreetIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-amber-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -63,7 +63,7 @@ export const JobStreetIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-a
   </svg>
 );
 
-export const GlintsIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emerald-400', ...props }) => (
+export const GlintsIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emerald-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -81,7 +81,7 @@ export const GlintsIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emer
   </svg>
 );
 
-export const NineCVNineIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-purple-400', ...props }) => (
+export const NineCVNineIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-purple-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -99,7 +99,7 @@ export const NineCVNineIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-
   </svg>
 );
 
-export const KalibrrIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-indigo-400', ...props }) => (
+export const KalibrrIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-indigo-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -119,7 +119,7 @@ export const KalibrrIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-ind
   </svg>
 );
 
-export const TechInAsiaIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-cyan-400', ...props }) => (
+export const TechInAsiaIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-cyan-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -139,7 +139,7 @@ export const TechInAsiaIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-
   </svg>
 );
 
-export const IndeedIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sky-400', ...props }) => (
+export const IndeedIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sky-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -158,7 +158,7 @@ export const IndeedIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sky-
   </svg>
 );
 
-export const TelegramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sky-400', ...props }) => (
+export const TelegramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sky-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -177,7 +177,7 @@ export const TelegramIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-sk
   </svg>
 );
 
-export const DirectWebIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-indigo-400', ...props }) => (
+export const DirectWebIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-indigo-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -197,7 +197,7 @@ export const DirectWebIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-i
   </svg>
 );
 
-export const FormIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emerald-400', ...props }) => (
+export const FormIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emerald-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -218,7 +218,7 @@ export const FormIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-emeral
   </svg>
 );
 
-export const GmailIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-red-400', ...props }) => (
+export const GmailIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-red-600', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width="24"
@@ -240,31 +240,31 @@ export const GmailIcon: React.FC<IconProps> = ({ className = 'w-4 h-4 text-red-4
 export const PlatformBrandIcon: React.FC<{ platform: string; className?: string }> = ({ platform, className }) => {
   switch (platform) {
     case 'Gmail':
-      return <GmailIcon className={className || 'w-4 h-4 text-red-400'} />;
+      return <GmailIcon className={className || 'w-4 h-4 text-red-600'} />;
     case 'LinkedIn':
-      return <LinkedinIcon className={className || 'w-4 h-4 text-blue-400'} />;
+      return <LinkedinIcon className={className || 'w-4 h-4 text-blue-600'} />;
     case 'Instagram':
-      return <InstagramIcon className={className || 'w-4 h-4 text-pink-400'} />;
+      return <InstagramIcon className={className || 'w-4 h-4 text-pink-600'} />;
     case 'Direct Web':
-      return <DirectWebIcon className={className || 'w-4 h-4 text-indigo-400'} />;
+      return <DirectWebIcon className={className || 'w-4 h-4 text-indigo-600'} />;
     case 'G-Form / Microsoft Form':
     case 'Form':
-      return <FormIcon className={className || 'w-4 h-4 text-emerald-400'} />;
+      return <FormIcon className={className || 'w-4 h-4 text-emerald-600'} />;
     case 'JobStreet':
-      return <JobStreetIcon className={className || 'w-4 h-4 text-amber-400'} />;
+      return <JobStreetIcon className={className || 'w-4 h-4 text-amber-600'} />;
     case 'Glints':
-      return <GlintsIcon className={className || 'w-4 h-4 text-emerald-400'} />;
+      return <GlintsIcon className={className || 'w-4 h-4 text-emerald-600'} />;
     case '9CV9':
-      return <NineCVNineIcon className={className || 'w-4 h-4 text-purple-400'} />;
+      return <NineCVNineIcon className={className || 'w-4 h-4 text-purple-600'} />;
     case 'Kalibrr':
-      return <KalibrrIcon className={className || 'w-4 h-4 text-indigo-400'} />;
+      return <KalibrrIcon className={className || 'w-4 h-4 text-indigo-600'} />;
     case 'Tech In Asia':
-      return <TechInAsiaIcon className={className || 'w-4 h-4 text-cyan-400'} />;
+      return <TechInAsiaIcon className={className || 'w-4 h-4 text-cyan-600'} />;
     case 'Indeed':
-      return <IndeedIcon className={className || 'w-4 h-4 text-sky-400'} />;
+      return <IndeedIcon className={className || 'w-4 h-4 text-sky-600'} />;
     case 'Telegram':
-      return <TelegramIcon className={className || 'w-4 h-4 text-sky-400'} />;
+      return <TelegramIcon className={className || 'w-4 h-4 text-sky-600'} />;
     default:
-      return <DirectWebIcon className={className || 'w-4 h-4 text-indigo-400'} />;
+      return <DirectWebIcon className={className || 'w-4 h-4 text-indigo-600'} />;
   }
 };

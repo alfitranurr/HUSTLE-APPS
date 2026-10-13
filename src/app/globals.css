@@ -1,93 +1,90 @@
-/* cspell:disable */
 @import "tailwindcss";
 
-:root {
-  --background: #020617;
-  --foreground: #e2e8f0;
+@theme inline {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+@theme {
+  /* Extra breakpoints so wide / zoomed-out screens use the space. */
+  --breakpoint-3xl: 112rem;
+  --breakpoint-4xl: 120rem;
+
+  --animate-fade-in: fade-in 0.18s ease-out both;
+  --animate-progress: progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) forwards;
+  --animate-splash: splash 1.1s ease-in-out infinite;
+
+  /* Top progress bar: quick start, then creeps toward (never reaches) the end. */
+  @keyframes progress {
+    0% {
+      width: 0%;
+    }
+    8% {
+      width: 30%;
+    }
+    100% {
+      width: 92%;
+    }
+  }
+
+  /* Indeterminate bar on the splash screen. */
+  @keyframes splash {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(250%);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: #fff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  color: var(--color-slate-900);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
 
-/* Glassmorphism Styles */
-.glass {
-  background: rgba(30, 41, 59, 0.4);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* Premium Gradient Button */
-.btn-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.btn-gradient:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -10px rgba(99, 102, 241, 0.5);
-}
-.btn-gradient:active {
-  transform: translateY(0);
-}
-
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #020617;
-}
-::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #334155;
-}
-
-/* Hide scrollbar completely */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
+/*
+ * Default density. Desktop screens with OS display scaling of 125–175%
+ * (typical Windows laptops) make the UI look oversized at 100% browser zoom,
+ * so scale every rem-based size to 80% there. Phones, tablets, 100%-scaled
+ * monitors and 2x Retina screens keep the normal size. Breakpoints are not
+ * affected: media queries always use the browser's default font size.
+ */
+@media (min-width: 64rem) and (min-resolution: 1.25dppx) and (max-resolution: 1.75dppx) {
+  html {
+    font-size: 80%;
   }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+::selection {
+  background: var(--color-indigo-100);
 }
 
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
-.animate-spin-slow {
-  animation: spin 3s linear infinite;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
