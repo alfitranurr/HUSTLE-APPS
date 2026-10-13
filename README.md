@@ -6,6 +6,17 @@ Sheet; proof-of-application files are stored in a Google Drive folder.
 
 Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and Recharts.
 
+## Features
+
+- **Dashboard**: key numbers, upcoming tests/interviews, weekly targets with streak, follow-up queue, recent applications and a 12-month activity heatmap.
+- **Applications**: search, filters, sortable table, cards, and a drag-and-drop **board** by pipeline stage; CSV export of the current view.
+- **Follow-up reminders**: in-progress applications with no update for 14+ days are flagged; "Followed up" resets the clock.
+- **Insights**: interview and offer rates, status/stage/level/location/platform breakdowns, top positions and a 12-month timeline, filterable by timeframe.
+- **Interview prep**: question bank with STAR drafts, mastery tracking and a rule-based answer check.
+
+The Google Sheet uses three tabs, created automatically when missing:
+`DataLowongan` (applications, columns A–S), `Interviews` and `Settings` (weekly targets).
+
 ## Getting started
 
 ```bash

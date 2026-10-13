@@ -1,6 +1,6 @@
 'use client';
 
-import { Briefcase, LayoutGrid, List, Plus, RotateCw, SearchX } from 'lucide-react';
+import { Briefcase, Download, Columns3, LayoutGrid, List, Plus, RotateCw, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, IconButton } from '@/components/ui/Button';
@@ -11,23 +11,28 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { SkeletonRows } from '@/components/ui/Skeleton';
 import { useJobs } from '@/hooks/useJobs';
 import { cn } from '@/lib/cn';
+import { toDateKey } from '@/lib/format';
 import type { Job } from '@/lib/types';
 import { DEFAULT_SORT, distinct, EMPTY_FILTERS, filterJobs, sortJobs, type JobFilters, type SortKey, type SortState } from './filters';
+import { downloadCsv, jobsToCsv } from './csv';
 import type { JobActionHandlers } from './JobActions';
 import { JobCard } from './JobCard';
+import { JobKanban } from './JobKanban';
 import { JobTable } from './JobTable';
 import { TrackerFilters } from './TrackerFilters';
 import { useJobDialogs } from './useJobDialogs';
+import { useJobMutations } from './useJobMutations';
 
-type View = 'table' | 'cards';
+type View = 'table' | 'cards' | 'board';
 const PAGE_SIZE = 20;
 
-export function TrackerView() {
+export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFilters> }) {
   const { jobs, error, isLoading, isValidating, mutate } = useJobs();
   const { openCreate, handlers, dialogs } = useJobDialogs(mutate);
+  const { moveToStage } = useJobMutations(mutate);
 
   const [view, setView] = useState<View>('table');
-  const [filters, setFilters] = useState<JobFilters>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<JobFilters>({ ...EMPTY_FILTERS, ...initialFilters });
   const [sort, setSort] = useState<SortState>(DEFAULT_SORT);
   const [page, setPage] = useState(1);
 
@@ -85,6 +90,7 @@ export function TrackerView() {
         />
       );
     }
+    if (view === 'board') return <JobKanban jobs={visible} onMove={moveToStage} onOpen={handlers.onView} />;
     return view === 'table' ? (
       <>
         <div className="hidden md:block">
@@ -112,6 +118,15 @@ export function TrackerView() {
               onClick={() => mutate()}
               disabled={isValidating}
             />
+            <Button
+              variant="secondary"
+              icon={<Download className="size-4" />}
+              disabled={visible.length === 0}
+              onClick={() => downloadCsv(`applications-${toDateKey(new Date())}.csv`, jobsToCsv(visible))}
+              title="Download the applications currently shown as CSV"
+            >
+              Export CSV
+            </Button>
             <Button icon={<Plus className="size-4" />} onClick={openCreate}>
               Add application
             </Button>
@@ -133,6 +148,7 @@ export function TrackerView() {
               options={[
                 { value: 'table', label: 'Table', icon: <List className="size-4" /> },
                 { value: 'cards', label: 'Cards', icon: <LayoutGrid className="size-4" /> },
+                { value: 'board', label: 'Board', icon: <Columns3 className="size-4" /> },
               ]}
             />
           </div>
@@ -145,7 +161,7 @@ export function TrackerView() {
           />
         </div>
         {renderContent()}
-        <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} />
+        {view !== 'board' && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} />}
       </Card>
 
       {dialogs}

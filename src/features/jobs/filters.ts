@@ -1,4 +1,5 @@
 import { JOB_STAGES, JOB_STATUSES } from '@/lib/constants';
+import { needsFollowUp } from '@/lib/followUp';
 import { parseDate } from '@/lib/format';
 import type { Job } from '@/lib/types';
 
@@ -11,6 +12,7 @@ export interface JobFilters {
   position: string;
   from: string; // yyyy-mm-dd
   to: string; // yyyy-mm-dd
+  followUp: '' | 'yes';
 }
 
 export const EMPTY_FILTERS: JobFilters = {
@@ -22,6 +24,7 @@ export const EMPTY_FILTERS: JobFilters = {
   position: '',
   from: '',
   to: '',
+  followUp: '',
 };
 
 export function activeFilterCount(filters: JobFilters): number {
@@ -30,7 +33,7 @@ export function activeFilterCount(filters: JobFilters): number {
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-export function filterJobs(jobs: Job[], f: JobFilters): Job[] {
+export function filterJobs(jobs: Job[], f: JobFilters, now = new Date()): Job[] {
   const query = f.search.trim().toLowerCase();
   const from = f.from ? new Date(`${f.from}T00:00:00`) : null;
   const to = f.to ? new Date(`${f.to}T23:59:59`) : null;
@@ -40,6 +43,7 @@ export function filterJobs(jobs: Job[], f: JobFilters): Job[] {
       const haystack = [job.company, job.position, job.note, job.city, job.province, job.platform].join(' ').toLowerCase();
       if (!haystack.includes(query)) return false;
     }
+    if (f.followUp && !needsFollowUp(job, now)) return false;
     if (f.status && job.status !== f.status) return false;
     if (f.stage && job.stage !== f.stage) return false;
     if (f.careerLevel && !same(job.careerLevel, f.careerLevel)) return false;

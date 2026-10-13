@@ -17,7 +17,7 @@ interface TrackerFiltersProps {
 }
 
 export function TrackerFilters({ filters, onChange, onClear, provinces, positions }: TrackerFiltersProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(() => activeFilterCount({ ...filters, search: '' }) > 0);
   const { search, ...rest } = filters;
   const count = activeFilterCount({ ...filters, search: '' });
 
@@ -76,6 +76,14 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
               options={provinces.map((p) => ({ value: p, label: shortProvince(p) }))}
               value={rest.province}
               onChange={(e) => onChange({ province: e.target.value })}
+            />
+          </Field>
+          <Field label="Follow-up">
+            <Select
+              placeholder="Any"
+              options={[{ value: 'yes', label: 'Needs follow-up' }]}
+              value={rest.followUp}
+              onChange={(e) => onChange({ followUp: e.target.value === 'yes' ? 'yes' : '' })}
             />
           </Field>
           <Field label="Applied from">

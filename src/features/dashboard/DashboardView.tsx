@@ -6,16 +6,20 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
+import { useJobMutations } from '@/features/jobs/useJobMutations';
 import { useJobs } from '@/hooks/useJobs';
 import { cn } from '@/lib/cn';
 import { computeJobStats } from '@/lib/stats';
 import { ActivityHeatmap } from './ActivityHeatmap';
+import { FollowUpCard } from './FollowUpCard';
 import { RecentApplications } from './RecentApplications';
 import { UpcomingCard } from './UpcomingCard';
+import { WeeklyTargetsCard } from './WeeklyTargetsCard';
 
 export function DashboardView() {
   const { jobs, isLoading, isValidating, mutate } = useJobs();
   const { openCreate, handlers, dialogs } = useJobDialogs(mutate);
+  const { markFollowedUp } = useJobMutations(mutate);
   const stats = computeJobStats(jobs);
 
   return (
@@ -65,6 +69,11 @@ export function DashboardView() {
         <div className="lg:col-span-2">
           <UpcomingCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
         </div>
+        <WeeklyTargetsCard jobs={jobs} loading={isLoading} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <FollowUpCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} onFollowedUp={markFollowedUp} />
         <RecentApplications jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
       </div>
 

@@ -1,8 +1,9 @@
 import { CalendarDays, MapPin } from 'lucide-react';
 import { PlatformBrandIcon } from '@/components/BrandIcons';
-import { StageBadge, StatusBadge } from '@/components/ui/Badge';
+import { Badge, StageBadge, StatusBadge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { STATUS_TONE } from '@/lib/constants';
+import { needsFollowUp } from '@/lib/followUp';
 import { formatDate, formatLocation } from '@/lib/format';
 import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
@@ -33,6 +34,7 @@ export function JobCard({ job, ...actions }: JobActionHandlers & { job: Job }) {
 
       <div className="flex flex-wrap gap-1.5">
         <StageBadge stage={job.stage} />
+        {needsFollowUp(job) && <Badge tone="amber">Follow up</Badge>}
         {job.careerLevel && job.careerLevel !== 'Not Specified' && (
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{job.careerLevel}</span>
         )}
