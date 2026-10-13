@@ -1,5 +1,7 @@
 /** Client-side helpers for calling the app's own API ({ success, data | error } envelopes). */
 
+import { trackProgress } from './progress';
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -12,7 +14,8 @@ export class ApiError extends Error {
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(url, init);
+    // Every API call drives the top progress bar.
+    response = await trackProgress(fetch(url, init));
   } catch {
     throw new ApiError('Network error. Check your connection and try again.', 0);
   }

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from 'lucide-react';
 import { Badge, StageBadge, StatusBadge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
 import { STATUS_TONE } from '@/lib/constants';
@@ -8,7 +8,7 @@ import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
 import type { SortKey, SortState } from './filters';
 import { JobActions, type JobActionHandlers } from './JobActions';
-import { JobLinkIcons } from './JobLinks';
+import { hasLinks, JobLinkIcons } from './JobLinks';
 
 interface JobTableProps extends JobActionHandlers {
   jobs: Job[];
@@ -42,10 +42,11 @@ function SortHeader({ label, sortKey, sort, onSort, className }: {
 export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] text-left text-sm">
+      <table className="w-full min-w-[980px] text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
           <tr>
             <SortHeader label="Company" sortKey="company" sort={sort} onSort={onSort} className="pl-5" />
+            <th scope="col" className="px-3 py-3">Links</th>
             <th scope="col" className="px-3 py-3">Location</th>
             <th scope="col" className="px-3 py-3">Platform</th>
             <SortHeader label="Stage" sortKey="stage" sort={sort} onSort={onSort} />
@@ -59,7 +60,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
         <tbody className="divide-y divide-slate-100">
           {jobs.map((job) => (
             <tr key={job.id} className="transition-colors hover:bg-slate-50/70">
-              <td className={cn('border-l-4 py-3 pr-3 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
+              <td className={cn('min-w-[220px] border-l-4 py-3 pr-3 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
                 <button
                   type="button"
                   onClick={() => actions.onView(job)}
@@ -67,10 +68,27 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                 >
                   {job.company}
                 </button>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">{job.position || '—'}</span>
-                  <JobLinkIcons job={job} className="-my-1" />
-                </div>
+                <p className="max-w-[260px] text-xs text-slate-500">{job.position || '—'}</p>
+              </td>
+              <td className="px-3 py-3">
+                {hasLinks(job) || job.attachments.length > 0 ? (
+                  <div className="-ml-1.5 flex items-center gap-1">
+                    <JobLinkIcons job={job} />
+                    {job.attachments.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => actions.onView(job)}
+                        title={`${job.attachments.length} attachment${job.attachments.length > 1 ? 's' : ''}`}
+                        className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-indigo-50 px-1.5 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                      >
+                        <Paperclip className="size-3" />
+                        {job.attachments.length}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-slate-400">—</span>
+                )}
               </td>
               <td className="max-w-[200px] truncate px-3 py-3 text-slate-600" title={formatLocation(job)}>
                 {formatLocation(job)}

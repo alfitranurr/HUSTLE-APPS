@@ -34,7 +34,7 @@ export function Modal({
   children,
   footer,
   size = 'md',
-  accent = 'rainbow',
+  accent = 'indigo',
   dismissible = true,
 }: ModalProps) {
   const titleId = useId();

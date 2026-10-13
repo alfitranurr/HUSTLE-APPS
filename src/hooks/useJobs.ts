@@ -12,5 +12,5 @@ export function useJobs() {
     revalidateOnFocus: false,
     keepPreviousData: true,
   });
-  return { jobs: data ?? EMPTY, error: error as Error | undefined, isLoading, isValidating, mutate };
+  return { jobs: data ?? EMPTY, hasData: data !== undefined, error: error as Error | undefined, isLoading, isValidating, mutate };
 }

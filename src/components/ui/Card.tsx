@@ -2,13 +2,13 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 import { TONES, type Tone } from '@/lib/tones';
 
-export type Accent = Tone | 'rainbow';
+export type Accent = Tone;
 
 export function AccentLine({ accent, className }: { accent: Accent; className?: string }) {
   return (
     <span
       aria-hidden
-      className={cn('absolute inset-x-0 top-0 h-1', accent === 'rainbow' ? 'accent-rainbow' : TONES[accent].bar, className)}
+      className={cn('absolute inset-x-0 top-0 h-1', TONES[accent].bar, className)}
     />
   );
 }

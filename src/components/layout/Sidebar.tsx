@@ -27,7 +27,7 @@ interface SidebarProps {
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
-      <span className="accent-rainbow grid size-8 shrink-0 place-items-center rounded-lg text-sm font-bold text-white shadow-sm">
+      <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white shadow-sm">
         H
       </span>
       {!compact && (
@@ -73,7 +73,6 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
         )}
         aria-label="Main navigation"
       >
-        <div aria-hidden className="accent-rainbow h-1 shrink-0" />
         <div className={cn('flex h-16 items-center justify-between px-4', collapsed && 'md:justify-center md:px-0')}>
           <Link href="/dashboard" onClick={onCloseMobile} className="rounded-lg focus-visible:outline-2 focus-visible:outline-indigo-600">
             <span className="md:hidden">

@@ -64,10 +64,10 @@ Conventions:
 
 ## Design
 
-White base with coloured accent lines: every card carries a coloured top line,
-list rows a coloured left edge that follows the application status, and the
-brand stripe is a multi-colour gradient (`.accent-rainbow`). Colours come from
-named tones (`TONES` in `src/lib/tones.ts`) so they stay consistent.
+White base with coloured accent lines: every card carries a solid coloured top
+line and list rows a coloured left edge that follows the application status.
+The brand colour is indigo; no gradients. Colours come from named tones
+(`TONES` in `src/lib/tones.ts`) so they stay consistent.
 
 ## Security
 
