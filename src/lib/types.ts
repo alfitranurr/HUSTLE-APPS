@@ -47,9 +47,13 @@ export interface InterviewQuestion {
   status: MasteryStatus;
   /** Key points to cover, or study notes for a test. */
   notes: string;
+  /** ISO timestamp of the last practice round; '' when never practised. */
+  lastPracticedAt: string;
+  practiceCount: number;
 }
 
-export type InterviewQuestionInput = Omit<InterviewQuestion, 'id'>;
+/** What the user edits; practice tracking is only changed by the practice endpoint. */
+export type InterviewQuestionInput = Omit<InterviewQuestion, 'id' | 'lastPracticedAt' | 'practiceCount'>;
 
 export interface WeeklyTargets {
   applications: number;

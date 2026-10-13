@@ -29,3 +29,5 @@ export const checkAnswer = (body: { answer: string; situation: string; task: str
 
 export const createQuestions = (questions: InterviewQuestionInput[]) =>
   apiFetch<InterviewQuestion[]>('/api/interviews/bulk', jsonRequest('POST', { questions }));
+
+export const recordPractice = (id: string) => apiFetch<InterviewQuestion>(`${url(id)}/practice`, { method: 'POST' });

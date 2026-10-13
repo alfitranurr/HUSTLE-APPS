@@ -9,14 +9,14 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | | |
 |---|---|
 | **Production** | https://hustle-apps-six.vercel.app — commit `284a922` (merge PR #3), 14 Okt 2026 |
-| **Menunggu merge** | PR #4 — Insights (drill-down semua kartu, konfirmasi sign out) · PR #5 — Interview prep P1–P3 + P8 (di atas PR #4) |
+| **Rilis berikutnya** | PR #4 (Insights) → PR #5 (Interview prep P1–P3) → PR #6 (Interview prep P4–P5 + kartu Companies) — di-merge berurutan 14 Okt 2026 |
 | **Tooling** | GitHub CLI (`gh`) dan Vercel CLI terpasang & login; folder lokal ter-link ke project Vercel `hustle-apps` |
 
 ## Checklist tindakan
 
 - [x] Merge PR #1, #2, #3 (live di production)
 - [x] Pulihkan `LastUpdated` 90 lamaran yang tereset oleh perbaikan stage (backup dulu, lalu restore; Needs follow-up kembali 106)
-- [ ] **Merge PR #4** (Insights), lalu **PR #5** (Interview prep) → deploy otomatis ke production
+- [x] Merge PR #4, #5, #6 berurutan → production
 - [ ] Buka Interview prep → **Add starter questions**, lalu tulis jawaban STAR untuk pertanyaan Behavioral dan isi catatan tes
 - [ ] **Rotasi `GOOGLE_CLIENT_SECRET` & `GOOGLE_REFRESH_TOKEN`** — pernah tercetak di log Vercel oleh kode lama. Reset di Google Cloud Console, lalu masukkan nilai baru ke Vercel + `.env.local` _(harus dilakukan pemilik akun)_
 - [ ] Jalankan pembersihan data dari UI: banner stage di Applications + "Close as no response" di Dashboard (183 lamaran terbuka, mayoritas > 60 hari tanpa kabar)
@@ -35,8 +35,9 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | PR #1 · `a1cef80` → `06877dd` | Splash, progress bar atas, kolom Links, layout fluid, tanggal kontrak, tanggal tiap tahapan, popup detail berbasis card, densitas 80% | ✅ live 13 Okt |
 | PR #2 · `e31ff5e`, `25d2e19` | Kartu statistik → daftar perusahaan; filter Group; deep link `/tracker?segment=` | ✅ live 14 Okt |
 | PR #3 · `a5300b7`, `13108d4` | Status No Response, perbaikan stage massal, bulk delete, quick filter chips, form per card, tanpa scroll horizontal | ✅ live 14 Okt |
-| PR #4 | Insights I1–I4 + drill-down semua kartu + konfirmasi sign out | 🟡 menunggu merge |
-| PR #5 | Interview prep: perbaikan skor Answer check, starter pack 20 pertanyaan, kategori Assessment / Test + kolom Notes, popup lebih lebar | 🟡 menunggu merge |
+| PR #4 | Insights I1–I4 + drill-down semua kartu + konfirmasi sign out | ✅ |
+| PR #5 | Interview prep: perbaikan skor Answer check, starter pack 20 pertanyaan, kategori Assessment / Test + kolom Notes, popup lebih lebar | ✅ |
+| PR #6 | Interview prep: kartu "In your pipeline", tombol Interview prep di detail lamaran, mode latihan + timer 2 menit; Insights: kartu Companies menggantikan Top positions, timeline lebih jelas | ✅ |
 
 ### Detail PR #4 — Insights
 | Item | Perubahan | Status |
@@ -46,10 +47,12 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | I3 | **Application profile**: Level / Platform / City / Province dalam satu kartu bertab, dengan cakupan data ("Filled in for 21 of 201") | ✅ |
 | I4 | **Conversion by position**: posisi ≥ 3 lamaran → jumlah, interviewed (%), rejected; nama posisi tidak lagi terpotong | ✅ |
 | — | **Key takeaways** (dulu "Recommendations") pindah ke atas; saran baru dari biggest drop & titik penolakan terbesar | ✅ |
-| — | Urutan: stat cards → Key takeaways → Status / Conversion by position / Application profile → Funnel + Rejections → Top positions + Timeline | ✅ |
+| — | Urutan: stat cards → Key takeaways → Status / Conversion by position / Application profile → Funnel + Rejections → Companies + Timeline | ✅ |
 | — | **Semua kartu bisa diklik** → daftar perusahaan (Status, posisi, profil, funnel, penolakan, top positions, bulan di timeline, No response); latar hover mengikuti warna bar | ✅ |
 | — | "Open in Applications" membawa filter yang sama (status, stage, posisi, level, provinsi, rentang tanggal, timeframe) — jumlahnya identik dengan dialog | ✅ |
-| — | Top positions: chart diganti daftar bar (label panjang tidak terpotong) | ✅ |
+| — | Top positions **dihapus** (angkanya sama dengan Conversion by position); Conversion by position punya "View all" untuk semua posisi | ✅ PR #6 |
+| — | **Companies**: perusahaan diurutkan dari tahap terjauh yang dicapai (badge stage + status), "View all" dengan pencarian, klik → daftar lamaran | ✅ PR #6 |
+| — | Timeline: garis lurus antarbulan, dot di tiap bulan, angka di titik, Applications putus-putus vs Interviews solid, label bulan tidak berdempetan | ✅ PR #6 |
 | — | Sign out meminta konfirmasi dulu | ✅ |
 
 ---
@@ -96,10 +99,10 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 ### Insights
 | # | Rekomendasi | Alasan | Prioritas | Status |
 |---|---|---|---|---|
-| I1 | Funnel konversi + % lolos per tahap | Titik bocor Screening → Test tidak terlihat | Tinggi | 🟡 PR #4 |
-| I2 | Di tahap mana ditolak (+ No response) | Test: 4 dari 8 ditolak | Tinggi | 🟡 PR #4 |
-| I3 | Profil bertab + cakupan data | 88–90% kosong, kartu lama menyesatkan | Tinggi | 🟡 PR #4 |
-| I4 | Konversi per posisi | Data Analyst: 31 lamaran → 1 interview | Sedang | 🟡 PR #4 |
+| I1 | Funnel konversi + % lolos per tahap | Titik bocor Screening → Test tidak terlihat | Tinggi | ✅ PR #4 |
+| I2 | Di tahap mana ditolak (+ No response) | Test: 4 dari 8 ditolak | Tinggi | ✅ PR #4 |
+| I3 | Profil bertab + cakupan data | 88–90% kosong, kartu lama menyesatkan | Tinggi | ✅ PR #4 |
+| I4 | Konversi per posisi | Data Analyst: 31 lamaran → 1 interview | Sedang | ✅ PR #4 |
 | I5 | Tren per minggu (12 minggu) | Ritme melamar | Rendah | ⬜ |
 | I6 | Waktu respons (hari dari melamar ke tahap berikutnya) | Tanggal tahapan baru mulai tercatat | Rendah | ⬜ |
 
@@ -108,22 +111,23 @@ Kondisi 14 Okt 2026: bank pertanyaan **kosong (0)**, padahal 8 lamaran sudah sam
 
 | # | Rekomendasi | Alasan | Prioritas | Status |
 |---|---|---|---|---|
-| P1 | ~~Bug Answer check~~ **diperbaiki**: kalau draft STAR sudah tersimpan, jawaban yang diketik selalu dianggap mencakup S/T/A/R → skor terlalu tinggi. Nilai hanya teks yang diketik (draft dipakai hanya bila kolom jawaban kosong) | Skor menyesatkan | Tinggi | 🟡 PR #5 |
-| P2 | **Starter pack**: tambah 10–15 pertanyaan umum sekali klik (HR, behavioral, Data Analyst: SQL/Excel/studi kasus) | Bank kosong; memulai dari nol berat | Tinggi | 🟡 PR #5 (20 pertanyaan: HR, Salary, Behavioral, Leadership, Technical, Assessment) |
-| P3 | Kategori **Assessment / Test** (SQL, Excel, logika, psikotes) + catatan materi | Penolakan terbanyak di tahap Test | Tinggi | 🟡 PR #5 (kolom Notes = K; kategori tes tanpa STAR & tanpa Answer check) |
-| P4 | Hubungkan pertanyaan ke **lamaran** (pilih dari daftar perusahaan, bukan teks bebas) + tombol "Prep" di detail lamaran yang sedang Test/Interview | Persiapan per perusahaan langsung dari tracker | Sedang | ⬜ |
-| P5 | **Mode latihan**: kartu acak + timer 2 menit, buka draft STAR setelahnya; catat terakhir dilatih & jumlah latihan | Status Mastered saja tidak menunjukkan kapan terakhir berlatih | Sedang | ⬜ |
+| P1 | ~~Bug Answer check~~ **diperbaiki**: kalau draft STAR sudah tersimpan, jawaban yang diketik selalu dianggap mencakup S/T/A/R → skor terlalu tinggi. Nilai hanya teks yang diketik (draft dipakai hanya bila kolom jawaban kosong) | Skor menyesatkan | Tinggi | ✅ PR #5 |
+| P2 | **Starter pack**: tambah 10–15 pertanyaan umum sekali klik (HR, behavioral, Data Analyst: SQL/Excel/studi kasus) | Bank kosong; memulai dari nol berat | Tinggi | ✅ PR #5 (20 pertanyaan: HR, Salary, Behavioral, Leadership, Technical, Assessment) |
+| P3 | Kategori **Assessment / Test** (SQL, Excel, logika, psikotes) + catatan materi | Penolakan terbanyak di tahap Test | Tinggi | ✅ PR #5 (kolom Notes = K; kategori tes tanpa STAR & tanpa Answer check) |
+| P4 | Hubungkan pertanyaan ke **lamaran**: kartu "In your pipeline" (lamaran aktif di tahap Test/Interview + jumlah pertanyaan per perusahaan), tombol **Interview prep** di detail lamaran (`/interviews?company=`), saran nama perusahaan di form, filter per perusahaan | Persiapan per perusahaan langsung dari tracker | Sedang | ✅ PR #6 |
+| P5 | **Mode latihan**: urutan otomatis (belum mastered & paling lama tidak dilatih dulu), timer 2 menit, buka draft STAR/catatan setelahnya; tercatat terakhir dilatih & jumlah latihan (kolom L–M); stat "Practised this week" | Status Mastered saja tidak menunjukkan kapan terakhir berlatih | Sedang | ✅ PR #6 |
 | P6 | Simpan **skor Answer check terakhir** per pertanyaan + tren | Melihat kemajuan | Rendah | ⬜ |
 | P7 | Stat card bisa diklik → filter daftar (konsisten dengan halaman lain); quick filter chips | Konsistensi | Rendah | ⬜ |
-| P8 | Kartu STAR 4 kolom terlalu sempit di grid 2 kolom layar lebar → 2×2 | Teks panjang sulit dibaca | Rendah | 🟡 PR #5 (+ popup pertanyaan & Answer check diperlebar) |
+| P8 | Kartu STAR 4 kolom terlalu sempit di grid 2 kolom layar lebar → 2×2 | Teks panjang sulit dibaca | Rendah | ✅ PR #5 (+ popup pertanyaan & Answer check diperlebar) |
 
 ---
 
 ## Catatan teknis
 
-- **Kolom Sheet `DataLowongan` (A–U):** `LastUpdated` (S), `ContractDate` (T), `StageDates` (U, JSON). Tab `Interviews` (A–K, `Notes` di K ditambahkan otomatis) dan `Settings` dibuat otomatis.
+- **Kolom Sheet `DataLowongan` (A–U):** `LastUpdated` (S), `ContractDate` (T), `StageDates` (U, JSON). Tab `Interviews` (A–M: `Notes` K, `LastPracticed` L, `PracticeCount` M — header ditambahkan otomatis) dan `Settings` dibuat otomatis.
 - **Env wajib:** `OWNER_EMAIL`, `LOGIN_PASSWORD` (≥ 8), `JWT_SECRET` (≥ 32), `GOOGLE_SHEET_ID`, `GOOGLE_DRIVE_FOLDER_ID`, dan kredensial Google (OAuth atau service account). Lihat `.env.example`.
 - **Deploy:** merge ke `master` → Vercel deploy production otomatis. Perubahan env di Vercel butuh redeploy (`vercel redeploy https://hustle-apps-six.vercel.app --target production`).
+- **Deep link Interview prep:** `/interviews?company=Nama` (filter per perusahaan).
 - **Deep link Applications:** `/tracker?segment=&status=&stage=&position=&careerLevel=&province=&search=&from=&to=&followUp=yes` (divalidasi di server).
 - **Drill-down:** setiap angka/baris membangun `JobSelection` (`src/features/jobs/selection.ts`) — filter dialog dan filter deep link berasal dari satu tempat.
 - **Verifikasi:** `npx tsc --noEmit`, `npx eslint src`, `npm run build`; uji UI dengan Puppeteer di 1280px @150% (layar pemilik), 1600px @120%, dan 390px ponsel — 0 overflow horizontal.

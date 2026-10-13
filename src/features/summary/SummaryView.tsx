@@ -3,16 +3,13 @@
 import { Briefcase, Lightbulb, MessagesSquare, Trophy, XCircle } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
-import { Modal } from '@/components/ui/Modal';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
 import { JobListModal } from '@/features/jobs/JobListModal';
 import {
   selectApplied,
-  selectPosition,
   selectSegment,
   selectStatus,
   type JobSelection,
@@ -22,6 +19,7 @@ import { useJobs } from '@/hooks/useJobs';
 import { STATUS_TONE, type JobStatus } from '@/lib/constants';
 import { formatPercent, toDateKey } from '@/lib/format';
 import {
+  companyStats,
   computeJobStats,
   countBy,
   filterByTimeframe,
@@ -34,6 +32,7 @@ import {
   type Timeframe,
 } from '@/lib/stats';
 import { BreakdownList } from './BreakdownList';
+import { CompaniesCard } from './CompaniesCard';
 import { FunnelCard } from './FunnelCard';
 import { buildInsights } from './insights';
 import { PositionsCard } from './PositionsCard';
@@ -52,17 +51,16 @@ export function SummaryView() {
   const { handlers, dialogs } = useJobDialogs(mutate);
   const [drill, setDrill] = useState<Drill | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
-  const [showAllPositions, setShowAllPositions] = useState(false);
 
   const jobs = useMemo(() => filterByTimeframe(allJobs, timeframe), [allJobs, timeframe]);
   const data = useMemo(
     () => ({
       stats: computeJobStats(jobs),
       status: countBy(jobs, (j) => j.status),
-      positions: countBy(jobs, (j) => j.position),
       funnel: pipelineFunnel(jobs),
       rejections: rejectionPoints(jobs),
-      positionStats: positionStats(jobs),
+      positionStats: positionStats(jobs, 1),
+      companies: companyStats(jobs),
     }),
     [jobs]
   );
@@ -75,10 +73,6 @@ export function SummaryView() {
     const start = timeframeStart(timeframe);
     const filters = start && selection.filters ? { ...selection.filters, from: toDateKey(start) } : selection.filters;
     setDrill({ selection: { ...selection, filters } });
-  };
-  const showPosition = (position: string) => {
-    setShowAllPositions(false);
-    show(selectPosition(position));
   };
 
   return (
@@ -179,33 +173,13 @@ export function SummaryView() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card accent="indigo">
-              <CardHeader
-                title="Top positions"
-                description="Roles you apply for most"
-                action={
-                  data.positions.length > 8 && (
-                    <Button variant="ghost" size="sm" onClick={() => setShowAllPositions(true)}>
-                      View all {data.positions.length}
-                    </Button>
-                  )
-                }
-              />
-              <CardContent>
-                <BreakdownList
-                  items={data.positions.slice(0, 8)}
-                  total={stats.total}
-                  tone="indigo"
-                  onSelect={showPosition}
-                />
-              </CardContent>
-            </Card>
-            <Card accent="emerald">
+            <CompaniesCard stats={data.companies} onSelect={show} />
+            <Card accent="emerald" className="flex h-full flex-col">
               <CardHeader
                 title="Applications over time"
                 description="Last 12 months · interviews counted by schedule date · select a month"
               />
-              <CardContent>
+              <CardContent className="flex-1">
                 <TimelineChart
                   data={timeline}
                   onSelect={(month) =>
@@ -231,9 +205,6 @@ export function SummaryView() {
       />
       {dialogs}
 
-      <Modal open={showAllPositions} onClose={() => setShowAllPositions(false)} title="All positions" accent="indigo">
-        <BreakdownList items={data.positions} total={stats.total} tone="indigo" onSelect={showPosition} />
-      </Modal>
     </div>
   );
 }

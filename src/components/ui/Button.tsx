@@ -25,6 +25,10 @@ const BASE =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ' +
   'disabled:cursor-not-allowed disabled:opacity-50';
 
+/** Button styling for links (e.g. next/link) that should look like buttons. */
+export const buttonClasses = (variant: Variant = 'primary', size: Size = 'md', className?: string) =>
+  cn(BASE, VARIANTS[variant], SIZES[size], className);
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;

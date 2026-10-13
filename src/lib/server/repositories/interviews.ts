@@ -14,11 +14,13 @@ import {
 const SHEET = 'Interviews';
 const COLUMNS = [
   'ID', 'Category', 'Question', 'Situation', 'Task', 'Action', 'Result', 'TargetCompany', 'Difficulty', 'Status', 'Notes',
+  'LastPracticed', 'PracticeCount',
 ] as const;
 const LAST = columnLetter(COLUMNS.length);
 
 function toQuestion(cells: string[]): InterviewQuestion {
-  const [id, category, question, situation, task, action, result, targetCompany, difficulty, status, notes] = cells;
+  const [id, category, question, situation, task, action, result, targetCompany, difficulty, status, notes, lastPracticedAt, practiceCount] =
+    cells;
   return {
     id: id ?? '',
     category: (INTERVIEW_CATEGORIES as readonly string[]).includes(category) ? category : 'HR / General',
@@ -31,12 +33,15 @@ function toQuestion(cells: string[]): InterviewQuestion {
     difficulty: DIFFICULTIES.includes(difficulty as Difficulty) ? (difficulty as Difficulty) : 'Medium',
     status: status === 'Mastered' ? 'Mastered' : 'Practice Needed',
     notes: notes ?? '',
+    lastPracticedAt: lastPracticedAt ?? '',
+    practiceCount: Math.max(0, Number.parseInt(practiceCount ?? '', 10) || 0),
   };
 }
 
 function toCells(q: InterviewQuestion): string[] {
   return [
     q.id, q.category, q.question, q.situation, q.task, q.action, q.result, q.targetCompany, q.difficulty, q.status, q.notes,
+    q.lastPracticedAt, String(q.practiceCount),
   ];
 }
 
@@ -45,7 +50,7 @@ let headerChecked = false;
 async function readAll() {
   await ensureSheet(SHEET, COLUMNS);
   const [header = [], ...rows] = await readValues(`${SHEET}!A1:${LAST}`);
-  // Columns added after the original layout (Notes) get their header once.
+  // Columns added after the original layout (Notes, practice tracking) get their header once.
   if (!headerChecked) {
     headerChecked = true;
     const missing = COLUMNS.map((name, i) => ({ name, i })).filter(({ i }) => !header[i]);
@@ -70,7 +75,12 @@ export async function listQuestions(): Promise<InterviewQuestion[]> {
 export async function createQuestions(inputs: InterviewQuestionInput[]): Promise<InterviewQuestion[]> {
   await ensureSheet(SHEET, COLUMNS);
   const stamp = Date.now();
-  const questions = inputs.map((input, i) => ({ ...input, id: inputs.length === 1 ? `iq_${stamp}` : `iq_${stamp}_${i}` }));
+  const questions = inputs.map((input, i) => ({
+    ...input,
+    id: inputs.length === 1 ? `iq_${stamp}` : `iq_${stamp}_${i}`,
+    lastPracticedAt: '',
+    practiceCount: 0,
+  }));
   await appendRows(`${SHEET}!A:${LAST}`, questions.map(toCells));
   return questions;
 }
@@ -83,6 +93,14 @@ export async function createQuestion(input: InterviewQuestionInput): Promise<Int
 export async function updateQuestion(id: string, changes: Partial<InterviewQuestionInput>): Promise<InterviewQuestion> {
   const { question, row } = await find(id);
   const updated = { ...question, ...changes, id };
+  await writeValues(`${SHEET}!A${row}:${LAST}${row}`, [toCells(updated)]);
+  return updated;
+}
+
+/** One practice round: bump the counter and stamp the time (server-side, so counts never go backwards). */
+export async function recordPractice(id: string): Promise<InterviewQuestion> {
+  const { question, row } = await find(id);
+  const updated = { ...question, lastPracticedAt: new Date().toISOString(), practiceCount: question.practiceCount + 1 };
   await writeValues(`${SHEET}!A${row}:${LAST}${row}`, [toCells(updated)]);
   return updated;
 }

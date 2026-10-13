@@ -1,4 +1,4 @@
-import { FIRST_INTERVIEW_STAGE, JOB_STAGES, STAGE_SHORT_LABEL, type JobStage } from './constants';
+import { FIRST_INTERVIEW_STAGE, JOB_STAGES, STAGE_SHORT_LABEL, type JobStage, type JobStatus } from './constants';
 import { addDays, parseDate, percent, startOfDay, toDateKey } from './format';
 import type { Job } from './types';
 
@@ -105,6 +105,9 @@ export function filterByTimeframe(jobs: Job[], timeframe: Timeframe, now = new D
   });
 }
 
+// Fixed three-letter names (some locales print "Sept").
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 export interface TimelinePoint {
   name: string;
   /** First and last day of the month (yyyy-mm-dd), for drill-down. */
@@ -121,7 +124,7 @@ export function monthlyTimeline(jobs: Job[], months = 12, now = new Date()): Tim
     return {
       key: `${date.getFullYear()}-${date.getMonth()}`,
       point: {
-        name: date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        name: `${MONTHS[date.getMonth()]} ${String(date.getFullYear()).slice(2)}`,
         from: toDateKey(date),
         to: toDateKey(new Date(date.getFullYear(), date.getMonth() + 1, 0)),
         Applications: 0,
@@ -240,6 +243,36 @@ export function positionStats(jobs: Job[], minApplications = 3): PositionStat[] 
       };
     })
     .sort((a, b) => b.applications - a.applications);
+}
+
+export interface CompanyStat {
+  company: string;
+  applications: number;
+  /** Furthest stage reached across this company's applications, and that application's status. */
+  furthest: JobStage;
+  status: JobStatus;
+}
+
+/** One row per company (case-insensitive), furthest progress first, then most applications. */
+export function companyStats(jobs: Job[]): CompanyStat[] {
+  const groups = new Map<string, Job[]>();
+  for (const job of jobs) {
+    const name = job.company.trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    groups.set(key, [...(groups.get(key) ?? []), job]);
+  }
+  return [...groups.values()]
+    .map((list) => {
+      const best = list.reduce((a, b) => (stageIndex(b.stage) > stageIndex(a.stage) ? b : a));
+      return { company: list[0].company.trim(), applications: list.length, furthest: best.stage, status: best.status };
+    })
+    .sort(
+      (a, b) =>
+        stageIndex(b.furthest) - stageIndex(a.furthest) ||
+        b.applications - a.applications ||
+        a.company.localeCompare(b.company)
+    );
 }
 
 /** How many applications have a value for a field (to qualify breakdowns built on sparse data). */
