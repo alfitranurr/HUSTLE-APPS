@@ -28,6 +28,7 @@ export const jobFieldsSchema = z.object({
   position: optional(200),
   appliedAt: required(40),
   scheduledAt: optional(40),
+  contractDate: optional(40),
   status: z.enum(JOB_STATUSES),
   stage: z.enum(JOB_STAGES),
   platform: required(80),

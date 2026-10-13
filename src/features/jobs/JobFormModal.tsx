@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock } from 'lucide-react';
+import { CalendarCheck, CalendarClock } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Field, Input, Select, Textarea } from '@/components/ui/Field';
@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/api';
 import {
   CAREER_LEVELS,
+  CONTRACT_STAGES,
   JOB_STAGES,
   JOB_STATUSES,
   PLATFORMS,
@@ -16,7 +17,7 @@ import {
   type JobStage,
   type JobStatus,
 } from '@/lib/constants';
-import { toDateTimeLocal } from '@/lib/format';
+import { toDateInput, toDateTimeLocal } from '@/lib/format';
 import type { Job } from '@/lib/types';
 import { safeHref } from '@/lib/urls';
 import { AttachmentField, validateFiles } from './AttachmentField';
@@ -32,6 +33,7 @@ interface FormValues {
   stage: JobStage;
   appliedAt: string;
   scheduledAt: string;
+  contractDate: string;
   province: string;
   city: string;
   note: string;
@@ -53,6 +55,7 @@ function initialValues(job?: Job | null): FormValues {
     stage: job?.stage ?? 'Document Screening',
     appliedAt: job ? toDateTimeLocal(job.appliedAt) : toDateTimeLocal(new Date().toISOString()),
     scheduledAt: toDateTimeLocal(job?.scheduledAt),
+    contractDate: toDateInput(job?.contractDate),
     province: job?.province ?? '',
     city: job?.city ?? '',
     note: job?.note ?? '',
@@ -69,6 +72,9 @@ function validate(values: FormValues, files: File[]): Errors {
   if (!values.appliedAt) errors.appliedAt = 'Application date is required.';
   if (SCHEDULED_STAGES.includes(values.stage) && !values.scheduledAt) {
     errors.scheduledAt = `Add the date and time of the ${values.stage.toLowerCase()}.`;
+  }
+  if (values.stage === 'Contract Signed / Done' && !values.contractDate) {
+    errors.contractDate = 'Add the contract date.';
   }
   for (const key of ['instagram', 'linkedin', 'website', 'otherLink'] as const) {
     if (values[key].trim() && !safeHref(values[key])) errors[key] = 'Enter a valid link.';
@@ -112,6 +118,7 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
   };
 
   const needsSchedule = SCHEDULED_STAGES.includes(values.stage);
+  const needsContract = CONTRACT_STAGES.includes(values.stage);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -122,6 +129,7 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
     const form = new FormData();
     for (const [key, value] of Object.entries(values)) form.append(key, value);
     if (!needsSchedule) form.set('scheduledAt', '');
+    if (!needsContract) form.set('contractDate', '');
     keptAttachments.forEach((url) => form.append('keepAttachments', url));
     files.forEach((file) => form.append('files', file));
 
@@ -142,7 +150,7 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
     <Modal
       open={open}
       onClose={onClose}
-      size="lg"
+      size="xl"
       dismissible={!saving}
       title={job ? `Edit ${job.company}` : 'New application'}
       description="Fields marked * are required."
@@ -217,6 +225,26 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
                   value={values.scheduledAt}
                   onChange={(e) => set('scheduledAt', e.target.value)}
                   aria-invalid={Boolean(errors.scheduledAt)}
+                />
+              </Field>
+            )}
+            {needsContract && (
+              <Field
+                label={
+                  <span className="inline-flex items-center gap-1.5">
+                    <CalendarCheck className="size-4 text-emerald-600" />
+                    Contract date
+                  </span>
+                }
+                required={values.stage === 'Contract Signed / Done'}
+                hint={values.stage === 'Offering Letter' ? 'Planned contract / start date, if known' : undefined}
+                error={errors.contractDate}
+              >
+                <Input
+                  type="date"
+                  value={values.contractDate}
+                  onChange={(e) => set('contractDate', e.target.value)}
+                  aria-invalid={Boolean(errors.contractDate)}
                 />
               </Field>
             )}

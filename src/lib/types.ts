@@ -10,6 +10,8 @@ export interface Job {
   appliedAt: string;
   /** Date/time of the upcoming assessment or interview, if any. */
   scheduledAt: string;
+  /** Contract (start) date once an offer is made or signed, yyyy-mm-dd. */
+  contractDate: string;
   status: JobStatus;
   stage: JobStage;
   platform: string;

@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from 'lucide-react';
 import { Badge, StageBadge, StatusBadge } from '@/components/ui/Badge';
 import { cn } from '@/lib/cn';
-import { STATUS_TONE } from '@/lib/constants';
+import { CONTRACT_STAGES, STATUS_TONE } from '@/lib/constants';
 import { needsFollowUp } from '@/lib/followUp';
 import { formatDate, formatLocation } from '@/lib/format';
 import { TONES } from '@/lib/tones';
@@ -96,6 +96,9 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
               <td className="px-3 py-3 whitespace-nowrap text-slate-600">{job.platform || '—'}</td>
               <td className="px-3 py-3">
                 <StageBadge stage={job.stage} />
+                {job.contractDate && CONTRACT_STAGES.includes(job.stage) && (
+                  <p className="mt-1 text-xs text-slate-500">Contract {formatDate(job.contractDate)}</p>
+                )}
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-col items-start gap-1">

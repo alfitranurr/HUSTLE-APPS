@@ -8,6 +8,7 @@ const COLUMNS: [header: string, value: (job: Job) => string][] = [
   ['Stage', (j) => j.stage],
   ['Applied', (j) => formatDate(j.appliedAt)],
   ['Scheduled', (j) => (j.scheduledAt ? formatDateTime(j.scheduledAt) : '')],
+  ['Contract date', (j) => (j.contractDate ? formatDate(j.contractDate) : '')],
   ['Platform', (j) => j.platform],
   ['Career level', (j) => j.careerLevel],
   ['City', (j) => j.city],

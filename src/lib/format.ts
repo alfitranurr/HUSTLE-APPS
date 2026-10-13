@@ -58,6 +58,12 @@ export function toDateTimeLocal(value?: string | null): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+/** Value for <input type="date">. */
+export function toDateInput(value?: string | null): string {
+  const date = parseDate(value);
+  return date ? toDateKey(date) : '';
+}
+
 export function toDateKey(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;

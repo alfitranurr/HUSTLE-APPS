@@ -3,7 +3,7 @@
 import type { KeyedMutator } from 'swr';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/api';
-import { SCHEDULED_STAGES, type JobStage } from '@/lib/constants';
+import { CONTRACT_STAGES, SCHEDULED_STAGES, type JobStage } from '@/lib/constants';
 import type { Job } from '@/lib/types';
 import { patchJob, type JobPatchBody } from './jobApi';
 
@@ -32,6 +32,7 @@ export function useJobMutations(mutate: KeyedMutator<Job[]>) {
       await apply(job, { stage }, { ...job, stage, status, updatedAt: new Date().toISOString() });
       toast.success(`${job.company} moved to ${stage}.`);
       if (SCHEDULED_STAGES.includes(stage)) toast.info('Open the application to add the schedule date.');
+      if (CONTRACT_STAGES.includes(stage) && !job.contractDate) toast.info('Open the application to add the contract date.');
     } catch (err) {
       toast.error(errorMessage(err));
     }

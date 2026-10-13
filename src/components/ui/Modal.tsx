@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn';
 import { IconButton } from './Button';
 import { AccentLine, type Accent } from './Card';
 
-const SIZES = { sm: 'sm:max-w-md', md: 'sm:max-w-2xl', lg: 'sm:max-w-4xl' } as const;
+const SIZES = { sm: 'sm:max-w-md', md: 'sm:max-w-2xl', lg: 'sm:max-w-4xl', xl: 'sm:max-w-[min(72rem,94vw)] 3xl:max-w-7xl' } as const;
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 

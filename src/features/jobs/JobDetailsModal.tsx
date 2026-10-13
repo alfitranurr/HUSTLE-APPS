@@ -6,7 +6,7 @@ import { PlatformBrandIcon } from '@/components/BrandIcons';
 import { StageBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
-import { SCHEDULED_STAGES, STATUS_TONE } from '@/lib/constants';
+import { CONTRACT_STAGES, SCHEDULED_STAGES, STATUS_TONE } from '@/lib/constants';
 import { formatDate, formatDateTime, formatLocation, formatRelative } from '@/lib/format';
 import type { Job } from '@/lib/types';
 import { AttachmentLinks, JobLinkButtons } from './JobLinks';
@@ -35,7 +35,7 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
     <Modal
       open
       onClose={onClose}
-      size="lg"
+      size="xl"
       accent={STATUS_TONE[job.status]}
       title={job.company}
       description={job.position || 'Position not set'}
@@ -59,6 +59,13 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
         <div className="rounded-xl border border-slate-200 px-3 py-4">
           <StageStepper stage={job.stage} status={job.status} />
         </div>
+
+        {CONTRACT_STAGES.includes(job.stage) && job.contractDate && (
+          <div className="rounded-lg border-l-4 border-emerald-500 bg-emerald-50 px-4 py-3 text-sm">
+            <p className="font-semibold text-emerald-900">Contract date · {formatDate(job.contractDate)}</p>
+            <p className="text-emerald-700">{formatRelative(job.contractDate)}</p>
+          </div>
+        )}
 
         {showSchedule && (
           <div className="rounded-lg border-l-4 border-violet-500 bg-violet-50 px-4 py-3 text-sm">

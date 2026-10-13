@@ -10,6 +10,7 @@ const SHEET = 'DataLowongan';
 const COLUMNS = [
   'ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori',
   'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink', 'LastUpdated',
+  'ContractDate',
 ] as const;
 type Column = (typeof COLUMNS)[number];
 
@@ -57,6 +58,7 @@ function toJob(get: (column: Column) => string): Job {
     // Older rows have no application date; the creation timestamp is the best approximation.
     appliedAt: get('StartDate') || get('Timestamp'),
     scheduledAt: get('EndDate'),
+    contractDate: get('ContractDate'),
     status: normalizeStatus(get('Status')),
     stage: normalizeStage(get('CurrentStage')),
     platform: get('Platform'),
@@ -97,6 +99,7 @@ function toCells(job: Job): string[] {
     City: job.city,
     OtherLink: job.links.other,
     LastUpdated: job.updatedAt,
+    ContractDate: job.contractDate,
   };
   return COLUMNS.map((column) => values[column]);
 }
@@ -119,11 +122,11 @@ async function readAll(): Promise<StoredJob[]> {
   };
   const index = new Map(COLUMNS.map((c) => [c, indexOf(c)]));
 
+  // Columns added after the original layout (LastUpdated, ContractDate) get their header once.
   if (!headerChecked) {
     headerChecked = true;
-    if (!header[COLUMNS.indexOf('LastUpdated')]) {
-      await writeValues(`${SHEET}!${LAST_COLUMN}1`, [['LastUpdated']]);
-    }
+    const missing = COLUMNS.map((name, i) => ({ name, i })).filter(({ i }) => !header[i]);
+    for (const { name, i } of missing) await writeValues(`${SHEET}!${columnLetter(i + 1)}1`, [[name]]);
   }
 
   const stored = values

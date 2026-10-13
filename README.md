@@ -15,7 +15,7 @@ Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and Recha
 - **Interview prep**: question bank with STAR drafts, mastery tracking and a rule-based answer check.
 
 The Google Sheet uses three tabs, created automatically when missing:
-`DataLowongan` (applications, columns A–S), `Interviews` and `Settings` (weekly targets).
+`DataLowongan` (applications, columns A–T), `Interviews` and `Settings` (weekly targets).
 
 ## Getting started
 

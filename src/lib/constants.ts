@@ -41,6 +41,9 @@ export const STAGE_TONE: Record<JobStage, Tone> = {
 /** Stages that have a scheduled date/time (stored in `scheduledAt`). */
 export const SCHEDULED_STAGES: readonly JobStage[] = ['Assessment Test', 'HR Interview', 'User Interview'];
 
+/** Stages where the contract date (stored in `contractDate`) applies. */
+export const CONTRACT_STAGES: readonly JobStage[] = ['Offering Letter', 'Contract Signed / Done'];
+
 /** An application counts as "interviewed" once it reaches this stage or later. */
 export const FIRST_INTERVIEW_STAGE: JobStage = 'HR Interview';
 
