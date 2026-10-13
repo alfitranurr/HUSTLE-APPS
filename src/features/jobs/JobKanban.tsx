@@ -69,7 +69,8 @@ export function JobKanban({ jobs, onMove, onOpen }: JobKanbanProps) {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveId(null)}
     >
-      <div className="flex snap-x gap-4 overflow-x-auto p-4 sm:p-5">
+      {/* A grid instead of a horizontal strip: every stage is visible without sideways scrolling. */}
+      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-4 3xl:grid-cols-8">
         {JOB_STAGES.map((stage) => (
           <Column key={stage} stage={stage} jobs={byStage.get(stage) ?? []} onOpen={onOpen} />
         ))}
@@ -87,7 +88,7 @@ function Column({ stage, jobs, onOpen }: { stage: JobStage; jobs: Job[]; onOpen:
       ref={setNodeRef}
       aria-label={`${stage}: ${jobs.length} applications`}
       className={cn(
-        'relative flex w-72 shrink-0 snap-start flex-col 3xl:w-auto 3xl:min-w-60 3xl:flex-1 overflow-hidden rounded-xl bg-slate-50 transition-shadow',
+        'relative flex min-w-0 flex-col overflow-hidden rounded-xl bg-slate-50 transition-shadow',
         isOver && 'ring-2 ring-indigo-400'
       )}
     >
@@ -98,7 +99,7 @@ function Column({ stage, jobs, onOpen }: { stage: JobStage; jobs: Job[]; onOpen:
           {jobs.length}
         </span>
       </header>
-      <div className="flex max-h-[65vh] min-h-24 flex-col gap-2 overflow-y-auto px-3 pb-3">
+      <div className="flex max-h-[26rem] min-h-24 flex-col gap-2 overflow-y-auto px-3 pb-3">
         {jobs.map((job) => (
           <DraggableCard key={job.id} job={job} onOpen={onOpen} />
         ))}

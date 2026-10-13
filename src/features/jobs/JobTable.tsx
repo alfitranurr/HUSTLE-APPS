@@ -59,8 +59,9 @@ export function JobTable({
   const allSelected = pageIds.length > 0 && selectedOnPage === pageIds.length;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[66rem] text-left text-sm">
+    <div>
+      {/* No minimum width: columns wrap or truncate so the table always fits its card. */}
+      <table className="w-full text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
           <tr>
             <th scope="col" className="w-10 py-3 pr-1 pl-5">
@@ -102,7 +103,7 @@ export function JobTable({
                   onChange={() => onToggle(job.id)}
                 />
               </td>
-              <td className="min-w-[13.75rem] py-3 pr-3 pl-2">
+              <td className="min-w-[10rem] py-3 pr-3 pl-2">
                 <button
                   type="button"
                   onClick={() => actions.onView(job)}
@@ -110,7 +111,7 @@ export function JobTable({
                 >
                   {job.company}
                 </button>
-                <p className="max-w-[16.25rem] text-xs text-slate-500">{job.position || '—'}</p>
+                <p className="max-w-[14rem] text-xs text-slate-500">{job.position || '—'}</p>
               </td>
               <td className="px-3 py-3">
                 {hasLinks(job) || job.attachments.length > 0 ? (
@@ -132,10 +133,10 @@ export function JobTable({
                   <span className="text-slate-400">—</span>
                 )}
               </td>
-              <td className="max-w-[12.5rem] truncate px-3 py-3 text-slate-600 2xl:max-w-[21.25rem]" title={formatLocation(job)}>
+              <td className="max-w-[10rem] truncate px-3 py-3 text-slate-600 3xl:max-w-[18rem]" title={formatLocation(job)}>
                 {formatLocation(job)}
               </td>
-              <td className="px-3 py-3 whitespace-nowrap text-slate-600">{job.platform || '—'}</td>
+              <td className="max-w-[8rem] px-3 py-3 text-slate-600">{job.platform || '—'}</td>
               <td className="px-3 py-3">
                 <StageBadge stage={job.stage} />
                 {job.contractDate && CONTRACT_STAGES.includes(job.stage) && (

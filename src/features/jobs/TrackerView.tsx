@@ -123,7 +123,7 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
     if (view === 'board') return <JobKanban jobs={visible} onMove={moveToStage} onOpen={handlers.onView} />;
     return view === 'table' ? (
       <>
-        <div className="hidden md:block">
+        <div className="hidden lg:block">
           <JobTable
             jobs={pageJobs}
             sort={sort}
@@ -146,7 +146,7 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
             </p>
           )}
         </div>
-        <CardGrid className="md:hidden" jobs={pageJobs} handlers={handlers} />
+        <CardGrid className="lg:hidden" jobs={pageJobs} handlers={handlers} />
       </>
     ) : (
       <CardGrid jobs={pageJobs} handlers={handlers} />
@@ -232,12 +232,6 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
         <BulkBar
           count={selected.size}
           busy={bulk.busy}
-          onSetStatus={(status) =>
-            runBulk({ action: 'update', ids: [...selected], changes: { status } }, (n) => `${n} applications set to ${status}.`)
-          }
-          onSetStage={(stage) =>
-            runBulk({ action: 'update', ids: [...selected], changes: { stage } }, (n) => `${n} applications moved to ${stage}.`)
-          }
           onDelete={() => runBulk({ action: 'delete', ids: [...selected] }, (n) => `${n} applications deleted.`)}
           onClear={() => setSelected(new Set())}
         />

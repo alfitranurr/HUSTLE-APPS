@@ -225,7 +225,10 @@ export async function deleteJob(id: string): Promise<Job> {
 export interface BulkChanges {
   status?: JobStatus;
   stage?: JobStage;
-  /** Date the new stage from the application date instead of today (data clean-up). */
+  /**
+   * Data clean-up mode: date the new stage from the application date and keep
+   * "last updated" as is, so fixing old rows doesn't reset follow-up clocks.
+   */
   stageDateFromApplied?: boolean;
 }
 
@@ -246,7 +249,8 @@ export async function bulkUpdateJobs(ids: string[], changes: BulkChanges): Promi
     if (changes.stageDateFromApplied && stage !== job.stage && stage !== 'Not Started' && applied) {
       stageDates[stage] = toDateKey(applied);
     }
-    const after: Job = { ...job, stage, status, stageDates, updatedAt: now };
+    const updatedAt = changes.stageDateFromApplied ? job.updatedAt : now;
+    const after: Job = { ...job, stage, status, stageDates, updatedAt };
     return { after, range: `${SHEET}!A${row}:${LAST_COLUMN}${row}` };
   });
 
