@@ -86,14 +86,15 @@ function validate(values: FormValues, files: File[]): Errors {
   return errors;
 }
 
+/** Bordered card per group of fields, matching the details popup. */
 function Section({ title, children, className }: { title: string; children: ReactNode; className?: string }) {
   return (
-    <fieldset className={cn('space-y-4', className)}>
-      <legend className="mb-1 flex items-center gap-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-        <span aria-hidden className="h-3 w-1 rounded-full bg-indigo-500" />
+    <fieldset className={cn('min-w-0 rounded-xl border border-slate-200 p-4 sm:p-5', className)}>
+      <legend className="sr-only">{title}</legend>
+      <p aria-hidden className="mb-4 text-xs font-semibold tracking-wide text-slate-500 uppercase">
         {title}
-      </legend>
-      {children}
+      </p>
+      <div className="space-y-4">{children}</div>
     </fieldset>
   );
 }
@@ -112,7 +113,8 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
-  const [stageDates, setStageDates] = useState<StageDates>(job?.stageDates ?? {});
+  // New applications start at Document Screening, dated today.
+  const [stageDates, setStageDates] = useState<StageDates>(() => job?.stageDates ?? { 'Document Screening': toDateKey(new Date()) });
   const regions = useRegions(values.province);
 
   /** Moving to a stage stamps today's date on it (editable below) unless it already has one. */
@@ -178,179 +180,184 @@ export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps)
         </>
       }
     >
-      <form id="job-form" onSubmit={handleSubmit} noValidate className="grid gap-8 md:grid-cols-2">
-        <Section title="Role">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Company" required error={errors.company}>
-              <Input
-                data-autofocus
-                value={values.company}
-                onChange={(e) => set('company', e.target.value)}
-                aria-invalid={Boolean(errors.company)}
-                maxLength={200}
-              />
-            </Field>
-            <Field label="Position">
-              <Input
-                value={values.position}
-                onChange={(e) => set('position', e.target.value)}
-                placeholder="e.g. Frontend Engineer"
-                maxLength={200}
-              />
-            </Field>
-            <Field label="Platform" required>
-              <Select options={PLATFORMS} value={values.platform} onChange={(e) => set('platform', e.target.value)} />
-            </Field>
-            <Field label="Career level">
-              <Select options={CAREER_LEVELS} value={values.careerLevel} onChange={(e) => set('careerLevel', e.target.value)} />
-            </Field>
-            <Field label="Status" required>
-              <Select
-                options={JOB_STATUSES}
-                value={values.status}
-                onChange={(e) => set('status', e.target.value as JobStatus)}
-              />
-            </Field>
-            <Field label="Current stage" required>
-              <Select options={JOB_STAGES} value={values.stage} onChange={(e) => changeStage(e.target.value as JobStage)} />
-            </Field>
-            <Field label="Applied on" required error={errors.appliedAt}>
-              <Input
-                type="datetime-local"
-                value={values.appliedAt}
-                onChange={(e) => set('appliedAt', e.target.value)}
-                aria-invalid={Boolean(errors.appliedAt)}
-              />
-            </Field>
-            {needsSchedule && (
-              <Field
-                label={
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarClock className="size-4 text-violet-500" />
-                    {values.stage === 'Assessment Test' ? 'Test schedule' : 'Interview schedule'}
-                  </span>
-                }
-                required
-                error={errors.scheduledAt}
-              >
+      <form id="job-form" onSubmit={handleSubmit} noValidate className="grid items-start gap-5 lg:grid-cols-2">
+        <div className="space-y-5">
+          <Section title="Company & role">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Company" required error={errors.company}>
                 <Input
-                  type="datetime-local"
-                  value={values.scheduledAt}
-                  onChange={(e) => set('scheduledAt', e.target.value)}
-                  aria-invalid={Boolean(errors.scheduledAt)}
+                  data-autofocus
+                  value={values.company}
+                  onChange={(e) => set('company', e.target.value)}
+                  aria-invalid={Boolean(errors.company)}
+                  maxLength={200}
                 />
               </Field>
-            )}
-            {needsContract && (
-              <Field
-                label={
-                  <span className="inline-flex items-center gap-1.5">
-                    <CalendarCheck className="size-4 text-emerald-600" />
-                    Contract date
-                  </span>
-                }
-                required={values.stage === 'Contract Signed / Done'}
-                hint={values.stage === 'Offering Letter' ? 'Planned contract / start date, if known' : undefined}
-                error={errors.contractDate}
-              >
+              <Field label="Position">
                 <Input
-                  type="date"
-                  value={values.contractDate}
-                  onChange={(e) => set('contractDate', e.target.value)}
-                  aria-invalid={Boolean(errors.contractDate)}
+                  value={values.position}
+                  onChange={(e) => set('position', e.target.value)}
+                  placeholder="e.g. Frontend Engineer"
+                  maxLength={200}
                 />
               </Field>
-            )}
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Province" hint={regions.loading ? 'Loading regions…' : undefined}>
-              <Input
-                list="province-options"
-                value={values.province}
-                onChange={(e) => setValues((v) => ({ ...v, province: e.target.value, city: '' }))}
-                placeholder="Search province"
-              />
-              <datalist id="province-options">
-                {regions.provinces.map((p) => (
-                  <option key={p} value={p} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="City">
-              <Input
-                list="city-options"
-                value={values.city}
-                onChange={(e) => set('city', e.target.value)}
-                placeholder={values.province ? 'Search city' : 'Pick a province first'}
-              />
-              <datalist id="city-options">
-                {regions.cities.map((c) => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-            </Field>
-          </div>
-        </Section>
+              <Field label="Platform" required>
+                <Select options={PLATFORMS} value={values.platform} onChange={(e) => set('platform', e.target.value)} />
+              </Field>
+              <Field label="Career level">
+                <Select options={CAREER_LEVELS} value={values.careerLevel} onChange={(e) => set('careerLevel', e.target.value)} />
+              </Field>
+              <Field label="Province" hint={regions.loading ? 'Loading regions…' : undefined}>
+                <Input
+                  list="province-options"
+                  value={values.province}
+                  onChange={(e) => setValues((v) => ({ ...v, province: e.target.value, city: '' }))}
+                  placeholder="Search province"
+                />
+                <datalist id="province-options">
+                  {regions.provinces.map((p) => (
+                    <option key={p} value={p} />
+                  ))}
+                </datalist>
+              </Field>
+              <Field label="City">
+                <Input
+                  list="city-options"
+                  value={values.city}
+                  onChange={(e) => set('city', e.target.value)}
+                  placeholder={values.province ? 'Search city' : 'Pick a province first'}
+                />
+                <datalist id="city-options">
+                  {regions.cities.map((c) => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+              </Field>
+            </div>
+          </Section>
 
-        <Section title="Details">
-          <div className="grid gap-4 sm:grid-cols-2">
-            {(
-              [
-                ['linkedin', 'LinkedIn', 'linkedin.com/company/…'],
-                ['website', 'Website / job post', 'careers.company.com'],
-                ['instagram', 'Instagram', 'instagram.com/…'],
-                ['otherLink', 'Other link', 'https://…'],
-              ] as const
-            ).map(([key, label, placeholder]) => (
-              <Field key={key} label={label} error={errors[key]}>
-                <Input
-                  type="url"
-                  inputMode="url"
-                  value={values[key]}
-                  onChange={(e) => set(key, e.target.value)}
-                  placeholder={placeholder}
-                  aria-invalid={Boolean(errors[key])}
-                />
-              </Field>
-            ))}
-          </div>
-          <Field label="Notes" hint="Salary range, recruiter name, next steps…">
-            <Textarea rows={4} value={values.note} onChange={(e) => set('note', e.target.value)} maxLength={5000} />
-          </Field>
-          <AttachmentField
-            existing={keptAttachments}
-            onRemoveExisting={(url) => setKeptAttachments((list) => list.filter((u) => u !== url))}
-            files={files}
-            onFilesChange={(next) => {
-              setFiles(next);
-              setErrors((e) => ({ ...e, files: validateFiles(next) ?? undefined }));
-            }}
-            error={errors.files}
-            disabled={saving}
-          />
-        </Section>
-
-        <Section title="Stage dates" className="md:col-span-2">
-          <p className="-mt-2 text-sm text-slate-500">
-            When each stage was reached. Filled in automatically when the stage changes; adjust or backfill as needed. The
-            first stage uses the application date.
-          </p>
-          {reachedStages.length === 0 ? (
-            <p className="text-sm text-slate-400">Move the application past “Not Started” to track stage dates.</p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {reachedStages.map((stage) => (
-                <Field key={stage} label={stage}>
+          <Section title="Links">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {(
+                [
+                  ['linkedin', 'LinkedIn', 'linkedin.com/company/…'],
+                  ['website', 'Website / job post', 'careers.company.com'],
+                  ['instagram', 'Instagram', 'instagram.com/…'],
+                  ['otherLink', 'Other link', 'https://…'],
+                ] as const
+              ).map(([key, label, placeholder]) => (
+                <Field key={key} label={label} error={errors[key]}>
                   <Input
-                    type="date"
-                    value={stageDates[stage] ?? ''}
-                    onChange={(e) => setStageDates((d) => ({ ...d, [stage]: e.target.value || undefined }))}
+                    type="url"
+                    inputMode="url"
+                    value={values[key]}
+                    onChange={(e) => set(key, e.target.value)}
+                    placeholder={placeholder}
+                    aria-invalid={Boolean(errors[key])}
                   />
                 </Field>
               ))}
             </div>
-          )}
-        </Section>
+          </Section>
+        </div>
+
+        <div className="space-y-5">
+          <Section title="Progress">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Status" required>
+                <Select options={JOB_STATUSES} value={values.status} onChange={(e) => set('status', e.target.value as JobStatus)} />
+              </Field>
+              <Field label="Current stage" required>
+                <Select options={JOB_STAGES} value={values.stage} onChange={(e) => changeStage(e.target.value as JobStage)} />
+              </Field>
+              <Field label="Applied on" required error={errors.appliedAt}>
+                <Input
+                  type="datetime-local"
+                  value={values.appliedAt}
+                  onChange={(e) => set('appliedAt', e.target.value)}
+                  aria-invalid={Boolean(errors.appliedAt)}
+                />
+              </Field>
+              {needsSchedule && (
+                <Field
+                  label={
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarClock className="size-4 text-violet-500" />
+                      {values.stage === 'Assessment Test' ? 'Test schedule' : 'Interview schedule'}
+                    </span>
+                  }
+                  required
+                  error={errors.scheduledAt}
+                >
+                  <Input
+                    type="datetime-local"
+                    value={values.scheduledAt}
+                    onChange={(e) => set('scheduledAt', e.target.value)}
+                    aria-invalid={Boolean(errors.scheduledAt)}
+                  />
+                </Field>
+              )}
+              {needsContract && (
+                <Field
+                  label={
+                    <span className="inline-flex items-center gap-1.5">
+                      <CalendarCheck className="size-4 text-emerald-600" />
+                      Contract date
+                    </span>
+                  }
+                  required={values.stage === 'Contract Signed / Done'}
+                  hint={values.stage === 'Offering Letter' ? 'Planned contract / start date, if known' : undefined}
+                  error={errors.contractDate}
+                >
+                  <Input
+                    type="date"
+                    value={values.contractDate}
+                    onChange={(e) => set('contractDate', e.target.value)}
+                    aria-invalid={Boolean(errors.contractDate)}
+                  />
+                </Field>
+              )}
+            </div>
+
+            {reachedStages.length > 0 && (
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="mb-1 text-xs text-slate-500">
+                  Stage dates · filled in when the stage changes; adjust or backfill if needed.
+                </p>
+                <div className="divide-y divide-slate-200/70">
+                  {reachedStages.map((stage) => (
+                    <label key={stage} className="flex items-center justify-between gap-3 py-1.5">
+                      <span className="text-sm text-slate-700">{stage}</span>
+                      <Input
+                        type="date"
+                        className="w-44 shrink-0 py-1.5"
+                        value={stageDates[stage] ?? ''}
+                        onChange={(e) => setStageDates((d) => ({ ...d, [stage]: e.target.value || undefined }))}
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Section>
+
+          <Section title="Notes & proof">
+            <Field label="Notes" hint="Salary range, recruiter name, next steps…">
+              <Textarea rows={4} value={values.note} onChange={(e) => set('note', e.target.value)} maxLength={5000} />
+            </Field>
+            <AttachmentField
+              existing={keptAttachments}
+              onRemoveExisting={(url) => setKeptAttachments((list) => list.filter((u) => u !== url))}
+              files={files}
+              onFilesChange={(next) => {
+                setFiles(next);
+                setErrors((e) => ({ ...e, files: validateFiles(next) ?? undefined }));
+              }}
+              error={errors.files}
+              disabled={saving}
+            />
+          </Section>
+        </div>
       </form>
     </Modal>
   );

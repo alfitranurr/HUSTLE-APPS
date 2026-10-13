@@ -68,6 +68,26 @@ export const jobPatchSchema = z
   })
   .refine((v) => v.stage || v.status || v.followedUp, 'Nothing to update');
 
+const bulkIds = z.array(z.string().min(1).max(100)).min(1, 'Select at least one application').max(500);
+
+/** Same change for many applications (bulk bar, data clean-up). */
+export const jobBulkSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('update'),
+    ids: bulkIds,
+    changes: z
+      .object({
+        status: z.enum(JOB_STATUSES).optional(),
+        stage: z.enum(JOB_STAGES).optional(),
+        stageDateFromApplied: z.boolean().optional(),
+      })
+      .refine((c) => c.status || c.stage, 'Nothing to update'),
+  }),
+  z.object({ action: z.literal('delete'), ids: bulkIds }),
+]);
+
+export type JobBulkRequest = z.infer<typeof jobBulkSchema>;
+
 const interviewFields = {
   category: z.enum(INTERVIEW_CATEGORIES),
   question: required(1000),

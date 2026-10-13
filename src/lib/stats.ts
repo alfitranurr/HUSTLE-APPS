@@ -28,6 +28,7 @@ export const SEGMENTS = {
   interviews: { label: 'Reached an interview', match: reachedInterview },
   offers: { label: 'Offers', match: (job: Job) => job.status === 'Success' },
   rejected: { label: 'Rejected', match: (job: Job) => job.status === 'Failed' },
+  noResponse: { label: 'No response', match: (job: Job) => job.status === 'No Response' },
 } as const satisfies Record<string, { label: string; match: (job: Job) => boolean }>;
 
 export type Segment = keyof typeof SEGMENTS;
@@ -42,6 +43,7 @@ export interface JobStats {
   interviews: number;
   offers: number;
   rejected: number;
+  noResponse: number;
   interviewRate: number;
   offerRate: number;
 }
@@ -52,12 +54,14 @@ export function computeJobStats(jobs: Job[]): JobStats {
   const interviews = jobs.filter(SEGMENTS.interviews.match).length;
   const offers = jobs.filter(SEGMENTS.offers.match).length;
   const rejected = jobs.filter(SEGMENTS.rejected.match).length;
+  const noResponse = jobs.filter(SEGMENTS.noResponse.match).length;
   return {
     total,
     active,
     interviews,
     offers,
     rejected,
+    noResponse,
     interviewRate: percent(interviews, total),
     offerRate: percent(offers, total),
   };

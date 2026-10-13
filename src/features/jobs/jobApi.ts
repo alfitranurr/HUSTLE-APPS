@@ -12,6 +12,15 @@ export function deleteJob(id: string): Promise<null> {
   return apiFetch<null>(jobUrl(id), { method: 'DELETE' });
 }
 
+export type BulkRequest =
+  | { action: 'update'; ids: string[]; changes: { status?: JobStatus; stage?: JobStage; stageDateFromApplied?: boolean } }
+  | { action: 'delete'; ids: string[] };
+
+/** Same change (or delete) for many applications in one request. */
+export function bulkJobs(body: BulkRequest): Promise<{ count: number }> {
+  return apiFetch<{ count: number }>('/api/jobs/bulk', jsonRequest('POST', body));
+}
+
 export type JobPatchBody = { stage?: JobStage; status?: JobStatus; followedUp?: true };
 
 /** Small update (board move or "followed up"); returns the saved job. */

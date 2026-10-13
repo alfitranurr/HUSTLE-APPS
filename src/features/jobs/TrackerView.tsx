@@ -19,6 +19,10 @@ import type { JobActionHandlers } from './JobActions';
 import { JobCard } from './JobCard';
 import { JobKanban } from './JobKanban';
 import { JobTable } from './JobTable';
+import { BulkBar } from './BulkBar';
+import { QuickFilters } from './QuickFilters';
+import { StageFixBanner } from './StageFixBanner';
+import { useBulkActions } from './useBulkActions';
 import { TrackerFilters } from './TrackerFilters';
 import { useJobDialogs } from './useJobDialogs';
 import { useJobMutations } from './useJobMutations';
@@ -30,6 +34,8 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
   const { jobs, error, isLoading, isValidating, mutate } = useJobs();
   const { openCreate, handlers, dialogs } = useJobDialogs(mutate);
   const { moveToStage } = useJobMutations(mutate);
+  const bulk = useBulkActions(mutate);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
 
   const [view, setView] = useState<View>('table');
   const [filters, setFilters] = useState<JobFilters>({ ...EMPTY_FILTERS, ...initialFilters });
@@ -39,6 +45,30 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
   const updateFilters = (changes: Partial<JobFilters>) => {
     setFilters((f) => ({ ...f, ...changes }));
     setPage(1);
+    // A selection made under other filters may include rows you can no longer see.
+    setSelected(new Set());
+  };
+
+  const toggleOne = (id: string) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleMany = (ids: string[], select: boolean) =>
+    setSelected((current) => {
+      const next = new Set(current);
+      for (const id of ids) {
+        if (select) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+
+  const runBulk = async (body: Parameters<typeof bulk.run>[0], message: (count: number) => string) => {
+    if (await bulk.run(body, message)) setSelected(new Set());
   };
 
   const toggleSort = (key: SortKey) => {
@@ -94,7 +124,27 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
     return view === 'table' ? (
       <>
         <div className="hidden md:block">
-          <JobTable jobs={pageJobs} sort={sort} onSort={toggleSort} {...handlers} />
+          <JobTable
+            jobs={pageJobs}
+            sort={sort}
+            onSort={toggleSort}
+            selected={selected}
+            onToggle={toggleOne}
+            onToggleAll={toggleMany}
+            {...handlers}
+          />
+          {selected.size > 0 && pageJobs.every((job) => selected.has(job.id)) && selected.size < visible.length && (
+            <p className="border-t border-slate-100 bg-indigo-50/60 px-5 py-2 text-center text-sm text-slate-700">
+              {selected.size} on this page selected.{' '}
+              <button
+                type="button"
+                className="cursor-pointer font-semibold text-indigo-600 hover:text-indigo-500"
+                onClick={() => setSelected(new Set(visible.map((job) => job.id)))}
+              >
+                Select all {visible.length} matching
+              </button>
+            </p>
+          )}
         </div>
         <CardGrid className="md:hidden" jobs={pageJobs} handlers={handlers} />
       </>
@@ -134,6 +184,19 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
         }
       />
 
+      {!isLoading && (
+        <StageFixBanner
+          jobs={jobs}
+          busy={bulk.busy}
+          onFix={(ids) =>
+            runBulk(
+              { action: 'update', ids, changes: { stage: 'Document Screening', stageDateFromApplied: true } },
+              (n) => `${n} applications moved to Document Screening.`
+            )
+          }
+        />
+      )}
+
       <Card accent="sky">
         <div className="space-y-3 border-b border-slate-100 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -152,6 +215,7 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
               ]}
             />
           </div>
+          <QuickFilters jobs={jobs} filters={filters} onChange={updateFilters} />
           <TrackerFilters
             filters={filters}
             onChange={updateFilters}
@@ -163,6 +227,21 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
         {renderContent()}
         {view !== 'board' && <Pagination page={currentPage} pageSize={PAGE_SIZE} total={visible.length} onPageChange={setPage} />}
       </Card>
+
+      {view === 'table' && selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          busy={bulk.busy}
+          onSetStatus={(status) =>
+            runBulk({ action: 'update', ids: [...selected], changes: { status } }, (n) => `${n} applications set to ${status}.`)
+          }
+          onSetStage={(stage) =>
+            runBulk({ action: 'update', ids: [...selected], changes: { stage } }, (n) => `${n} applications moved to ${stage}.`)
+          }
+          onDelete={() => runBulk({ action: 'delete', ids: [...selected] }, (n) => `${n} applications deleted.`)}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
 
       {dialogs}
     </div>

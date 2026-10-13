@@ -148,6 +148,8 @@ function KanbanCard({ job, overlay = false }: { job: Job; overlay?: boolean }) {
         </span>
         {job.status === 'Failed' ? (
           <Badge tone="rose">Failed</Badge>
+        ) : job.status === 'No Response' ? (
+          <Badge>No response</Badge>
         ) : (
           needsFollowUp(job) && <Badge tone="amber">Follow up</Badge>
         )}

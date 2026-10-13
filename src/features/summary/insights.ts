@@ -1,3 +1,4 @@
+import { formatPercent } from '@/lib/format';
 import type { JobStats } from '@/lib/stats';
 
 /** Plain-language suggestions derived from the funnel numbers. */
@@ -7,10 +8,10 @@ export function buildInsights(stats: JobStats): string[] {
 
   if (stats.total >= 10 && stats.interviewRate < 10) {
     tips.push(
-      `Only ${stats.interviewRate}% of applications reach an interview. Tailor your CV keywords to each posting and favour roles that closely match your experience.`
+      `Only ${formatPercent(stats.interviewRate)} of applications reach an interview. Tailor your CV keywords to each posting and favour roles that closely match your experience.`
     );
   } else if (stats.interviewRate >= 25) {
-    tips.push(`${stats.interviewRate}% of applications reach an interview — your CV is working. Focus on interview preparation.`);
+    tips.push(`${formatPercent(stats.interviewRate)} of applications reach an interview — your CV is working. Focus on interview preparation.`);
   }
 
   if (stats.interviews >= 3 && stats.offers === 0) {

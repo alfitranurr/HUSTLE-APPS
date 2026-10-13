@@ -61,6 +61,26 @@ export async function appendRow(range: string, values: string[]): Promise<void> 
   });
 }
 
+/** Writes many ranges in one request (RAW). */
+export async function batchWriteValues(data: { range: string; values: string[][] }[]): Promise<void> {
+  if (data.length === 0) return;
+  await sheets().spreadsheets.values.batchUpdate({
+    spreadsheetId: spreadsheetId(),
+    requestBody: { valueInputOption: 'RAW', data },
+  });
+}
+
+/** Deletes several rows in one request. Bottom-up so earlier deletions don't shift later ones. */
+export async function deleteRows(title: string, rowNumbers: number[]): Promise<void> {
+  if (rowNumbers.length === 0) return;
+  const sheetId = await getSheetId(title);
+  if (sheetId === undefined) throw new Error(`Sheet '${title}' not found`);
+  const requests = [...new Set(rowNumbers)]
+    .sort((a, b) => b - a)
+    .map((row) => ({ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }));
+  await sheets().spreadsheets.batchUpdate({ spreadsheetId: spreadsheetId(), requestBody: { requests } });
+}
+
 /** Deletes a whole row (1-based row number) so later rows shift up. */
 export async function deleteRow(title: string, rowNumber: number): Promise<void> {
   const sheetId = await getSheetId(title);
