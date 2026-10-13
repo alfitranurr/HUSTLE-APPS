@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button, IconButton } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
-import { DIFFICULTY_TONE, STAR_PARTS } from '@/lib/constants';
+import { DIFFICULTY_TONE, NOTES_ONLY_CATEGORIES, STAR_PARTS } from '@/lib/constants';
 import { TONES } from '@/lib/tones';
 import type { InterviewQuestion } from '@/lib/types';
 
@@ -21,6 +21,8 @@ export function QuestionCard({ question: q, onToggleMastered, onCheck, onEdit, o
   const [expanded, setExpanded] = useState(false);
   const mastered = q.status === 'Mastered';
   const panelId = `star-${q.id}`;
+  const notesOnly = NOTES_ONLY_CATEGORIES.includes(q.category);
+  const toggleLabel = notesOnly ? 'study notes' : q.notes ? 'STAR draft & notes' : 'STAR draft';
 
   return (
     <article
@@ -54,9 +56,11 @@ export function QuestionCard({ question: q, onToggleMastered, onCheck, onEdit, o
           >
             {mastered ? 'Mastered' : 'Mark mastered'}
           </Button>
-          <Button size="sm" variant="subtle" icon={<Sparkles className="size-3.5" />} onClick={() => onCheck(q)}>
-            Check answer
-          </Button>
+          {!notesOnly && (
+            <Button size="sm" variant="subtle" icon={<Sparkles className="size-3.5" />} onClick={() => onCheck(q)}>
+              Check answer
+            </Button>
+          )}
           <IconButton label="Edit question" icon={<Pencil className="size-4" />} onClick={() => onEdit(q)} />
           <IconButton
             label="Delete question"
@@ -74,20 +78,34 @@ export function QuestionCard({ question: q, onToggleMastered, onCheck, onEdit, o
         aria-controls={panelId}
         className="mt-3 inline-flex cursor-pointer items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500"
       >
-        {expanded ? 'Hide STAR draft' : 'Show STAR draft'}
+        {expanded ? `Hide ${toggleLabel}` : `Show ${toggleLabel}`}
         <ChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} />
       </button>
 
       {expanded && (
-        <dl id={panelId} className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in">
-          {STAR_PARTS.map((part) => (
-            <div key={part.key} className="relative overflow-hidden rounded-lg bg-slate-50 p-3 pt-4">
-              <span aria-hidden className={cn('absolute inset-x-0 top-0 h-1', TONES[part.tone].bar)} />
-              <dt className="text-xs font-semibold text-slate-700">{part.label}</dt>
-              <dd className="mt-1 text-sm whitespace-pre-wrap text-slate-600">{q[part.key] || <span className="text-slate-400">Not written yet</span>}</dd>
+        <div id={panelId} className="mt-3 space-y-3 animate-fade-in">
+          {!notesOnly && (
+            <dl className="grid gap-3 sm:grid-cols-2">
+              {STAR_PARTS.map((part) => (
+                <div key={part.key} className="relative overflow-hidden rounded-lg bg-slate-50 p-3 pt-4">
+                  <span aria-hidden className={cn('absolute inset-x-0 top-0 h-1', TONES[part.tone].bar)} />
+                  <dt className="text-xs font-semibold text-slate-700">{part.label}</dt>
+                  <dd className="mt-1 text-sm whitespace-pre-wrap text-slate-600">
+                    {q[part.key] || <span className="text-slate-400">Not written yet</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {(notesOnly || q.notes) && (
+            <div className="rounded-lg border-l-4 border-amber-300 bg-amber-50/60 p-3">
+              <p className="text-xs font-semibold text-slate-700">{notesOnly ? 'Study notes' : 'Notes'}</p>
+              <p className="mt-1 text-sm whitespace-pre-wrap text-slate-600">
+                {q.notes || <span className="text-slate-400">Not written yet</span>}
+              </p>
             </div>
-          ))}
-        </dl>
+          )}
+        </div>
       )}
     </article>
   );

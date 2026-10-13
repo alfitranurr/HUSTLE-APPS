@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Building2, CheckCircle2, Dumbbell, Plus, Search, SearchX } from 'lucide-react';
+import { BookOpen, Building2, CheckCircle2, Dumbbell, PackagePlus, Plus, Search, SearchX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +18,7 @@ import { AnswerCheckModal } from './AnswerCheckModal';
 import { deleteQuestion, updateQuestion, useInterviews } from './interviewApi';
 import { QuestionCard } from './QuestionCard';
 import { QuestionModal } from './QuestionModal';
+import { StarterPackModal } from './StarterPackModal';
 
 const NO_FILTERS = { search: '', category: '', difficulty: '', status: '' };
 
@@ -29,6 +30,7 @@ export function InterviewsView() {
   const [checking, setChecking] = useState<InterviewQuestion | null>(null);
   const [deleting, setDeleting] = useState<InterviewQuestion | null>(null);
   const [busy, setBusy] = useState(false);
+  const [starterOpen, setStarterOpen] = useState(false);
 
   const stats = useMemo(() => {
     const mastered = questions.filter((q) => q.status === 'Mastered').length;
@@ -44,7 +46,7 @@ export function InterviewsView() {
     const query = filters.search.trim().toLowerCase();
     return questions.filter(
       (q) =>
-        (!query || [q.question, q.targetCompany, q.category].join(' ').toLowerCase().includes(query)) &&
+        (!query || [q.question, q.targetCompany, q.category, q.notes].join(' ').toLowerCase().includes(query)) &&
         (!filters.category || q.category === filters.category) &&
         (!filters.difficulty || q.difficulty === filters.difficulty) &&
         (!filters.status || q.status === filters.status)
@@ -90,9 +92,14 @@ export function InterviewsView() {
         title="Interview prep"
         description="Build a bank of STAR answers and practise until they’re second nature."
         actions={
-          <Button icon={<Plus className="size-4" />} onClick={() => openEditor(null)}>
-            Add question
-          </Button>
+          <>
+            <Button variant="secondary" icon={<PackagePlus className="size-4" />} onClick={() => setStarterOpen(true)}>
+              Starter pack
+            </Button>
+            <Button icon={<Plus className="size-4" />} onClick={() => openEditor(null)}>
+              Add question
+            </Button>
+          </>
         }
       />
 
@@ -128,8 +135,17 @@ export function InterviewsView() {
         <EmptyState
           icon={<BookOpen className="size-5" />}
           title="Your question bank is empty"
-          description="Add the questions you expect — behavioural, technical or HR — and draft a STAR answer for each."
-          action={<Button icon={<Plus className="size-4" />} onClick={() => openEditor(null)}>Add first question</Button>}
+          description="Start with the starter pack (HR, behavioural, technical and test prep for data and business roles), or write your own."
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button icon={<PackagePlus className="size-4" />} onClick={() => setStarterOpen(true)}>
+                Add starter questions
+              </Button>
+              <Button variant="secondary" icon={<Plus className="size-4" />} onClick={() => openEditor(null)}>
+                Write my own
+              </Button>
+            </div>
+          }
         />
       ) : visible.length === 0 ? (
         <EmptyState
@@ -154,6 +170,9 @@ export function InterviewsView() {
 
       {editor && (
         <QuestionModal key={editor.key} open question={editor.question} onClose={() => setEditor(null)} onSaved={() => void mutate()} />
+      )}
+      {starterOpen && (
+        <StarterPackModal existing={questions} onClose={() => setStarterOpen(false)} onAdded={() => void mutate()} />
       )}
       <AnswerCheckModal key={checking?.id} question={checking} onClose={() => setChecking(null)} />
       <ConfirmDialog

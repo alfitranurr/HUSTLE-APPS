@@ -52,12 +52,18 @@ export async function writeValues(range: string, values: string[][]): Promise<vo
 }
 
 export async function appendRow(range: string, values: string[]): Promise<void> {
+  await appendRows(range, [values]);
+}
+
+/** Appends many rows in one request (RAW). */
+export async function appendRows(range: string, rows: string[][]): Promise<void> {
+  if (rows.length === 0) return;
   await sheets().spreadsheets.values.append({
     spreadsheetId: spreadsheetId(),
     range,
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
-    requestBody: { values: [values] },
+    requestBody: { values: rows },
   });
 }
 

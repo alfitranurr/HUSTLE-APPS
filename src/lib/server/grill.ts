@@ -4,6 +4,9 @@ import type { GrillFeedback } from '@/lib/types';
 /**
  * Rule-based STAR answer check. It looks for signals of each STAR part (in
  * English or Indonesian) plus length and numbers. No AI model is involved.
+ *
+ * A typed answer is judged on its own text only. The saved STAR draft is used
+ * (and its filled-in parts count as covered) only when no answer is typed.
  */
 
 interface Input {
@@ -14,6 +17,9 @@ interface Input {
   result: string;
 }
 
+const PARTS = ['situation', 'task', 'action', 'result'] as const;
+type Part = (typeof PARTS)[number];
+
 const SIGNALS = {
   situation: ['when', 'while', 'during', 'at my', 'project', 'context', 'saat', 'ketika', 'proyek', 'waktu itu'],
   task: ['responsible', 'my role', 'goal', 'task', 'needed to', 'had to', 'tanggung jawab', 'tugas', 'peran', 'target'],
@@ -23,6 +29,14 @@ const SIGNALS = {
     'menurun', 'dampak', 'hasil'],
 } as const;
 
+/** "Action: …" lines, e.g. from "Use my saved STAR draft". */
+const LABELLED: Record<Part, RegExp> = {
+  situation: /(^|\n)\s*situation\s*:\s*\S/,
+  task: /(^|\n)\s*task\s*:\s*\S/,
+  action: /(^|\n)\s*action\s*:\s*\S/,
+  result: /(^|\n)\s*result\s*:\s*\S/,
+};
+
 const FEEDBACK = {
   situation: ['Context is clear.', 'Add a short, specific context: where, when and how big the problem was.'],
   task: ['Your responsibility is clear.', 'State your own goal or responsibility, not just the team’s.'],
@@ -31,18 +45,19 @@ const FEEDBACK = {
 } as const;
 
 export function scoreStarAnswer(input: Input): GrillFeedback {
-  const answer =
-    input.answer ||
-    [input.situation, input.task, input.action, input.result].filter(Boolean).join('\n');
+  const useDraft = !input.answer.trim();
+  const answer = useDraft ? PARTS.map((key) => input[key]).filter(Boolean).join('\n') : input.answer;
   const text = answer.toLowerCase();
   const words = text.split(/\s+/).filter(Boolean).length;
   const hasNumber = /\d/.test(text);
 
-  const covered = {
-    situation: Boolean(input.situation) || SIGNALS.situation.some((s) => text.includes(s)),
-    task: Boolean(input.task) || SIGNALS.task.some((s) => text.includes(s)),
-    action: Boolean(input.action) || SIGNALS.action.some((s) => text.includes(s)),
-    result: Boolean(input.result) || hasNumber || SIGNALS.result.some((s) => text.includes(s)),
+  const signalled = (key: Part) => SIGNALS[key].some((s) => text.includes(s)) || LABELLED[key].test(text);
+  const fromDraft = (key: Part) => useDraft && Boolean(input[key].trim());
+  const covered: Record<Part, boolean> = {
+    situation: fromDraft('situation') || signalled('situation'),
+    task: fromDraft('task') || signalled('task'),
+    action: fromDraft('action') || signalled('action'),
+    result: fromDraft('result') || hasNumber || signalled('result'),
   };
 
   let score = 40;
@@ -55,7 +70,7 @@ export function scoreStarAnswer(input: Input): GrillFeedback {
   else if (words > 250) score -= 5;
   score = Math.max(20, Math.min(100, score));
 
-  const parts = (['situation', 'task', 'action', 'result'] as const).map((key) => ({
+  const parts = PARTS.map((key) => ({
     key,
     covered: covered[key],
     feedback: FEEDBACK[key][covered[key] ? 0 : 1],

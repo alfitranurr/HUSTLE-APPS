@@ -98,6 +98,7 @@ const interviewFields = {
   targetCompany: z.string().trim().max(200),
   difficulty: z.enum(DIFFICULTIES),
   status: z.enum(MASTERY_STATUSES),
+  notes: z.string().trim().max(3000),
 };
 
 export const interviewCreateSchema = z.object({
@@ -110,7 +111,11 @@ export const interviewCreateSchema = z.object({
   targetCompany: interviewFields.targetCompany.default(''),
   difficulty: interviewFields.difficulty.default('Medium'),
   status: interviewFields.status.default('Practice Needed'),
+  notes: interviewFields.notes.default(''),
 });
+
+/** Several questions at once (starter pack). */
+export const interviewBulkCreateSchema = z.object({ questions: z.array(interviewCreateSchema).min(1).max(50) });
 
 /** No defaults here: a partial update must never reset fields that weren't sent. */
 export const interviewUpdateSchema = z.object(interviewFields).partial();

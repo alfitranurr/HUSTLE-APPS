@@ -45,6 +45,8 @@ export interface InterviewQuestion {
   targetCompany: string;
   difficulty: Difficulty;
   status: MasteryStatus;
+  /** Key points to cover, or study notes for a test. */
+  notes: string;
 }
 
 export type InterviewQuestionInput = Omit<InterviewQuestion, 'id'>;

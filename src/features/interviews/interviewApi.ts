@@ -26,3 +26,6 @@ export const deleteQuestion = (id: string) => apiFetch<null>(url(id), { method: 
 
 export const checkAnswer = (body: { answer: string; situation: string; task: string; action: string; result: string }) =>
   apiFetch<GrillFeedback>('/api/interviews/grill', jsonRequest('POST', body));
+
+export const createQuestions = (questions: InterviewQuestionInput[]) =>
+  apiFetch<InterviewQuestion[]>('/api/interviews/bulk', jsonRequest('POST', { questions }));
