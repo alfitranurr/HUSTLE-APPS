@@ -14,7 +14,13 @@ interface JobTableProps extends JobActionHandlers {
   jobs: Job[];
   sort: SortState;
   onSort: (key: SortKey) => void;
+  /** Row selection for bulk actions. */
+  selected: Set<string>;
+  onToggle: (id: string) => void;
+  onToggleAll: (ids: string[], select: boolean) => void;
 }
+
+const CHECKBOX = 'size-4 cursor-pointer rounded border-slate-300 accent-indigo-600';
 
 function SortHeader({ label, sortKey, sort, onSort, className }: {
   label: string;
@@ -39,13 +45,38 @@ function SortHeader({ label, sortKey, sort, onSort, className }: {
   );
 }
 
-export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
+export function JobTable({
+  jobs,
+  sort,
+  onSort,
+  selected,
+  onToggle,
+  onToggleAll,
+  ...actions
+}: JobTableProps) {
+  const pageIds = jobs.map((job) => job.id);
+  const selectedOnPage = pageIds.filter((id) => selected.has(id)).length;
+  const allSelected = pageIds.length > 0 && selectedOnPage === pageIds.length;
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[61.25rem] text-left text-sm">
+    <div>
+      {/* No minimum width: columns wrap or truncate so the table always fits its card. */}
+      <table className="w-full text-left text-sm">
         <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
           <tr>
-            <SortHeader label="Company" sortKey="company" sort={sort} onSort={onSort} className="pl-5" />
+            <th scope="col" className="w-10 py-3 pr-1 pl-5">
+              <input
+                type="checkbox"
+                className={CHECKBOX}
+                aria-label={allSelected ? 'Unselect all on this page' : 'Select all on this page'}
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = selectedOnPage > 0 && !allSelected;
+                }}
+                onChange={() => onToggleAll(pageIds, !allSelected)}
+              />
+            </th>
+            <SortHeader label="Company" sortKey="company" sort={sort} onSort={onSort} className="pl-2" />
             <th scope="col" className="px-3 py-3">Links</th>
             <th scope="col" className="px-3 py-3">Location</th>
             <th scope="col" className="px-3 py-3">Platform</th>
@@ -59,8 +90,20 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
         </thead>
         <tbody className="divide-y divide-slate-100">
           {jobs.map((job) => (
-            <tr key={job.id} className="transition-colors hover:bg-slate-50/70">
-              <td className={cn('min-w-[13.75rem] border-l-4 py-3 pr-3 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
+            <tr
+              key={job.id}
+              className={cn('transition-colors', selected.has(job.id) ? 'bg-indigo-50/60' : 'hover:bg-slate-50/70')}
+            >
+              <td className={cn('border-l-4 py-3 pr-1 pl-4', TONES[STATUS_TONE[job.status]].edge)}>
+                <input
+                  type="checkbox"
+                  className={CHECKBOX}
+                  aria-label={`Select ${job.company}`}
+                  checked={selected.has(job.id)}
+                  onChange={() => onToggle(job.id)}
+                />
+              </td>
+              <td className="min-w-[10rem] py-3 pr-3 pl-2">
                 <button
                   type="button"
                   onClick={() => actions.onView(job)}
@@ -68,7 +111,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                 >
                   {job.company}
                 </button>
-                <p className="max-w-[16.25rem] text-xs text-slate-500">{job.position || '—'}</p>
+                <p className="max-w-[14rem] text-xs text-slate-500">{job.position || '—'}</p>
               </td>
               <td className="px-3 py-3">
                 {hasLinks(job) || job.attachments.length > 0 ? (
@@ -90,10 +133,10 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                   <span className="text-slate-400">—</span>
                 )}
               </td>
-              <td className="max-w-[12.5rem] truncate px-3 py-3 text-slate-600 2xl:max-w-[21.25rem]" title={formatLocation(job)}>
+              <td className="max-w-[10rem] truncate px-3 py-3 text-slate-600 3xl:max-w-[18rem]" title={formatLocation(job)}>
                 {formatLocation(job)}
               </td>
-              <td className="px-3 py-3 whitespace-nowrap text-slate-600">{job.platform || '—'}</td>
+              <td className="max-w-[8rem] px-3 py-3 text-slate-600">{job.platform || '—'}</td>
               <td className="px-3 py-3">
                 <StageBadge stage={job.stage} />
                 {job.contractDate && CONTRACT_STAGES.includes(job.stage) && (

@@ -8,9 +8,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
 import { JobListModal } from '@/features/jobs/JobListModal';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
+import { useBulkActions } from '@/features/jobs/useBulkActions';
 import { useJobMutations } from '@/features/jobs/useJobMutations';
 import { useJobs } from '@/hooks/useJobs';
 import { cn } from '@/lib/cn';
+import { isStale } from '@/lib/followUp';
+import { formatPercent } from '@/lib/format';
 import { computeJobStats, type Segment } from '@/lib/stats';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { FollowUpCard } from './FollowUpCard';
@@ -22,6 +25,8 @@ export function DashboardView() {
   const { jobs, isLoading, isValidating, mutate } = useJobs();
   const { openCreate, handlers, dialogs } = useJobDialogs(mutate);
   const { markFollowedUp } = useJobMutations(mutate);
+  const bulk = useBulkActions(mutate);
+  const staleCount = jobs.filter((job) => isStale(job)).length;
   const stats = computeJobStats(jobs);
   const [segment, setSegment] = useState<Segment | null>(null);
 
@@ -49,14 +54,14 @@ export function DashboardView() {
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard label="Applications" onClick={() => setSegment('all')} value={stats.total} tone="indigo" icon={<Briefcase className="size-4" />} loading={isLoading} hint="All time" />
-        <StatCard label="Active" onClick={() => setSegment('active')} value={stats.active} tone="sky" icon={<Activity className="size-4" />} loading={isLoading} hint="Not started or in progress" />
+        <StatCard label="Active" onClick={() => setSegment('active')} value={stats.active} tone="sky" icon={<Activity className="size-4" />} loading={isLoading} hint={staleCount > 0 ? `Not started or in progress · ${staleCount} stale` : 'Not started or in progress'} />
         <StatCard
           label="Interviews" onClick={() => setSegment('interviews')}
           value={stats.interviews}
           tone="violet"
           icon={<MessagesSquare className="size-4" />}
           loading={isLoading}
-          hint={`${stats.interviewRate}% of applications`}
+          hint={`${formatPercent(stats.interviewRate)} of applications`}
         />
         <StatCard
           label="Offers" onClick={() => setSegment('offers')}
@@ -64,7 +69,7 @@ export function DashboardView() {
           tone="emerald"
           icon={<Trophy className="size-4" />}
           loading={isLoading}
-          hint={`${stats.offerRate}% success rate`}
+          hint={`${formatPercent(stats.offerRate)} success rate`}
         />
       </div>
 
@@ -75,7 +80,16 @@ export function DashboardView() {
         </div>
         <WeeklyTargetsCard jobs={jobs} loading={isLoading} />
         <div className="grid gap-6 lg:col-span-3 lg:grid-cols-2 3xl:col-span-2">
-          <FollowUpCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} onFollowedUp={markFollowedUp} />
+          <FollowUpCard
+            jobs={jobs}
+            loading={isLoading}
+            onOpen={handlers.onView}
+            onFollowedUp={markFollowedUp}
+            closing={bulk.busy}
+            onCloseStale={(ids) =>
+              bulk.run({ action: 'update', ids, changes: { status: 'No Response' } }, (n) => `${n} applications closed as No Response.`)
+            }
+          />
           <RecentApplications jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
         </div>
       </div>

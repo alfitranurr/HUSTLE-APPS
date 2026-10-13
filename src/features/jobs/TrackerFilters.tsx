@@ -57,7 +57,7 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
           <Field label="Group">
             <Select
               placeholder="Any group"
-              options={(['active', 'interviews', 'offers', 'rejected'] as const).map((s) => ({ value: s, label: SEGMENTS[s].label }))}
+              options={(['active', 'interviews', 'offers', 'rejected', 'noResponse'] as const).map((s) => ({ value: s, label: SEGMENTS[s].label }))}
               value={rest.segment}
               onChange={(e) => onChange({ segment: e.target.value as Segment | '' })}
             />

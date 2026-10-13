@@ -22,6 +22,7 @@ const SEGMENT_TONE: Record<Segment, Tone> = {
   interviews: 'violet',
   offers: 'emerald',
   rejected: 'rose',
+  noResponse: 'slate',
 };
 
 interface JobListModalProps {

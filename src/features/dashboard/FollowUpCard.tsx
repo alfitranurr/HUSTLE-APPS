@@ -1,24 +1,31 @@
 'use client';
 
-import { BellRing, CheckCheck, PartyPopper } from 'lucide-react';
+import { BellOff, BellRing, CheckCheck, PartyPopper } from 'lucide-react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonRows } from '@/components/ui/Skeleton';
-import { FOLLOW_UP_AFTER_DAYS } from '@/lib/constants';
-import { followUpQueue } from '@/lib/followUp';
+import { FOLLOW_UP_AFTER_DAYS, STALE_AFTER_DAYS } from '@/lib/constants';
+import { followUpQueue, isStale } from '@/lib/followUp';
 import type { Job } from '@/lib/types';
+import { CloseStaleDialog } from './CloseStaleDialog';
 
 interface FollowUpCardProps {
   jobs: Job[];
   loading: boolean;
   onOpen: (job: Job) => void;
   onFollowedUp: (job: Job) => void;
+  /** Bulk-close stale applications as "No Response"; resolves true on success. */
+  onCloseStale: (ids: string[]) => Promise<boolean>;
+  closing: boolean;
 }
 
-export function FollowUpCard({ jobs, loading, onOpen, onFollowedUp }: FollowUpCardProps) {
+export function FollowUpCard({ jobs, loading, onOpen, onFollowedUp, onCloseStale, closing }: FollowUpCardProps) {
   const queue = followUpQueue(jobs);
+  const staleCount = jobs.filter((job) => isStale(job)).length;
+  const [reviewing, setReviewing] = useState(false);
 
   return (
     <Card accent="amber" className="h-full">
@@ -56,7 +63,28 @@ export function FollowUpCard({ jobs, loading, onOpen, onFollowedUp }: FollowUpCa
             ))}
           </ul>
         )}
+        {!loading && staleCount > 0 && (
+          <div className="mt-4 flex flex-col gap-2 rounded-lg bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-slate-600">
+              <span className="font-semibold text-slate-900 tabular-nums">{staleCount}</span> open applications have had no
+              update for {STALE_AFTER_DAYS}+ days.
+            </p>
+            <Button size="sm" variant="secondary" icon={<BellOff className="size-3.5" />} onClick={() => setReviewing(true)}>
+              Close as no response
+            </Button>
+          </div>
+        )}
       </CardContent>
+      {reviewing && (
+        <CloseStaleDialog
+          jobs={jobs}
+          busy={closing}
+          onClose={() => setReviewing(false)}
+          onConfirm={async (ids) => {
+            if (await onCloseStale(ids)) setReviewing(false);
+          }}
+        />
+      )}
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { percent } from '@/lib/format';
+import { formatPercent, percent } from '@/lib/format';
 import type { CountItem } from '@/lib/stats';
 import type { Tone } from '@/lib/tones';
 
@@ -26,10 +26,10 @@ export function BreakdownList({ items, total, tone, emptyLabel = 'No data yet' }
               </span>
               <span className="shrink-0 text-slate-900 tabular-nums">
                 <span className="font-semibold">{item.value}</span>
-                <span className="ml-1.5 text-xs text-slate-500">{share}%</span>
+                <span className="ml-1.5 text-xs text-slate-500">{formatPercent(share)}</span>
               </span>
             </div>
-            <ProgressBar value={share} tone={typeof tone === 'function' ? tone(item.name) : tone} label={`${item.name}: ${share}%`} />
+            <ProgressBar value={share} tone={typeof tone === 'function' ? tone(item.name) : tone} label={`${item.name}: ${formatPercent(share)}`} />
           </li>
         );
       })}

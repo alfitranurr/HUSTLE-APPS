@@ -6,8 +6,8 @@ _Terakhir diperbarui: 14 Oktober 2026_
 
 | | |
 |---|---|
-| **Production** | https://hustle-apps-six.vercel.app — commit `21e5062` (merge PR #1), redeploy 13 Okt 2026 setelah ganti `LOGIN_PASSWORD` |
-| **Menunggu merge** | [PR #2](https://github.com/alfitranurr/HUSTLE-APPS/pull/2) — drill-down kartu statistik + perapian filter |
+| **Production** | https://hustle-apps-six.vercel.app — commit `03d2367` (merge PR #2), 14 Okt 2026 |
+| **Menunggu merge** | PR #3 — aksi massal, quick filter, status No Response, perbaikan data stage, form baru |
 | **Tooling** | GitHub CLI (`gh`) dan Vercel CLI terpasang & login; folder lokal ter-link ke project Vercel `hustle-apps` |
 
 ---
@@ -50,10 +50,23 @@ _Terakhir diperbarui: 14 Oktober 2026_
 - Densitas default 80% di desktop dengan scaling OS 125–175%.
 - Retry otomatis untuk gangguan jaringan ke Google (hanya request idempoten).
 
-### 5. Drill-down statistik — PR #2 (`e31ff5e`, `25d2e19`) — _belum di-merge_
+### 5. Drill-down statistik — PR #2 (`e31ff5e`, `25d2e19`) — _live 14 Okt 2026_
 - Kartu statistik di Dashboard & Insights bisa diklik → daftar perusahaan (cari, klik untuk detail).
 - Filter **Group** baru (Active / Reached an interview / Offers / Rejected) + deep link `/tracker?segment=...`.
 - Urutan filter dirapikan; keterangan timeframe di kartu Applications Insights.
+
+### 6. Pembersihan data & aksi massal — PR #3 — _belum di-merge_
+- **Status baru "No Response"** untuk lamaran yang tidak ada kabar; tidak dihitung Active.
+- **D1** — Dashboard: kartu Follow-up punya tombol "Close as no response" → dialog review berisi semua lamaran terbuka tanpa update ≥ 60 hari (bisa un-centang satu per satu) → set status No Response sekaligus. Kartu Active menampilkan jumlah yang basi.
+- **D2** — Applications: banner "N applications are In Progress but their stage is still Not Started" → konfirmasi (daftar ditampilkan) → stage jadi Document Screening, tanggal tahapan = tanggal melamar.
+- **D3** — Persentase < 10% tampil 1 desimal (mis. 0.5% bukan 0%).
+- **A1** — Aksi massal: centang baris (atau "Select all N matching") → bar mengambang berisi **Delete saja** (dengan konfirmasi; satu request Sheets). Set status / set stage / No response di bar sempat dibuat lalu dicabut atas permintaan — perubahan lain lewat tombol Edit.
+- **A2** — Edit inline di tabel sempat dibuat lalu **dicabut atas permintaan**: perubahan hanya lewat tombol Edit agar tabel tetap bersih.
+- **A3** — Quick filter chips dengan jumlah: All · Active · Needs follow-up · Interviewed · Offers · Rejected · No response. Filter Group juga punya "No response".
+- Form tambah/edit ditata ulang per card: *Company & role*, *Links*, *Progress* (termasuk tanggal tiap tahapan), *Notes & proof*. Lamaran baru otomatis bertanggal Document Screening hari ini.
+- **Tanpa scroll horizontal**: sidebar dipersempit (15rem → 13rem), tabel tanpa lebar minimum (kolom lokasi/platform terpotong rapi dengan tooltip), tabel hanya di layar ≥ 1024px (di bawahnya kartu), Board jadi grid 4×2 (8 kolom sebaris di layar sangat lebar). Diukur: 0 overflow di semua halaman pada 1280px @150% dan 1600px @120%.
+- **Perbaikan bug**: aksi pembersihan stage tidak lagi mengubah `LastUpdated` (sebelumnya mereset jam follow-up 90 lamaran).
+- "Interviewing" diganti **"Interviewed"** — kategori ini berisi lamaran yang pernah mencapai tahap interview (riwayat), bukan yang sedang berlangsung.
 
 ### Deploy & konfigurasi (13 Okt 2026)
 - PR #1 di-merge, production ter-deploy dan diverifikasi (login, API, header keamanan).
@@ -63,7 +76,9 @@ _Terakhir diperbarui: 14 Oktober 2026_
 
 ## Belum selesai / perlu tindakan
 
-- [ ] **Merge PR #2** ke `master` (deploy otomatis ke production).
+- [x] ~~Merge PR #2~~ — live 14 Okt 2026.
+- [ ] **Merge PR #3** ke `master` (deploy otomatis ke production), lalu jalankan pembersihan data dari UI (banner stage + Close as no response).
+- [ ] **Pulihkan `LastUpdated` 90 lamaran** yang terkena perbaikan stage pada 14 Okt 2026 01:28 WIB (semuanya bertanda `2026-10-13T18:28:51.791Z`). Akibatnya "Needs follow-up" turun 105 → 16. Usulan: set `LastUpdated` = `Timestamp` untuk 90 baris itu (menunggu persetujuan).
 - [ ] **Rotasi `GOOGLE_CLIENT_SECRET` & `GOOGLE_REFRESH_TOKEN`** — pernah tercetak di log Vercel oleh kode lama. Reset di Google Cloud Console, lalu masukkan nilai baru ke Vercel + `.env.local`.
 
 ---
@@ -90,9 +105,9 @@ _Terakhir diperbarui: 14 Oktober 2026_
 ### Dashboard
 | # | Rekomendasi | Alasan | Prioritas |
 |---|---|---|---|
-| D1 | Kategori **"No response"** (In Progress > 60 hari tanpa kabar) + tutup massal dari kartu Follow-up | Active 183 tidak realistis; 93 lamaran basi | Tinggi |
-| D2 | Perbaikan massal stage "Not Started + In Progress → Document Screening" (dengan konfirmasi); default stage lamaran baru | 90 data tidak konsisten; funnel tidak akurat | Tinggi |
-| D3 | Persentase < 10% tampil 1 desimal | "1 offer" tapi tertulis "0% success rate" | Tinggi |
+| D1 | Kategori **"No response"** (In Progress > 60 hari tanpa kabar) + tutup massal dari kartu Follow-up | Active 183 tidak realistis; 93 lamaran basi | Tinggi · ✅ PR #3 |
+| D2 | Perbaikan massal stage "Not Started + In Progress → Document Screening" (dengan konfirmasi); default stage lamaran baru | 90 data tidak konsisten; funnel tidak akurat | Tinggi · ✅ PR #3 |
+| D3 | Persentase < 10% tampil 1 desimal | "1 offer" tapi tertulis "0% success rate" | Tinggi · ✅ PR #3 |
 | D4 | Kartu Upcoming diringkas saat kosong; ganti ruangnya dengan **Recent activity** (perubahan stage terbaru) | Kartu kosong memakan ⅔ lebar | Sedang |
 | D5 | Tren mingguan di kartu (mis. "+6 vs minggu lalu") | Melihat momentum | Rendah |
 | D6 | **Response rate** (lamaran yang dapat respons apa pun) | Metrik paling relevan bagi pencari kerja | Rendah |
@@ -100,14 +115,26 @@ _Terakhir diperbarui: 14 Oktober 2026_
 ### Halaman Applications
 | # | Rekomendasi | Alasan | Prioritas |
 |---|---|---|---|
-| A1 | **Aksi massal**: pilih banyak baris → ubah status/stage, "Close as no response", hapus | Membersihkan 90 + 93 data satu per satu tidak realistis | Tinggi |
-| A2 | **Ubah status/stage langsung di tabel** (dropdown inline) tanpa buka form | Edit paling sering = ganti stage/status | Tinggi |
-| A3 | **Quick filter chips** di atas tabel: Needs follow-up · Interviewing · Offers · Rejected · No response | Filter penting sekarang tersembunyi di panel Filters | Tinggi |
+| A1 | **Aksi massal**: pilih banyak baris → ubah status/stage, "Close as no response", hapus | Membersihkan 90 + 93 data satu per satu tidak realistis | Tinggi · ✅ PR #3 |
+| A2 | **Ubah status/stage langsung di tabel** (dropdown inline) tanpa buka form | Edit paling sering = ganti stage/status | Tinggi · ↩️ dibuat lalu dicabut (edit hanya lewat tombol Edit) |
+| A3 | **Quick filter chips** di atas tabel: Needs follow-up · Interviewing · Offers · Rejected · No response | Filter penting sekarang tersembunyi di panel Filters | Tinggi · ✅ PR #3 |
 | A4 | Kolom **"Last update"** (hari sejak update) yang bisa di-sort; Location/Platform bisa disembunyikan | 88% baris kosong di kolom Location & Platform; staleness lebih berguna | Sedang |
 | A5 | **Simpan filter, sort & tampilan** di URL (+ ingat tampilan terakhir) | Saat ini hilang setelah refresh / pindah halaman | Sedang |
 | A6 | **Deteksi duplikat** saat menambah lamaran (perusahaan + posisi sama) + tanda di tabel | Sudah ada 2 pasang duplikat | Sedang |
 | A7 | Board: toggle **"Hide closed"** (Success/Failed) + batasi kartu per kolom ("Show more") | Kolom Not Started berisi 176 kartu | Sedang |
 | A8 | Pilihan jumlah baris per halaman (20 / 50 / 100) | Nyaman saat review besar-besaran | Rendah |
+
+### Halaman Insights
+Data per 14 Okt 2026: funnel 201 → 115 Screening → **8 Test** → 4 HR Interview → 3 User Interview → 2 FGD → 2 Offer → 1 Signed. Penolakan: 9 di Not Started, 4 di Assessment Test, 2 di Screening, 1 di User Interview, 1 di Offering. Platform/level/lokasi hanya terisi di 21–24 dari 201 lamaran.
+
+| # | Rekomendasi | Alasan | Prioritas |
+|---|---|---|---|
+| I1 | **Funnel konversi** ("mencapai minimal tahap X") + % lolos per tahap, menggantikan snapshot "Pipeline stage" | Titik bocor terbesar (Screening → Test: 115 → 8) tidak terlihat sekarang | Tinggi |
+| I2 | **Di tahap mana ditolak** (+ No response) dalam satu kartu "Outcomes" | Assessment Test: 4 dari 8 yang ikut tes ditolak → area latihan jelas | Tinggi |
+| I3 | Gabungkan Career level / Platform / Cities / Provinces jadi satu kartu bertab + tampilkan **cakupan data** ("24 dari 201 terisi"); persentase dari data yang terisi | 88–90% kosong → kartu sekarang menyesatkan & memakan tempat | Tinggi |
+| I4 | **Konversi per posisi** (posisi ≥ 3 lamaran: jumlah, interview, ditolak) menggantikan "Most applied companies" | Data Analyst: 31 lamaran → 1 interview; daftar perusahaan 2-lamaran kurang bermakna | Sedang |
+| I5 | Tren **per minggu** (12 minggu) di samping tren bulanan | Ritme melamar terlihat lebih cepat | Rendah |
+| I6 | **Waktu respons** (hari dari melamar ke tahap berikutnya) — setelah tanggal tahapan cukup terkumpul | Data tanggal tahapan baru mulai tercatat | Rendah |
 
 ---
 

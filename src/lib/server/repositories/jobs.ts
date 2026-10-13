@@ -3,7 +3,8 @@ import { JOB_STAGES, JOB_STATUSES, type JobStage, type JobStatus } from '@/lib/c
 import type { Job } from '@/lib/types';
 import { advanceStageDates, parseStageDates, serializeStageDates } from '@/lib/stageDates';
 import { splitAttachmentCell } from '@/lib/urls';
-import { appendRow, columnLetter, deleteRow, ensureSheet, NotFoundError, readValues, writeValues } from '../google/sheet';
+import { parseDate, toDateKey } from '@/lib/format';
+import { appendRow, batchWriteValues, columnLetter, deleteRow, deleteRows, ensureSheet, NotFoundError, readValues, writeValues } from '../google/sheet';
 
 const SHEET = 'DataLowongan';
 
@@ -217,4 +218,50 @@ export async function deleteJob(id: string): Promise<Job> {
   const { job, row } = await find(id);
   await deleteRow(SHEET, row);
   return job;
+}
+
+// --- bulk -------------------------------------------------------------------------
+
+export interface BulkChanges {
+  status?: JobStatus;
+  stage?: JobStage;
+  /**
+   * Data clean-up mode: date the new stage from the application date and keep
+   * "last updated" as is, so fixing old rows doesn't reset follow-up clocks.
+   */
+  stageDateFromApplied?: boolean;
+}
+
+/** Applies the same change to many applications in a single Sheets request. Returns the updated jobs. */
+export async function bulkUpdateJobs(ids: string[], changes: BulkChanges): Promise<Job[]> {
+  const wanted = new Set(ids);
+  const targets = (await readAll()).filter(({ job }) => wanted.has(job.id));
+  const now = new Date().toISOString();
+
+  const updated = targets.map(({ job, row }) => {
+    const stage = changes.stage ?? job.stage;
+    let status = changes.status ?? job.status;
+    // Same rule as a single update: a signed contract is a success unless told otherwise.
+    if (changes.stage === 'Contract Signed / Done' && !changes.status) status = 'Success';
+
+    const stageDates = advanceStageDates(job.stageDates, stage, job.stage);
+    const applied = parseDate(job.appliedAt);
+    if (changes.stageDateFromApplied && stage !== job.stage && stage !== 'Not Started' && applied) {
+      stageDates[stage] = toDateKey(applied);
+    }
+    const updatedAt = changes.stageDateFromApplied ? job.updatedAt : now;
+    const after: Job = { ...job, stage, status, stageDates, updatedAt };
+    return { after, range: `${SHEET}!A${row}:${LAST_COLUMN}${row}` };
+  });
+
+  await batchWriteValues(updated.map(({ after, range }) => ({ range, values: [toCells(after)] })));
+  return updated.map(({ after }) => after);
+}
+
+/** Deletes many applications in a single Sheets request. Returns the deleted jobs (for attachment clean-up). */
+export async function bulkDeleteJobs(ids: string[]): Promise<Job[]> {
+  const wanted = new Set(ids);
+  const targets = (await readAll()).filter(({ job }) => wanted.has(job.id));
+  await deleteRows(SHEET, targets.map(({ row }) => row));
+  return targets.map(({ job }) => job);
 }

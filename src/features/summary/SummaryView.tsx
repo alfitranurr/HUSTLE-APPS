@@ -13,7 +13,7 @@ import { JobListModal } from '@/features/jobs/JobListModal';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
 import { useJobs } from '@/hooks/useJobs';
 import { STAGE_TONE, STATUS_TONE, type JobStage, type JobStatus } from '@/lib/constants';
-import { shortProvince } from '@/lib/format';
+import { formatPercent, shortProvince } from '@/lib/format';
 import {
   computeJobStats,
   countBy,
@@ -75,7 +75,7 @@ export function SummaryView() {
         />
         <StatCard
           label="Interview rate"
-          value={`${stats.interviewRate}%`}
+          value={formatPercent(stats.interviewRate)}
           hint={`${stats.interviews} reached an interview`}
           tone="violet"
           icon={<MessagesSquare className="size-4" />}
@@ -84,7 +84,7 @@ export function SummaryView() {
         />
         <StatCard
           label="Offer rate"
-          value={`${stats.offerRate}%`}
+          value={formatPercent(stats.offerRate)}
           hint={`${stats.offers} ${stats.offers === 1 ? 'offer' : 'offers'}`}
           tone="emerald"
           icon={<Trophy className="size-4" />}

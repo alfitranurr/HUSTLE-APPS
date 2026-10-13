@@ -1,4 +1,4 @@
-import { FOLLOW_UP_AFTER_DAYS } from './constants';
+import { FOLLOW_UP_AFTER_DAYS, STALE_AFTER_DAYS } from './constants';
 import { daysBetween, parseDate } from './format';
 import type { Job } from './types';
 
@@ -18,6 +18,18 @@ export function needsFollowUp(job: Job, now = new Date()): boolean {
   if (scheduled && scheduled >= now) return false;
   const days = daysSinceUpdate(job, now);
   return days !== null && days >= FOLLOW_UP_AFTER_DAYS;
+}
+
+/**
+ * Open (not started / in progress) application with no update for
+ * STALE_AFTER_DAYS and nothing scheduled ahead: realistically no response.
+ */
+export function isStale(job: Job, now = new Date()): boolean {
+  if (job.status !== 'Not Started' && job.status !== 'In Progress') return false;
+  const scheduled = parseDate(job.scheduledAt);
+  if (scheduled && scheduled >= now) return false;
+  const days = daysSinceUpdate(job, now);
+  return days !== null && days >= STALE_AFTER_DAYS;
 }
 
 /** Stalest first. */

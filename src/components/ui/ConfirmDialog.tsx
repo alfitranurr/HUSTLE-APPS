@@ -9,7 +9,10 @@ interface ConfirmDialogProps {
   title: string;
   description: ReactNode;
   confirmLabel?: string;
+  /** 'danger' for destructive actions (default), 'primary' for safe bulk changes. */
+  variant?: 'danger' | 'primary';
   loading?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -19,7 +22,9 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Delete',
+  variant = 'danger',
   loading = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -29,20 +34,21 @@ export function ConfirmDialog({
       onClose={onCancel}
       title={title}
       size="sm"
-      accent="rose"
+      accent={variant === 'danger' ? 'rose' : 'indigo'}
       dismissible={!loading}
       footer={
         <>
           <Button variant="secondary" onClick={onCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={onConfirm} loading={loading} data-autofocus>
+          <Button variant={variant} onClick={onConfirm} loading={loading} data-autofocus>
             {confirmLabel}
           </Button>
         </>
       }
     >
       <p className="text-sm text-slate-600">{description}</p>
+      {children}
     </Modal>
   );
 }

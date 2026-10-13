@@ -4,7 +4,8 @@ import type { Tone } from './tones';
 // Applications
 // ---------------------------------------------------------------------------
 
-export const JOB_STATUSES = ['Not Started', 'In Progress', 'Success', 'Failed'] as const;
+/** 'No Response' closes an application that went silent (ghosted); it is not counted as active. */
+export const JOB_STATUSES = ['Not Started', 'In Progress', 'Success', 'Failed', 'No Response'] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const STATUS_TONE: Record<JobStatus, Tone> = {
@@ -12,6 +13,7 @@ export const STATUS_TONE: Record<JobStatus, Tone> = {
   'In Progress': 'sky',
   Success: 'emerald',
   Failed: 'rose',
+  'No Response': 'slate',
 };
 
 /** Ordered recruitment pipeline. */
@@ -76,6 +78,9 @@ export const CAREER_LEVELS = [
 
 /** Applications in progress with no update for this many days need a follow-up. */
 export const FOLLOW_UP_AFTER_DAYS = 14;
+
+/** Open applications untouched this long are considered stale (likely no response). */
+export const STALE_AFTER_DAYS = 60;
 
 export const DEFAULT_WEEKLY_TARGETS = { applications: 5, interviews: 2 };
 

@@ -100,6 +100,14 @@ export function formatLocation(job: Pick<Job, 'city' | 'province'>): string {
   return parts.length ? parts.join(', ') : '—';
 }
 
+/** Exact percentage (unrounded); format it with `formatPercent`. */
 export function percent(part: number, total: number): number {
-  return total > 0 ? Math.round((part / total) * 100) : 0;
+  return total > 0 ? (part / total) * 100 : 0;
+}
+
+/** Whole numbers from 10% up; one decimal below so small rates don't show as 0% (0.5%). */
+export function formatPercent(value: number): string {
+  if (value === 0) return '0%';
+  const rounded = value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
+  return `${rounded}%`;
 }
