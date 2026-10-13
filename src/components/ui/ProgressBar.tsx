@@ -9,18 +9,22 @@ interface ProgressBarProps {
   className?: string;
 }
 
+/** Spans (not divs) so the bar is valid inside clickable rows. */
 export function ProgressBar({ value, tone = 'indigo', label, className }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(100, value));
   return (
-    <div
+    <span
       role="progressbar"
       aria-label={label}
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      className={cn('h-2 w-full overflow-hidden rounded-full bg-slate-100', className)}
+      className={cn('block h-2 w-full overflow-hidden rounded-full bg-slate-100', className)}
     >
-      <div className={cn('h-full rounded-full transition-[width] duration-500', TONES[tone].bar)} style={{ width: `${clamped}%` }} />
-    </div>
+      <span
+        className={cn('block h-full rounded-full transition-[width] duration-500', TONES[tone].bar)}
+        style={{ width: `${clamped}%` }}
+      />
+    </span>
   );
 }

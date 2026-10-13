@@ -1,5 +1,5 @@
-import { FIRST_INTERVIEW_STAGE, JOB_STAGES, type JobStage } from './constants';
-import { addDays, parseDate, percent, startOfDay } from './format';
+import { FIRST_INTERVIEW_STAGE, JOB_STAGES, STAGE_SHORT_LABEL, type JobStage } from './constants';
+import { addDays, parseDate, percent, startOfDay, toDateKey } from './format';
 import type { Job } from './types';
 
 export function stageIndex(stage: JobStage): number {
@@ -91,9 +91,14 @@ export const TIMEFRAMES: { value: Timeframe; label: string }[] = [
   { value: 'all', label: 'All time' },
 ];
 
+/** First day included in a timeframe (applied date), or null for all time. */
+export function timeframeStart(timeframe: Timeframe, now = new Date()): Date | null {
+  return timeframe === 'all' ? null : addDays(startOfDay(now), timeframe === '7d' ? -6 : -29);
+}
+
 export function filterByTimeframe(jobs: Job[], timeframe: Timeframe, now = new Date()): Job[] {
-  if (timeframe === 'all') return jobs;
-  const from = addDays(startOfDay(now), timeframe === '7d' ? -6 : -29);
+  const from = timeframeStart(timeframe, now);
+  if (!from) return jobs;
   return jobs.filter((job) => {
     const applied = parseDate(job.appliedAt);
     return applied !== null && applied >= from;
@@ -102,6 +107,9 @@ export function filterByTimeframe(jobs: Job[], timeframe: Timeframe, now = new D
 
 export interface TimelinePoint {
   name: string;
+  /** First and last day of the month (yyyy-mm-dd), for drill-down. */
+  from: string;
+  to: string;
   Applications: number;
   Interviews: number;
 }
@@ -114,6 +122,8 @@ export function monthlyTimeline(jobs: Job[], months = 12, now = new Date()): Tim
       key: `${date.getFullYear()}-${date.getMonth()}`,
       point: {
         name: date.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' }),
+        from: toDateKey(date),
+        to: toDateKey(new Date(date.getFullYear(), date.getMonth() + 1, 0)),
         Applications: 0,
         Interviews: 0,
       },
@@ -135,4 +145,107 @@ export function monthlyTimeline(jobs: Job[], months = 12, now = new Date()): Tim
     }
   }
   return buckets.map((b) => b.point);
+}
+
+// --- Insights analytics -------------------------------------------------------------
+
+export interface FunnelStep {
+  stage: JobStage;
+  label: string;
+  /** Applications that reached this stage or any later one. */
+  reached: number;
+  /** Share of the previous step that made it here (null for the first step). */
+  fromPrevious: number | null;
+  ofTotal: number;
+}
+
+/** How far applications got: "reached at least this stage", in pipeline order. */
+export function pipelineFunnel(jobs: Job[]): FunnelStep[] {
+  const total = jobs.length;
+  let previous = total;
+  return JOB_STAGES.map((stage, i) => {
+    const reached = jobs.filter((job) => stageIndex(job.stage) >= i).length;
+    const step: FunnelStep = {
+      stage,
+      label: STAGE_SHORT_LABEL[stage],
+      reached,
+      fromPrevious: i === 0 ? null : percent(reached, previous),
+      ofTotal: percent(reached, total),
+    };
+    previous = reached;
+    return step;
+  });
+}
+
+/** The step with the lowest pass rate, ignoring tiny bases that would just be noise. */
+export function biggestDrop(steps: FunnelStep[], minBase = 5): { from: FunnelStep; to: FunnelStep } | null {
+  let worst: { from: FunnelStep; to: FunnelStep } | null = null;
+  for (let i = 1; i < steps.length; i++) {
+    const from = steps[i - 1];
+    const to = steps[i];
+    if (from.reached < minBase || to.fromPrevious === null) continue;
+    if (!worst || to.fromPrevious < (worst.to.fromPrevious ?? 100)) worst = { from, to };
+  }
+  return worst;
+}
+
+export interface RejectionPoint {
+  stage: JobStage;
+  label: string;
+  rejected: number;
+  /** Applications that reached this stage at all. */
+  reached: number;
+  /** Rejected here as a share of those who reached it. */
+  rate: number;
+}
+
+/** Where rejections happen, in pipeline order (stages with at least one rejection). */
+export function rejectionPoints(jobs: Job[]): RejectionPoint[] {
+  return JOB_STAGES.map((stage, i) => {
+    const rejected = jobs.filter((job) => job.status === 'Failed' && job.stage === stage).length;
+    const reached = jobs.filter((job) => stageIndex(job.stage) >= i).length;
+    return { stage, label: STAGE_SHORT_LABEL[stage], rejected, reached, rate: percent(rejected, reached) };
+  }).filter((point) => point.rejected > 0);
+}
+
+export interface PositionStat {
+  position: string;
+  applications: number;
+  interviewed: number;
+  offers: number;
+  rejected: number;
+  interviewRate: number;
+}
+
+/** Conversion per position for roles with enough applications to compare. */
+export function positionStats(jobs: Job[], minApplications = 3): PositionStat[] {
+  const groups = new Map<string, Job[]>();
+  for (const job of jobs) {
+    const key = job.position.trim();
+    if (!key) continue;
+    const match = [...groups.keys()].find((k) => k.toLowerCase() === key.toLowerCase()) ?? key;
+    groups.set(match, [...(groups.get(match) ?? []), job]);
+  }
+  return [...groups]
+    .filter(([, list]) => list.length >= minApplications)
+    .map(([position, list]) => {
+      const interviewed = list.filter(reachedInterview).length;
+      return {
+        position,
+        applications: list.length,
+        interviewed,
+        offers: list.filter((job) => job.status === 'Success').length,
+        rejected: list.filter((job) => job.status === 'Failed').length,
+        interviewRate: percent(interviewed, list.length),
+      };
+    })
+    .sort((a, b) => b.applications - a.applications);
+}
+
+/** How many applications have a value for a field (to qualify breakdowns built on sparse data). */
+export function coverage(jobs: Job[], pick: (job: Job) => string, ignore: string[] = []): number {
+  return jobs.filter((job) => {
+    const value = pick(job).trim();
+    return value && !ignore.includes(value);
+  }).length;
 }

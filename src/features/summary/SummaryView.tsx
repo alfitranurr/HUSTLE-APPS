@@ -10,30 +10,47 @@ import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
 import { JobListModal } from '@/features/jobs/JobListModal';
+import {
+  selectApplied,
+  selectPosition,
+  selectSegment,
+  selectStatus,
+  type JobSelection,
+} from '@/features/jobs/selection';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
 import { useJobs } from '@/hooks/useJobs';
-import { STAGE_TONE, STATUS_TONE, type JobStage, type JobStatus } from '@/lib/constants';
-import { formatPercent, shortProvince } from '@/lib/format';
+import { STATUS_TONE, type JobStatus } from '@/lib/constants';
+import { formatPercent, toDateKey } from '@/lib/format';
 import {
   computeJobStats,
   countBy,
   filterByTimeframe,
   monthlyTimeline,
+  pipelineFunnel,
+  positionStats,
+  rejectionPoints,
   TIMEFRAMES,
-  type Segment,
+  timeframeStart,
   type Timeframe,
 } from '@/lib/stats';
 import { BreakdownList } from './BreakdownList';
+import { FunnelCard } from './FunnelCard';
 import { buildInsights } from './insights';
-import { PositionsChart } from './PositionsChart';
+import { PositionsCard } from './PositionsCard';
+import { ProfileCard } from './ProfileCard';
+import { RejectionsCard } from './RejectionsCard';
 import { TimelineChart } from './TimelineChart';
 
-const stripRegionPrefix = (city: string) => city.replace(/^(Kota|Kabupaten)\s+/i, '');
+/** The open drill-down. `allTime` lists from every application (the timeline ignores the timeframe). */
+interface Drill {
+  selection: JobSelection;
+  allTime?: boolean;
+}
 
 export function SummaryView() {
   const { jobs: allJobs, isLoading, mutate } = useJobs();
   const { handlers, dialogs } = useJobDialogs(mutate);
-  const [segment, setSegment] = useState<Segment | null>(null);
+  const [drill, setDrill] = useState<Drill | null>(null);
   const [timeframe, setTimeframe] = useState<Timeframe>('all');
   const [showAllPositions, setShowAllPositions] = useState(false);
 
@@ -42,24 +59,33 @@ export function SummaryView() {
     () => ({
       stats: computeJobStats(jobs),
       status: countBy(jobs, (j) => j.status),
-      stage: countBy(jobs, (j) => j.stage),
-      level: countBy(jobs, (j) => j.careerLevel || 'Not Specified'),
-      city: countBy(jobs, (j) => stripRegionPrefix(j.city), 6),
-      province: countBy(jobs, (j) => shortProvince(j.province), 6),
-      platform: countBy(jobs, (j) => j.platform || 'Other', 6),
       positions: countBy(jobs, (j) => j.position),
-      companies: countBy(jobs, (j) => j.company, 5),
+      funnel: pipelineFunnel(jobs),
+      rejections: rejectionPoints(jobs),
+      positionStats: positionStats(jobs),
     }),
     [jobs]
   );
   const timeline = useMemo(() => monthlyTimeline(allJobs), [allJobs]);
   const { stats } = data;
+  const timeframeLabel = TIMEFRAMES.find((t) => t.value === timeframe)?.label;
+
+  // Lists follow the timeframe, so the Applications deep link carries it too.
+  const show = (selection: JobSelection) => {
+    const start = timeframeStart(timeframe);
+    const filters = start && selection.filters ? { ...selection.filters, from: toDateKey(start) } : selection.filters;
+    setDrill({ selection: { ...selection, filters } });
+  };
+  const showPosition = (position: string) => {
+    setShowAllPositions(false);
+    show(selectPosition(position));
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Insights"
-        description="How your search is converting, and where your applications go."
+        description="How your search is converting. Select any number or row to see the companies behind it."
         actions={<SegmentedControl label="Timeframe" value={timeframe} onChange={setTimeframe} options={TIMEFRAMES} />}
       />
 
@@ -67,11 +93,11 @@ export function SummaryView() {
         <StatCard
           label="Applications"
           value={stats.total}
-          hint={TIMEFRAMES.find((t) => t.value === timeframe)?.label}
+          hint={timeframeLabel}
           tone="indigo"
           icon={<Briefcase className="size-4" />}
           loading={isLoading}
-          onClick={() => setSegment('all')}
+          onClick={() => show(selectSegment('all'))}
         />
         <StatCard
           label="Interview rate"
@@ -80,7 +106,7 @@ export function SummaryView() {
           tone="violet"
           icon={<MessagesSquare className="size-4" />}
           loading={isLoading}
-          onClick={() => setSegment('interviews')}
+          onClick={() => show(selectSegment('interviews'))}
         />
         <StatCard
           label="Offer rate"
@@ -89,7 +115,7 @@ export function SummaryView() {
           tone="emerald"
           icon={<Trophy className="size-4" />}
           loading={isLoading}
-          onClick={() => setSegment('offers')}
+          onClick={() => show(selectSegment('offers'))}
         />
         <StatCard
           label="Rejected"
@@ -98,7 +124,7 @@ export function SummaryView() {
           tone="rose"
           icon={<XCircle className="size-4" />}
           loading={isLoading}
-          onClick={() => setSegment('rejected')}
+          onClick={() => show(selectSegment('rejected'))}
         />
       </div>
 
@@ -111,10 +137,14 @@ export function SummaryView() {
       ) : (
         <>
           <Card accent="amber">
-            <CardHeader title="Recommendations" icon={<Lightbulb className="mt-0.5 size-4 text-amber-500" />} />
+            <CardHeader
+              title="Key takeaways"
+              description="What the numbers say and what to do next"
+              icon={<Lightbulb className="mt-0.5 size-4 text-amber-500" />}
+            />
             <CardContent>
               <ul className="space-y-2 text-sm text-slate-700">
-                {buildInsights(stats).map((tip) => (
+                {buildInsights(stats, data.funnel, data.rejections).map((tip) => (
                   <li key={tip} className="border-l-2 border-amber-300 pl-3">
                     {tip}
                   </li>
@@ -123,25 +153,29 @@ export function SummaryView() {
             </CardContent>
           </Card>
 
+          {/* What the applications look like: outcome, role and profile. */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card accent="sky">
+            <Card accent="sky" className="h-full">
               <CardHeader title="Status" description="Outcome of each application" />
               <CardContent>
-                <BreakdownList items={data.status} total={stats.total} tone={(n) => STATUS_TONE[n as JobStatus]} />
+                <BreakdownList
+                  items={data.status}
+                  total={stats.total}
+                  tone={(n) => STATUS_TONE[n as JobStatus]}
+                  onSelect={(status) => show(selectStatus(status as JobStatus))}
+                />
               </CardContent>
             </Card>
-            <Card accent="violet">
-              <CardHeader title="Pipeline stage" description="Where applications currently are" />
-              <CardContent>
-                <BreakdownList items={data.stage} total={stats.total} tone={(n) => STAGE_TONE[n as JobStage]} />
-              </CardContent>
-            </Card>
-            <Card accent="fuchsia">
-              <CardHeader title="Career level" />
-              <CardContent>
-                <BreakdownList items={data.level} total={stats.total} tone="fuchsia" />
-              </CardContent>
-            </Card>
+            <PositionsCard stats={data.positionStats} onSelect={show} />
+            <ProfileCard jobs={jobs} onSelect={show} />
+          </div>
+
+          {/* Where the search leaks: how far applications get and where they are turned down. */}
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <FunnelCard steps={data.funnel} onSelect={show} />
+            </div>
+            <RejectionsCard points={data.rejections} noResponse={stats.noResponse} onSelect={show} />
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -158,40 +192,26 @@ export function SummaryView() {
                 }
               />
               <CardContent>
-                <PositionsChart data={data.positions.slice(0, 8)} />
+                <BreakdownList
+                  items={data.positions.slice(0, 8)}
+                  total={stats.total}
+                  tone="indigo"
+                  onSelect={showPosition}
+                />
               </CardContent>
             </Card>
             <Card accent="emerald">
-              <CardHeader title="Applications over time" description="Last 12 months · interviews counted by schedule date" />
+              <CardHeader
+                title="Applications over time"
+                description="Last 12 months · interviews counted by schedule date · select a month"
+              />
               <CardContent>
-                <TimelineChart data={timeline} />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <Card accent="teal">
-              <CardHeader title="Top cities" />
-              <CardContent>
-                <BreakdownList items={data.city} total={stats.total} tone="teal" />
-              </CardContent>
-            </Card>
-            <Card accent="cyan">
-              <CardHeader title="Top provinces" />
-              <CardContent>
-                <BreakdownList items={data.province} total={stats.total} tone="cyan" />
-              </CardContent>
-            </Card>
-            <Card accent="orange">
-              <CardHeader title="Platforms" description="Where you found the job" />
-              <CardContent>
-                <BreakdownList items={data.platform} total={stats.total} tone="orange" />
-              </CardContent>
-            </Card>
-            <Card accent="indigo">
-              <CardHeader title="Most applied companies" />
-              <CardContent>
-                <BreakdownList items={data.companies} total={stats.total} tone="indigo" />
+                <TimelineChart
+                  data={timeline}
+                  onSelect={(month) =>
+                    setDrill({ selection: selectApplied(month.name, month.from, month.to), allTime: true })
+                  }
+                />
               </CardContent>
             </Card>
           </div>
@@ -199,22 +219,20 @@ export function SummaryView() {
       )}
 
       <JobListModal
-        key={segment ?? 'closed'}
-        segment={segment}
-        jobs={jobs}
-        context={
-          timeframe === 'all' ? undefined : `${TIMEFRAMES.find((t) => t.value === timeframe)?.label}, newest first.`
-        }
-        onClose={() => setSegment(null)}
+        key={drill?.selection.title ?? 'closed'}
+        selection={drill?.selection ?? null}
+        jobs={drill?.allTime ? allJobs : jobs}
+        context={timeframe === 'all' || drill?.allTime ? undefined : `${timeframeLabel}, newest first.`}
+        onClose={() => setDrill(null)}
         onOpen={(job) => {
-          setSegment(null);
+          setDrill(null);
           handlers.onView(job);
         }}
       />
       {dialogs}
 
       <Modal open={showAllPositions} onClose={() => setShowAllPositions(false)} title="All positions" accent="indigo">
-        <BreakdownList items={data.positions} total={stats.total} tone="indigo" />
+        <BreakdownList items={data.positions} total={stats.total} tone="indigo" onSelect={showPosition} />
       </Modal>
     </div>
   );

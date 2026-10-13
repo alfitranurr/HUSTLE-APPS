@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { IconButton } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { apiFetch } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { TONES, type Tone } from '@/lib/tones';
@@ -42,6 +43,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 
 export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const signOut = async () => {
@@ -128,7 +130,7 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
           </div>
           <button
             type="button"
-            onClick={signOut}
+            onClick={() => setConfirmingSignOut(true)}
             disabled={signingOut}
             className={cn(
               'flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-rose-50 hover:text-rose-700 disabled:opacity-50',
@@ -153,6 +155,17 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
           </button>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={confirmingSignOut}
+        title="Sign out?"
+        description="You will need your password to sign in again."
+        confirmLabel="Sign out"
+        variant="primary"
+        loading={signingOut}
+        onConfirm={signOut}
+        onCancel={() => setConfirmingSignOut(false)}
+      />
     </>
   );
 }

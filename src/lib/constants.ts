@@ -40,6 +40,18 @@ export const STAGE_TONE: Record<JobStage, Tone> = {
   'Contract Signed / Done': 'emerald',
 };
 
+/** Compact stage names for timelines and funnels; the first stage stands for "applied". */
+export const STAGE_SHORT_LABEL: Record<JobStage, string> = {
+  'Not Started': 'Applied',
+  'Document Screening': 'Screening',
+  'Assessment Test': 'Test',
+  'HR Interview': 'HR Interview',
+  'User Interview': 'User Interview',
+  'FGD/LGD': 'FGD/LGD',
+  'Offering Letter': 'Offer',
+  'Contract Signed / Done': 'Signed',
+};
+
 /** Stages that have a scheduled date/time (stored in `scheduledAt`). */
 export const SCHEDULED_STAGES: readonly JobStage[] = ['Assessment Test', 'HR Interview', 'User Interview'];
 

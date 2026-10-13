@@ -7,6 +7,7 @@ import { Button, IconButton } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatCard } from '@/components/ui/StatCard';
 import { JobListModal } from '@/features/jobs/JobListModal';
+import { selectSegment } from '@/features/jobs/selection';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
 import { useBulkActions } from '@/features/jobs/useBulkActions';
 import { useJobMutations } from '@/features/jobs/useJobMutations';
@@ -98,7 +99,7 @@ export function DashboardView() {
 
       <JobListModal
         key={segment ?? 'closed'}
-        segment={segment}
+        selection={segment && selectSegment(segment)}
         jobs={jobs}
         onClose={() => setSegment(null)}
         onOpen={(job) => {
