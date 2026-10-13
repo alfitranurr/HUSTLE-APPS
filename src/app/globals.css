@@ -5,6 +5,10 @@
 }
 
 @theme {
+  /* Extra breakpoints so wide / zoomed-out screens use the space. */
+  --breakpoint-3xl: 112rem;
+  --breakpoint-4xl: 120rem;
+
   --animate-fade-in: fade-in 0.18s ease-out both;
   --animate-progress: progress 8s cubic-bezier(0.08, 0.7, 0.2, 1) forwards;
   --animate-splash: splash 1.1s ease-in-out infinite;

@@ -90,7 +90,7 @@ export function JobTable({ jobs, sort, onSort, ...actions }: JobTableProps) {
                   <span className="text-slate-400">—</span>
                 )}
               </td>
-              <td className="max-w-[200px] truncate px-3 py-3 text-slate-600" title={formatLocation(job)}>
+              <td className="max-w-[200px] truncate px-3 py-3 text-slate-600 2xl:max-w-[340px]" title={formatLocation(job)}>
                 {formatLocation(job)}
               </td>
               <td className="px-3 py-3 whitespace-nowrap text-slate-600">{job.platform || '—'}</td>

@@ -138,7 +138,7 @@ export function InterviewsView() {
           action={<Button variant="secondary" onClick={() => setFilters(NO_FILTERS)}>Clear filters</Button>}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="grid items-start gap-3 2xl:grid-cols-2">
           {visible.map((q) => (
             <QuestionCard
               key={q.id}

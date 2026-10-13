@@ -65,16 +65,16 @@ export function DashboardView() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      {/* Two rows on laptops; on wide screens everything fits in one 4-column row. */}
+      <div className="grid gap-6 lg:grid-cols-3 3xl:grid-cols-4">
+        <div className="lg:col-span-2 3xl:col-span-1">
           <UpcomingCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
         </div>
         <WeeklyTargetsCard jobs={jobs} loading={isLoading} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <FollowUpCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} onFollowedUp={markFollowedUp} />
-        <RecentApplications jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
+        <div className="grid gap-6 lg:col-span-3 lg:grid-cols-2 3xl:col-span-2">
+          <FollowUpCard jobs={jobs} loading={isLoading} onOpen={handlers.onView} onFollowedUp={markFollowedUp} />
+          <RecentApplications jobs={jobs} loading={isLoading} onOpen={handlers.onView} />
+        </div>
       </div>
 
       {isLoading ? <Skeleton className="h-56" /> : <ActivityHeatmap jobs={jobs} />}

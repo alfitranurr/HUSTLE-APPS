@@ -87,7 +87,7 @@ function Column({ stage, jobs, onOpen }: { stage: JobStage; jobs: Job[]; onOpen:
       ref={setNodeRef}
       aria-label={`${stage}: ${jobs.length} applications`}
       className={cn(
-        'relative flex w-72 shrink-0 snap-start flex-col overflow-hidden rounded-xl bg-slate-50 transition-shadow',
+        'relative flex w-72 shrink-0 snap-start flex-col 3xl:w-auto 3xl:min-w-60 3xl:flex-1 overflow-hidden rounded-xl bg-slate-50 transition-shadow',
         isOver && 'ring-2 ring-indigo-400'
       )}
     >

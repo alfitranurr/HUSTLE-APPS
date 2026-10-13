@@ -171,7 +171,7 @@ export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFi
 
 function CardGrid({ jobs, handlers, className }: { jobs: Job[]; handlers: JobActionHandlers; className?: string }) {
   return (
-    <div className={cn('grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3', className)}>
+    <div className={cn('grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3 2xl:grid-cols-4 4xl:grid-cols-5', className)}>
       {jobs.map((job) => (
         <JobCard key={job.id} job={job} {...handlers} />
       ))}
