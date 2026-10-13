@@ -67,6 +67,7 @@ export function SummaryView() {
         <StatCard
           label="Applications"
           value={stats.total}
+          hint={TIMEFRAMES.find((t) => t.value === timeframe)?.label}
           tone="indigo"
           icon={<Briefcase className="size-4" />}
           loading={isLoading}
@@ -84,7 +85,7 @@ export function SummaryView() {
         <StatCard
           label="Offer rate"
           value={`${stats.offerRate}%`}
-          hint={`${stats.offers} offers`}
+          hint={`${stats.offers} ${stats.offers === 1 ? 'offer' : 'offers'}`}
           tone="emerald"
           icon={<Trophy className="size-4" />}
           loading={isLoading}

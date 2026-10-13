@@ -87,6 +87,13 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
               onChange={(e) => onChange({ province: e.target.value })}
             />
           </Field>
+          {/* Date range stays on one row; follow-up goes last. */}
+          <Field label="Applied from">
+            <Input type="date" value={rest.from} max={rest.to || undefined} onChange={(e) => onChange({ from: e.target.value })} />
+          </Field>
+          <Field label="Applied until">
+            <Input type="date" value={rest.to} min={rest.from || undefined} onChange={(e) => onChange({ to: e.target.value })} />
+          </Field>
           <Field label="Follow-up">
             <Select
               placeholder="Any"
@@ -94,12 +101,6 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
               value={rest.followUp}
               onChange={(e) => onChange({ followUp: e.target.value === 'yes' ? 'yes' : '' })}
             />
-          </Field>
-          <Field label="Applied from">
-            <Input type="date" value={rest.from} max={rest.to || undefined} onChange={(e) => onChange({ from: e.target.value })} />
-          </Field>
-          <Field label="Applied until">
-            <Input type="date" value={rest.to} min={rest.from || undefined} onChange={(e) => onChange({ to: e.target.value })} />
           </Field>
         </div>
       )}
