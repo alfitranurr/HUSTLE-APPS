@@ -17,6 +17,25 @@ export function isActive(job: Job): boolean {
   return job.status === 'Not Started' || job.status === 'In Progress';
 }
 
+/**
+ * Groups behind the headline numbers. The stat cards, the drill-down lists
+ * and the Applications "Group" filter all use these predicates, so a number
+ * and the list of companies behind it can never disagree.
+ */
+export const SEGMENTS = {
+  all: { label: 'All applications', match: () => true },
+  active: { label: 'Active applications', match: isActive },
+  interviews: { label: 'Reached an interview', match: reachedInterview },
+  offers: { label: 'Offers', match: (job: Job) => job.status === 'Success' },
+  rejected: { label: 'Rejected', match: (job: Job) => job.status === 'Failed' },
+} as const satisfies Record<string, { label: string; match: (job: Job) => boolean }>;
+
+export type Segment = keyof typeof SEGMENTS;
+
+export function isSegment(value: unknown): value is Segment {
+  return typeof value === 'string' && value in SEGMENTS;
+}
+
 export interface JobStats {
   total: number;
   active: number;
@@ -29,10 +48,10 @@ export interface JobStats {
 
 export function computeJobStats(jobs: Job[]): JobStats {
   const total = jobs.length;
-  const active = jobs.filter(isActive).length;
-  const interviews = jobs.filter(reachedInterview).length;
-  const offers = jobs.filter((j) => j.status === 'Success').length;
-  const rejected = jobs.filter((j) => j.status === 'Failed').length;
+  const active = jobs.filter(SEGMENTS.active.match).length;
+  const interviews = jobs.filter(SEGMENTS.interviews.match).length;
+  const offers = jobs.filter(SEGMENTS.offers.match).length;
+  const rejected = jobs.filter(SEGMENTS.rejected.match).length;
   return {
     total,
     active,

@@ -1,6 +1,7 @@
 import { JOB_STAGES, JOB_STATUSES } from '@/lib/constants';
 import { needsFollowUp } from '@/lib/followUp';
 import { parseDate } from '@/lib/format';
+import { SEGMENTS, type Segment } from '@/lib/stats';
 import type { Job } from '@/lib/types';
 
 export interface JobFilters {
@@ -13,6 +14,8 @@ export interface JobFilters {
   from: string; // yyyy-mm-dd
   to: string; // yyyy-mm-dd
   followUp: '' | 'yes';
+  /** Headline group (active, interviews, offers, rejected); '' = any. */
+  segment: '' | Segment;
 }
 
 export const EMPTY_FILTERS: JobFilters = {
@@ -25,6 +28,7 @@ export const EMPTY_FILTERS: JobFilters = {
   from: '',
   to: '',
   followUp: '',
+  segment: '',
 };
 
 export function activeFilterCount(filters: JobFilters): number {
@@ -44,6 +48,7 @@ export function filterJobs(jobs: Job[], f: JobFilters, now = new Date()): Job[] 
       if (!haystack.includes(query)) return false;
     }
     if (f.followUp && !needsFollowUp(job, now)) return false;
+    if (f.segment && !SEGMENTS[f.segment].match(job)) return false;
     if (f.status && job.status !== f.status) return false;
     if (f.stage && job.stage !== f.stage) return false;
     if (f.careerLevel && !same(job.careerLevel, f.careerLevel)) return false;

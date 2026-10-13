@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/Field';
 import { CAREER_LEVELS, JOB_STAGES, JOB_STATUSES } from '@/lib/constants';
 import { shortProvince } from '@/lib/format';
+import { SEGMENTS, type Segment } from '@/lib/stats';
 import { activeFilterCount, type JobFilters } from './filters';
 
 interface TrackerFiltersProps {
@@ -53,6 +54,14 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
 
       {open && (
         <div id="tracker-filters" className="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4 animate-fade-in">
+          <Field label="Group">
+            <Select
+              placeholder="Any group"
+              options={(['active', 'interviews', 'offers', 'rejected'] as const).map((s) => ({ value: s, label: SEGMENTS[s].label }))}
+              value={rest.segment}
+              onChange={(e) => onChange({ segment: e.target.value as Segment | '' })}
+            />
+          </Field>
           <Field label="Status">
             <Select placeholder="Any status" options={JOB_STATUSES} value={rest.status} onChange={(e) => onChange({ status: e.target.value })} />
           </Field>
@@ -78,6 +87,13 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
               onChange={(e) => onChange({ province: e.target.value })}
             />
           </Field>
+          {/* Date range stays on one row; follow-up goes last. */}
+          <Field label="Applied from">
+            <Input type="date" value={rest.from} max={rest.to || undefined} onChange={(e) => onChange({ from: e.target.value })} />
+          </Field>
+          <Field label="Applied until">
+            <Input type="date" value={rest.to} min={rest.from || undefined} onChange={(e) => onChange({ to: e.target.value })} />
+          </Field>
           <Field label="Follow-up">
             <Select
               placeholder="Any"
@@ -85,12 +101,6 @@ export function TrackerFilters({ filters, onChange, onClear, provinces, position
               value={rest.followUp}
               onChange={(e) => onChange({ followUp: e.target.value === 'yes' ? 'yes' : '' })}
             />
-          </Field>
-          <Field label="Applied from">
-            <Input type="date" value={rest.from} max={rest.to || undefined} onChange={(e) => onChange({ from: e.target.value })} />
-          </Field>
-          <Field label="Applied until">
-            <Input type="date" value={rest.to} min={rest.from || undefined} onChange={(e) => onChange({ to: e.target.value })} />
           </Field>
         </div>
       )}
