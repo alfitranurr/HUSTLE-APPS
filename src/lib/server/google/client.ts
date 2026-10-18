@@ -1,5 +1,5 @@
 import 'server-only';
-import { google, type drive_v3, type sheets_v4 } from 'googleapis';
+import { google, type drive_v3, type gmail_v1, type sheets_v4 } from 'googleapis';
 import { JWT, OAuth2Client } from 'google-auth-library';
 import { getServerEnv } from '@/lib/env';
 
@@ -48,4 +48,14 @@ export function sheets(): sheets_v4.Sheets {
 
 export function drive(): drive_v3.Drive {
   return google.drive({ version: 'v3', auth: getAuthClient() as OAuth2Client });
+}
+
+/** Gmail needs the owner's OAuth token (a service account has no mailbox). */
+export function hasOwnerOAuth(): boolean {
+  const env = getServerEnv();
+  return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_REFRESH_TOKEN);
+}
+
+export function gmail(): gmail_v1.Gmail {
+  return google.gmail({ version: 'v1', auth: getAuthClient() as OAuth2Client });
 }

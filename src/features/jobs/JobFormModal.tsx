@@ -45,6 +45,9 @@ interface FormValues {
   otherLink: string;
 }
 
+/** Prefilled values for a new application (e.g. from a LinkedIn recommendation). */
+export type JobFormDefaults = Partial<FormValues>;
+
 type Errors = Partial<Record<keyof FormValues | 'files', string>>;
 
 function initialValues(job?: Job | null): FormValues {
@@ -102,13 +105,14 @@ function Section({ title, children, className }: { title: string; children: Reac
 interface JobFormModalProps {
   open: boolean;
   job: Job | null;
+  defaults?: JobFormDefaults;
   onClose: () => void;
   onSaved: () => void;
 }
 
-export function JobFormModal({ open, job, onClose, onSaved }: JobFormModalProps) {
+export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormModalProps) {
   const toast = useToast();
-  const [values, setValues] = useState(() => initialValues(job));
+  const [values, setValues] = useState(() => ({ ...initialValues(job), ...(job ? {} : defaults) }));
   const [keptAttachments, setKeptAttachments] = useState<string[]>(job?.attachments ?? []);
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Errors>({});

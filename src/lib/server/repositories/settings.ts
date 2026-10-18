@@ -18,6 +18,17 @@ const toCount = (value: string | undefined, fallback: number) => {
   return Number.isFinite(n) && n >= 0 ? n : fallback;
 };
 
+/** A single free-form setting, '' when unset. */
+export async function getSetting(key: string): Promise<string> {
+  return (await readMap()).get(key) ?? '';
+}
+
+export async function setSetting(key: string, value: string): Promise<void> {
+  const map = await readMap();
+  map.set(key, value);
+  await writeValues(`${SHEET}!A2:B${map.size + 1}`, [...map].map(([k, v]) => [k, v]));
+}
+
 export async function getWeeklyTargets(): Promise<WeeklyTargets> {
   const map = await readMap();
   return {

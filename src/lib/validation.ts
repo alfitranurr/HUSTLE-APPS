@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import { DIFFICULTIES, INTERVIEW_CATEGORIES, JOB_STAGES, JOB_STATUSES, MASTERY_STATUSES } from './constants';
+import {
+  DIFFICULTIES,
+  INTERVIEW_CATEGORIES,
+  JOB_STAGES,
+  JOB_STATUSES,
+  MASTERY_STATUSES,
+  RECOMMENDATION_STATUSES,
+} from './constants';
 import { ISO_DATE } from './stageDates';
 
 /** Shared request schemas (server-side source of truth; the forms mirror the rules). */
@@ -132,3 +139,34 @@ export const targetsSchema = z.object({
   applications: z.int().min(0).max(100),
   interviews: z.int().min(0).max(50),
 });
+
+// --- Job match ---------------------------------------------------------------
+
+/** Trimmed, de-duplicated (case-insensitive) list of short strings. */
+const textList = (maxItems: number, maxLength: number) =>
+  z
+    .array(z.string().trim().max(maxLength))
+    .max(maxItems)
+    .default([])
+    .transform((items) =>
+      items.filter((item, i) => item && items.findIndex((other) => other.toLowerCase() === item.toLowerCase()) === i)
+    );
+
+export const profileInputSchema = z.object({
+  name: optional(200),
+  headline: optional(300),
+  location: optional(200),
+  skills: textList(80, 60),
+  titles: textList(30, 150),
+  education: textList(10, 200),
+  yearsExperience: z.number().min(0).max(60).nullable().default(null),
+  targetRoles: textList(15, 100),
+  preferredLocations: textList(15, 100),
+  keywords: textList(40, 60),
+  excludeKeywords: textList(40, 60),
+});
+
+/** Text copied from LinkedIn's "Top job picks for you" page. */
+export const pasteJobsSchema = z.object({ text: z.string().trim().min(1, 'is empty').max(100_000) });
+
+export const recommendationStatusSchema = z.object({ status: z.enum(RECOMMENDATION_STATUSES) });

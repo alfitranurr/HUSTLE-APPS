@@ -138,3 +138,16 @@ export const STAR_PARTS = [
   { key: 'action', letter: 'A', label: 'Action', hint: 'What you specifically did', tone: 'fuchsia' },
   { key: 'result', letter: 'R', label: 'Result', hint: 'Measurable outcome', tone: 'emerald' },
 ] as const satisfies readonly { key: string; letter: string; label: string; hint: string; tone: Tone }[];
+
+// ---------------------------------------------------------------------------
+// Job match
+// ---------------------------------------------------------------------------
+
+export const RECOMMENDATION_SOURCES = ['email', 'paste'] as const;
+export type RecommendationSource = (typeof RECOMMENDATION_SOURCES)[number];
+export const RECOMMENDATION_STATUSES = ['new', 'added', 'dismissed'] as const;
+export type RecommendationStatus = (typeof RECOMMENDATION_STATUSES)[number];
+
+/** Score bands for a recommendation (0-100). */
+export const STRONG_MATCH = 70;
+export const FAIR_MATCH = 40;
