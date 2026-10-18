@@ -1,6 +1,6 @@
 # Progress — Hustle (Job Search Tracker)
 
-_Terakhir diperbarui: 14 Oktober 2026_
+_Terakhir diperbarui: 19 Oktober 2026_
 
 Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · ↩️ dibuat lalu dicabut atas permintaan
 
@@ -9,7 +9,7 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | | |
 |---|---|
 | **Production** | https://hustle-apps-six.vercel.app — commit `284a922` (merge PR #3), 14 Okt 2026 |
-| **Rilis berikutnya** | PR #4 (Insights) → PR #5 (Interview prep P1–P3) → PR #6 (Interview prep P4–P5 + kartu Companies) — di-merge berurutan 14 Okt 2026 |
+| **Rilis terbaru** | PR #7 — Job match (rekomendasi LinkedIn + skor kecocokan, rule-based & gratis) |
 | **Tooling** | GitHub CLI (`gh`) dan Vercel CLI terpasang & login; folder lokal ter-link ke project Vercel `hustle-apps` |
 
 ## Checklist tindakan
@@ -17,6 +17,8 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 - [x] Merge PR #1, #2, #3 (live di production)
 - [x] Pulihkan `LastUpdated` 90 lamaran yang tereset oleh perbaikan stage (backup dulu, lalu restore; Needs follow-up kembali 106)
 - [x] Merge PR #4, #5, #6 berurutan → production
+- [ ] **Job match**: upload PDF profil LinkedIn (*More → Save to PDF*), atur Target roles / Locations / Never show
+- [ ] **Job match via Gmail**: aktifkan email *Job recommendations* di LinkedIn, aktifkan Gmail API + scope `gmail.readonly` di Google Cloud (status *In production*), jalankan `node scripts/google-oauth-token.mjs`, masukkan token baru ke Vercel → sekaligus menuntaskan rotasi refresh token di bawah
 - [ ] Buka Interview prep → **Add starter questions**, lalu tulis jawaban STAR untuk pertanyaan Behavioral dan isi catatan tes
 - [ ] **Rotasi `GOOGLE_CLIENT_SECRET` & `GOOGLE_REFRESH_TOKEN`** — pernah tercetak di log Vercel oleh kode lama. Reset di Google Cloud Console, lalu masukkan nilai baru ke Vercel + `.env.local` _(harus dilakukan pemilik akun)_
 - [ ] Jalankan pembersihan data dari UI: banner stage di Applications + "Close as no response" di Dashboard (183 lamaran terbuka, mayoritas > 60 hari tanpa kabar)
@@ -38,6 +40,7 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | PR #4 | Insights I1–I4 + drill-down semua kartu + konfirmasi sign out | ✅ |
 | PR #5 | Interview prep: perbaikan skor Answer check, starter pack 20 pertanyaan, kategori Assessment / Test + kolom Notes, popup lebih lebar | ✅ |
 | PR #6 | Interview prep: kartu "In your pipeline", tombol Interview prep di detail lamaran, mode latihan + timer 2 menit; Insights: kartu Companies menggantikan Top positions, timeline lebih jelas | ✅ |
+| PR #7 | **Job match**: halaman baru di sidebar — lowongan rekomendasi LinkedIn (email Gmail + tempel halaman "Top job picks for you"), profil dari PDF LinkedIn, skor 0–100 rule-based dengan alasan, Add to Applications (form terisi otomatis), Dismiss | ✅ |
 
 ### Detail PR #4 — Insights
 | Item | Perubahan | Status |
@@ -122,11 +125,23 @@ Kondisi 14 Okt 2026: bank pertanyaan **kosong (0)**, padahal 8 lamaran sudah sam
 
 ---
 
+### Job match
+Gratis & rule-based (tanpa AI, tanpa scraping LinkedIn — melanggar aturan LinkedIn dan berisiko blokir akun).
+
+| # | Rekomendasi | Alasan | Prioritas | Status |
+|---|---|---|---|---|
+| J1 | Halaman Job match: profil dari PDF, tempel "Top job picks", sync email Gmail, skor + alasan, Add to Applications, Dismiss | Fitur baru | Tinggi | ✅ PR #7 |
+| J2 | Uji parser email dengan email rekomendasi LinkedIn asli setelah Gmail tersambung; sesuaikan bila format berbeda | Fixture saat ini meniru format LinkedIn | Tinggi | ⬜ setelah token Gmail |
+| J3 | Sync Gmail otomatis harian (Vercel Cron) | Tidak perlu klik Sync | Rendah | ⬜ |
+| J4 | Kamus sinonim yang bisa diedit dari halaman profil | Variasi judul lowongan | Rendah | ⬜ |
+| J5 | Penilaian dengan AI (opsional, kredit gratis Vercel AI Gateway) | Pemahaman konteks lebih baik | Rendah | ⬜ (dimatikan: pilihan gratis rule-based) |
+
 ## Catatan teknis
 
 - **Kolom Sheet `DataLowongan` (A–U):** `LastUpdated` (S), `ContractDate` (T), `StageDates` (U, JSON). Tab `Interviews` (A–M: `Notes` K, `LastPracticed` L, `PracticeCount` M — header ditambahkan otomatis) dan `Settings` dibuat otomatis.
 - **Env wajib:** `OWNER_EMAIL`, `LOGIN_PASSWORD` (≥ 8), `JWT_SECRET` (≥ 32), `GOOGLE_SHEET_ID`, `GOOGLE_DRIVE_FOLDER_ID`, dan kredensial Google (OAuth atau service account). Lihat `.env.example`.
 - **Deploy:** merge ke `master` → Vercel deploy production otomatis. Perubahan env di Vercel butuh redeploy (`vercel redeploy https://hustle-apps-six.vercel.app --target production`).
+- **Job match:** tab `Profile` (key/value, daftar disimpan sebagai JSON) dan `Recommendations` (A–H: ID, Title, Company, Location, Url, Source, ReceivedAt, Status). Skor dihitung saat dibaca (`src/lib/matching.ts`): role 50 · lokasi 20 · level 15 · skill 15; kata di *Never show* → 0. Gmail hanya membaca email dari `jobs-noreply@linkedin.com` / `jobs-listings@linkedin.com` (read-only); isi email tidak disimpan maupun di-log.
 - **Deep link Interview prep:** `/interviews?company=Nama` (filter per perusahaan).
 - **Deep link Applications:** `/tracker?segment=&status=&stage=&position=&careerLevel=&province=&search=&from=&to=&followUp=yes` (divalidasi di server).
 - **Drill-down:** setiap angka/baris membangun `JobSelection` (`src/features/jobs/selection.ts`) — filter dialog dan filter deep link berasal dari satu tempat.

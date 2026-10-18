@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, X } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Radar, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -15,6 +15,7 @@ const NAV: { href: string; label: string; icon: typeof LayoutDashboard; tone: To
   { href: '/tracker', label: 'Applications', icon: KanbanSquare, tone: 'sky' },
   { href: '/summary', label: 'Insights', icon: BarChart3, tone: 'emerald' },
   { href: '/interviews', label: 'Interview prep', icon: MessagesSquare, tone: 'fuchsia' },
+  { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet' },
 ];
 
 interface SidebarProps {

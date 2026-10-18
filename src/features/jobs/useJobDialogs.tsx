@@ -8,7 +8,7 @@ import type { Job } from '@/lib/types';
 import { deleteJob } from './jobApi';
 import type { JobActionHandlers } from './JobActions';
 import { JobDetailsModal } from './JobDetailsModal';
-import { JobFormModal } from './JobFormModal';
+import { JobFormModal, type JobFormDefaults } from './JobFormModal';
 
 /**
  * Owns the add / edit / view / delete dialogs for applications so every page
@@ -17,12 +17,20 @@ import { JobFormModal } from './JobFormModal';
 export function useJobDialogs(onChanged: () => unknown) {
   const toast = useToast();
   // A fresh key per opening resets the form state without effects.
-  const [form, setForm] = useState<{ job: Job | null; key: number } | null>(null);
+  const [form, setForm] = useState<{
+    job: Job | null;
+    key: number;
+    defaults?: JobFormDefaults;
+    onCreated?: () => void;
+  } | null>(null);
   const [viewing, setViewing] = useState<Job | null>(null);
   const [deleting, setDeleting] = useState<Job | null>(null);
   const [busy, setBusy] = useState(false);
 
   const openCreate = () => setForm({ job: null, key: Date.now() });
+  /** New application with prefilled fields; `onCreated` runs after it saves. */
+  const openCreateWith = (defaults: JobFormDefaults, onCreated?: () => void) =>
+    setForm({ job: null, key: Date.now(), defaults, onCreated });
   const openEdit = (job: Job) => {
     setViewing(null);
     setForm({ job, key: Date.now() });
@@ -48,7 +56,17 @@ export function useJobDialogs(onChanged: () => unknown) {
   const dialogs = (
     <>
       {form && (
-        <JobFormModal key={form.key} open job={form.job} onClose={() => setForm(null)} onSaved={() => void onChanged()} />
+        <JobFormModal
+          key={form.key}
+          open
+          job={form.job}
+          defaults={form.defaults}
+          onClose={() => setForm(null)}
+          onSaved={() => {
+            form.onCreated?.();
+            void onChanged();
+          }}
+        />
       )}
       <JobDetailsModal job={viewing} onClose={() => setViewing(null)} onEdit={openEdit} />
       <ConfirmDialog
@@ -67,5 +85,5 @@ export function useJobDialogs(onChanged: () => unknown) {
     </>
   );
 
-  return { openCreate, handlers, dialogs };
+  return { openCreate, openCreateWith, handlers, dialogs };
 }

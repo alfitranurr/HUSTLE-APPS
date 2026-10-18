@@ -12,10 +12,11 @@ Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and Recha
 - **Applications**: search, filters, sortable table, cards, and a drag-and-drop **board** by pipeline stage; CSV export of the current view.
 - **Follow-up reminders**: in-progress applications with no update for 14+ days are flagged; "Followed up" resets the clock.
 - **Insights**: interview and offer rates, status/stage/level/location/platform breakdowns, top positions and a 12-month timeline, filterable by timeframe.
-- **Interview prep**: question bank with STAR drafts, mastery tracking and a rule-based answer check.
+- **Interview prep**: question bank with STAR drafts and study notes, a starter pack, practice mode with a timer, mastery tracking and a rule-based answer check.
+- **Job match**: the jobs LinkedIn recommends to you (from LinkedIn's recommendation emails in Gmail, or the pasted "Top job picks for you" page), scored 0-100 against your profile from LinkedIn's "Save to PDF". Rule-based, no AI and no scraping; one click adds a job to Applications.
 
 The Google Sheet uses three tabs, created automatically when missing:
-`DataLowongan` (applications, columns A–U), `Interviews` and `Settings` (weekly targets).
+`DataLowongan` (applications, columns A–U), `Interviews`, `Settings`, `Profile` and `Recommendations` (Job match).
 
 ## Getting started
 
@@ -27,6 +28,15 @@ npm run dev                  # http://localhost:3000
 
 The app validates its configuration at startup and refuses to run if a
 required variable is missing or too weak (see `.env.example`).
+
+### Job match: Gmail access (one time)
+
+1. LinkedIn → Settings → Notifications → Searching for a job → **Job recommendations**: turn Email on.
+2. Google Cloud Console: enable the **Gmail API**, add the `gmail.readonly` scope to the OAuth consent screen and set the app to **In production** (in Testing, tokens for this scope expire after 7 days).
+3. `node scripts/google-oauth-token.mjs` signs you in and writes a new `GOOGLE_REFRESH_TOKEN` to `.env.local` (never printed). If Google reports `redirect_uri_mismatch`, add `http://localhost:53682/oauth2callback` to the OAuth client's redirect URIs.
+4. Put the new token in Vercel (Production + Preview) and redeploy.
+
+Without Gmail access, paste the "Top job picks for you" page instead.
 
 | Script              | What it does                 |
 | ------------------- | ---------------------------- |
