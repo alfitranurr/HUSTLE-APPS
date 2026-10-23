@@ -3,7 +3,7 @@
 import { CalendarCheck, CalendarClock } from 'lucide-react';
 import { useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Field, Input, Select, Textarea } from '@/components/ui/Field';
+import { Field, Input, Select } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { errorMessage } from '@/lib/api';
@@ -24,6 +24,7 @@ import type { Job } from '@/lib/types';
 import { safeHref } from '@/lib/urls';
 import { AttachmentField, validateFiles } from './AttachmentField';
 import { saveJob } from './jobApi';
+import { NotesEditor } from './NotesEditor';
 import { useRegions } from './useRegions';
 
 interface FormValues {
@@ -344,11 +345,16 @@ export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormM
               </div>
             )}
           </Section>
+        </div>
 
-          <Section title="Notes & proof">
-            <Field label="Notes" hint="Salary range, recruiter name, next steps…">
-              <Textarea rows={4} value={values.note} onChange={(e) => set('note', e.target.value)} maxLength={5000} />
-            </Field>
+        {/* Full width: notes grow with every point, so they get the whole row. */}
+        <Section title="Notes & proof" className="lg:col-span-2">
+          <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div role="group" aria-label="Notes">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">Notes</span>
+              <NotesEditor value={values.note} onChange={(note) => set('note', note)} />
+              <span className="mt-1.5 block text-xs text-slate-500">One point per row · Enter adds the next point</span>
+            </div>
             <AttachmentField
               existing={keptAttachments}
               onRemoveExisting={(url) => setKeptAttachments((list) => list.filter((u) => u !== url))}
@@ -360,8 +366,8 @@ export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormM
               error={errors.files}
               disabled={saving}
             />
-          </Section>
-        </div>
+          </div>
+        </Section>
       </form>
     </Modal>
   );

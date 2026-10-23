@@ -1,6 +1,6 @@
 # Progress — Hustle (Job Search Tracker)
 
-_Terakhir diperbarui: 19 Oktober 2026_
+_Terakhir diperbarui: 23 Oktober 2026_
 
 Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · ↩️ dibuat lalu dicabut atas permintaan
 
@@ -41,6 +41,7 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | PR #5 | Interview prep: perbaikan skor Answer check, starter pack 20 pertanyaan, kategori Assessment / Test + kolom Notes, popup lebih lebar | ✅ |
 | PR #6 | Interview prep: kartu "In your pipeline", tombol Interview prep di detail lamaran, mode latihan + timer 2 menit; Insights: kartu Companies menggantikan Top positions, timeline lebih jelas | ✅ |
 | PR #7 | **Job match**: halaman baru di sidebar — lowongan rekomendasi LinkedIn (email Gmail + tempel halaman "Top job picks for you"), profil dari PDF LinkedIn, skor 0–100 rule-based dengan alasan, Add to Applications (form terisi otomatis), Dismiss | ✅ |
+| PR #8 | Notes per poin: tampil sebagai bullet (label tebal) di detail; form edit per poin (Label + isi, Enter = poin baru, chip label cepat, hapus); Notes lebar penuh di detail & form | ✅ |
 
 ### Detail PR #4 — Insights
 | Item | Perubahan | Status |
