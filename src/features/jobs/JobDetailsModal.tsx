@@ -14,6 +14,7 @@ import { formatDate, formatDateTime, formatLocation, formatRelative } from '@/li
 import { isActive } from '@/lib/stats';
 import type { Job } from '@/lib/types';
 import { AttachmentList, JobLinkList } from './JobLinks';
+import { NoteList } from './NoteList';
 import { StageTimeline } from './StageTimeline';
 
 /** Bordered card with a small uppercase heading; every section of the popup uses it. */
@@ -110,48 +111,34 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
           </div>
         </Panel>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            {(showSchedule || showContract) && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {showSchedule && (
-                  <Highlight
-                    tone="violet"
-                    icon={<CalendarClock className="size-5 shrink-0 text-violet-500" />}
-                    title={`${job.stage === 'Assessment Test' ? 'Assessment' : 'Interview'} · ${formatDateTime(job.scheduledAt)}`}
-                    subtitle={formatRelative(job.scheduledAt)}
-                  />
-                )}
-                {showContract && (
-                  <Highlight
-                    tone="emerald"
-                    icon={<CalendarCheck className="size-5 shrink-0 text-emerald-600" />}
-                    title={`Contract · ${formatDate(job.contractDate)}`}
-                    subtitle={formatRelative(job.contractDate)}
-                  />
-                )}
-              </div>
+        {(showSchedule || showContract) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {showSchedule && (
+              <Highlight
+                tone="violet"
+                icon={<CalendarClock className="size-5 shrink-0 text-violet-500" />}
+                title={`${job.stage === 'Assessment Test' ? 'Assessment' : 'Interview'} · ${formatDateTime(job.scheduledAt)}`}
+                subtitle={formatRelative(job.scheduledAt)}
+              />
             )}
-
-            <Panel title="Notes">
-              {job.note ? (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-700">{job.note}</p>
-              ) : (
-                <p className="text-sm text-slate-400">No notes yet.</p>
-              )}
-            </Panel>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Panel title="Links" count={Object.values(job.links).filter(Boolean).length}>
-                <JobLinkList job={job} />
-              </Panel>
-              <Panel title="Attachments" count={job.attachments.length}>
-                <AttachmentList urls={job.attachments} />
-              </Panel>
-            </div>
+            {showContract && (
+              <Highlight
+                tone="emerald"
+                icon={<CalendarCheck className="size-5 shrink-0 text-emerald-600" />}
+                title={`Contract · ${formatDate(job.contractDate)}`}
+                subtitle={formatRelative(job.contractDate)}
+              />
+            )}
           </div>
+        )}
 
-          <Panel title="Details" className="self-start">
+        {/* Notes get the full width: they are the longest and most-read part. */}
+        <Panel title="Notes">
+          {job.note ? <NoteList note={job.note} /> : <p className="text-sm text-slate-400">No notes yet.</p>}
+        </Panel>
+
+        <div className="grid items-start gap-4 lg:grid-cols-3">
+          <Panel title="Details">
             <dl className="-my-2.5 divide-y divide-slate-100">
               <Row label="Applied">{formatDate(job.appliedAt)}</Row>
               <Row label="Platform">
@@ -165,6 +152,12 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
               {job.contractDate && <Row label="Contract date">{formatDate(job.contractDate)}</Row>}
               <Row label="Last updated">{formatDate(job.updatedAt)}</Row>
             </dl>
+          </Panel>
+          <Panel title="Links" count={Object.values(job.links).filter(Boolean).length}>
+            <JobLinkList job={job} />
+          </Panel>
+          <Panel title="Attachments" count={job.attachments.length}>
+            <AttachmentList urls={job.attachments} />
           </Panel>
         </div>
       </div>

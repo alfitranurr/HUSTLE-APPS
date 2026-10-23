@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ComponentProps, ReactNode, SelectHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
 
 const CONTROL =
@@ -40,11 +40,11 @@ export function Field({ label, required, hint, error, className, children }: Fie
   );
 }
 
-export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...props }: ComponentProps<'input'>) {
   return <input className={cn(CONTROL, className)} {...props} />;
 }
 
-export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return <textarea className={cn(CONTROL, 'resize-y leading-relaxed', className)} {...props} />;
 }
 
