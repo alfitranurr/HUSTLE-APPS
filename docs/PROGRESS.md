@@ -16,6 +16,7 @@ Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan p
 | 4 | Merge ke `master` → production | 🤖 🔒 | ✅ 24 Okt: PR #9 → `70efedb`, production Ready |
 | 5 | Cek production setelah merge (login, data, `/api/mcp`) | 🤖 + 👤 | ✅ 24 Okt: `/login` baru, `/dashboard` → login, `/api/jobs` 401, `/api/mcp` menolak key salah |
 | 5b | Domain utama **`hustle-career.vercel.app`** (permintaan user; `hustle.vercel.app` milik akun lain). `hustle-apps-six.vercel.app` tetap jalan | 🤖 | ✅ 24 Okt, dicek |
+| 5d | Alamat lama `hustle-apps-six.vercel.app` dimatikan: redirect permanen 308 ke `hustle-career.vercel.app` (path ikut; tidak dihapus supaya namanya tidak bisa diambil orang lain). Deployment lama hanya bisa dibuka lewat login Vercel | 🤖 atas permintaan user | ✅ 24 Okt, dicek |
 | 5c | Supabase URL Configuration: Site URL → `https://hustle-career.vercel.app`, tambah Redirect URL `https://hustle-career.vercel.app/**` (yang lama tetap) | 👤 | ⬜ |
 
 ### B. Tepat setelah production jalan
