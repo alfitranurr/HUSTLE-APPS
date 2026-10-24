@@ -2,7 +2,9 @@ import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { getCurrentAccount, type Account } from './account';
+import { bearerToken, tokenAllowed } from './apiToken';
 import { DbError, NotFoundError, type DataContext } from './db';
+import { tokenContext } from './tokenContext';
 import { createClient } from '@/lib/supabase/server';
 
 /** Thrown inside handlers to return a specific status + user-safe message. */
@@ -49,10 +51,26 @@ function toResponse(error: unknown) {
  * Wraps a route handler with a session + approval check and uniform error
  * handling, and hands it the data context (user's client, so RLS applies).
  * proxy.ts also guards /api and RLS guards the data: defence in depth.
+ *
+ * `{ token: true }` also accepts "Authorization: Bearer hst_…" (MCP), but only
+ * for what tokenAllowed() permits; every other route refuses a bearer token.
  */
-export function withAuth<Ctx = unknown>(handler: (req: NextRequest, ctx: Ctx, data: DataContext) => Promise<Response>) {
+export function withAuth<Ctx = unknown>(
+  handler: (req: NextRequest, ctx: Ctx, data: DataContext) => Promise<Response>,
+  options: { token?: boolean } = {}
+) {
   return async (req: NextRequest, ctx: Ctx): Promise<Response> => {
     try {
+      const authorization = req.headers.get('authorization');
+      if (authorization?.toLowerCase().startsWith('bearer')) {
+        const token = bearerToken(authorization);
+        if (!token) return fail(401, 'Invalid or revoked API token.');
+        if (!options.token || !tokenAllowed(req.method, req.nextUrl.pathname)) {
+          return fail(403, 'API tokens can only list, add and update applications.');
+        }
+        return await handler(req, ctx, await tokenContext(token));
+      }
+
       const account = await getCurrentAccount();
       if (!account) return fail(401, 'Unauthorized');
       if (account.status !== 'approved') return fail(403, 'Your account is waiting for approval.');

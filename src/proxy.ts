@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { bearerToken, tokenAllowed } from '@/lib/server/apiToken';
 import { updateSession, withSessionCookies } from '@/lib/supabase/proxy';
 
 /** Signed-out pages: a signed-in visitor is sent on to the app instead. */
@@ -30,7 +31,9 @@ export async function proxy(request: NextRequest) {
   if (pathname.startsWith('/auth/')) return response;
 
   if (isApi) {
-    return userId
+    // API tokens (MCP) carry no session; the route verifies the token itself.
+    const viaToken = bearerToken(request.headers.get('authorization')) && tokenAllowed(request.method, pathname);
+    return userId || viaToken
       ? response
       : withSessionCookies(NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }), response);
   }

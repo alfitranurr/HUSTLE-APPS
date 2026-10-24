@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Radar, ShieldCheck, X } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Plug, Radar, ShieldCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -24,6 +24,7 @@ const NAV: NavItem[] = [
   { href: '/summary', label: 'Insights', icon: BarChart3, tone: 'emerald' },
   { href: '/interviews', label: 'Interview prep', icon: MessagesSquare, tone: 'fuchsia' },
   { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet' },
+  { href: '/integrations', label: 'Connect AI', icon: Plug, tone: 'teal' },
 ];
 
 /** Only rendered for admins (the page, API and database check again). */

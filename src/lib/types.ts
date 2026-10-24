@@ -156,5 +156,17 @@ export interface AdminSystemHealth {
   checks: { label: string; status: 'ok' | 'warn' | 'error'; detail: string }[];
 }
 
+/** An API token as the owner sees it: never the token itself. */
+export interface ApiTokenInfo {
+  id: string;
+  name: string;
+  /** First 8 characters, e.g. "hst_ab12". */
+  prefix: string;
+  /** ISO times; '' when it never happened. */
+  createdAt: string;
+  lastUsedAt: string;
+  revokedAt: string;
+}
+
 /** A parsed job before it is stored. */
 export type ParsedJob = Pick<Recommendation, 'id' | 'title' | 'company' | 'location' | 'url'>;

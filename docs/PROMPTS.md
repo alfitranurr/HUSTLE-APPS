@@ -30,8 +30,11 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [ ] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti, interview, Job match, target mingguan | User |
 | [x] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin (kode) | RPC dicek di production |
 | [x] | Tahap 3b | Tes Admin Panel di browser | User, 24 Okt: berhasil |
-| [ ] | Tahap 4 | API token + halaman "Connect AI (MCP)" | |
-| [ ] | Tahap 4 | `hustle-mcp` v2.0.0 | |
+| [x] | Tahap 4 | API token + halaman "Connect AI" (kode) | vitest 55, build lulus |
+| [x] | Tahap 4 | `hustle-mcp` v2.0.0 (kode) | 15/15 tes |
+| [ ] | Tahap 4 | Tes end-to-end dengan access key asli | User buat kunci di localhost |
+| [ ] | Tahap 4/6 | Upstash Redis dibuat + env diisi | User (akun Upstash/Vercel) |
+| [ ] | Tahap 6 | `hustle-mcp` dipublikasikan (npm) atau cara lain dibagikan | Perlu keputusan user |
 | [ ] | Tes E2E | 2 akun tes lulus | |
 | [ ] | Tes E2E | Akun test-a / test-b dihapus | |
 | [x] | Tahap 5 | Dry-run migrasi dicek | 24 Okt, perbaikan teks disetujui |

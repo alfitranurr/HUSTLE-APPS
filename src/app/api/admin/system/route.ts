@@ -1,5 +1,6 @@
 import { ok, withAdmin } from '@/lib/server/http';
 import { systemStats } from '@/lib/server/repositories/admin';
+import { upstashConfig } from '@/lib/server/tokenRateLimit';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { AdminSystemHealth } from '@/lib/types';
 
@@ -36,9 +37,9 @@ export const GET = withAdmin(async (_req, _ctx, data) => {
   );
 
   checks.push(
-    process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-      ? { label: 'Rate limiting', status: 'ok', detail: 'Upstash configured' }
-      : { label: 'Rate limiting', status: 'warn', detail: 'Upstash not set (optional; limits API token requests)' }
+    upstashConfig()
+      ? { label: 'Rate limiting', status: 'ok', detail: 'Upstash Redis: 60 requests per minute per API token' }
+      : { label: 'Rate limiting', status: 'warn', detail: 'Upstash not set: limits are per server instance only' }
   );
 
   return ok<AdminSystemHealth>({ stats, databaseLatencyMs, checks });
