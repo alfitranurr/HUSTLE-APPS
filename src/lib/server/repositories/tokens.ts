@@ -80,3 +80,28 @@ export async function revokeToken(ctx: DataContext, id: string): Promise<void> {
   );
   if (rows.length === 0) throw new NotFoundError('Token not found or already revoked');
 }
+
+const MAX_ACTIVE = 5;
+
+/**
+ * "Lost my key": a new key with the same name, and the old one turned off.
+ * New first when there is room, so a failure never leaves the owner with
+ * neither; at the 5-key limit the old one has to go first to make room.
+ */
+export async function regenerateToken(ctx: DataContext, id: string): Promise<{ token: string; info: ApiTokenInfo }> {
+  sessionOnly(ctx);
+  if (!isUuid(id)) throw new NotFoundError('Key not found');
+  const rows = must(
+    await ctx.db.from('api_tokens').select('id, name, revoked_at').eq('user_id', ctx.userId).is('revoked_at', null)
+  ) as { id: string; name: string }[];
+  const old = rows.find((row) => row.id === id);
+  if (!old) throw new NotFoundError('Key not found or already turned off');
+
+  if (rows.length < MAX_ACTIVE) {
+    const created = await createToken(ctx, old.name);
+    await revokeToken(ctx, id);
+    return created;
+  }
+  await revokeToken(ctx, id);
+  return createToken(ctx, old.name);
+}

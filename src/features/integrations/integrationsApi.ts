@@ -45,3 +45,9 @@ export function desktopConfig(baseUrl: string, token: string) {
     2
   );
 }
+
+export const regenerateToken = (id: string) =>
+  apiFetch<{ token: string; info: ApiTokenInfo }>(`/api/tokens/${encodeURIComponent(id)}/regenerate`, { method: 'POST' });
+
+/** Shown in "View setup": the key itself is never shown again. */
+export const KEY_PLACEHOLDER = 'hst_paste_your_access_key_here';
