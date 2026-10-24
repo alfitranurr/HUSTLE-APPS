@@ -26,7 +26,7 @@ Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan p
 | 6 | Ganti config MCP `hustle` di Claude ke versi URL (`--transport http`); config lama (login password) mati setelah merge | 🤖 🔒 | ✅ 24 Okt: user scope → `https://hustle-career.vercel.app/api/mcp`, Connected, tool dites (203 lamaran) |
 | 7 | Regenerate access key "Laptop" (sempat ditempel di chat), pakai key baru di langkah 6 | 👤 | ✅ 24 Okt (key baru juga sempat ditempel di chat: regenerate sekali lagi jika ingin bersih) |
 | 7b | Tombol **Delete** untuk key yang sudah dimatikan (`0007_delete_turned_off_keys.sql` + UI) | 🤖 🔒 | ✅ 24 Okt: 0007 di-apply (backup), PR #10 → production |
-| 7c | MCP CRUD penuh (permintaan user): `hustle_get_application`, add/edit semua kolom form (link, jadwal, tanggal kontrak, stage dates, catatan per poin), hapus file bukti, `hustle_delete_application` (wajib `confirm`); halaman Connect AI diperbarui | 🤖 🔒 | 🔄 kode + tes baca/dry-run ✅; tes tulis + deploy menunggu izin |
+| 7c | MCP CRUD penuh (permintaan user): `hustle_get_application`, add/edit semua kolom form (link, jadwal, tanggal kontrak, stage dates, catatan per poin), hapus file bukti, `hustle_delete_application` (wajib `confirm`); halaman Connect AI diperbarui | 🤖 🔒 | ✅ 24 Okt: tes tulis di akun (tambah → ubah → hapus, data kembali 203), PR #11 → production, 6 tool aktif |
 | 8 | Update `README.md`, root `PROGRESS.md`, bagian "Current work" di `CLAUDE.md` | 🤖 | ⬜ |
 
 ### C. Bersih-bersih keamanan (setelah production stabil)
