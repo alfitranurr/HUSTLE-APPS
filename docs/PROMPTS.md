@@ -26,7 +26,8 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 2 | Akun alfitranurr@gmail.com dijadikan admin | 24 Okt, dengan izin; id `7601bd7c-…` |
 | [x] | Tahap 3 | Repository + Storage, kode Google dihapus (kode) | tsc/eslint/vitest 26/26/build lulus |
 | [ ] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti, interview, Job match, target mingguan | User |
-| [ ] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin | |
+| [x] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin (kode) | RPC dicek di production |
+| [ ] | Tahap 3b | Tes Admin Panel di browser | User |
 | [ ] | Tahap 4 | API token + halaman "Connect AI (MCP)" | |
 | [ ] | Tahap 4 | `hustle-mcp` v2.0.0 | |
 | [ ] | Tes E2E | 2 akun tes lulus | |

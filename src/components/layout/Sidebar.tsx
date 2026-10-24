@@ -1,22 +1,33 @@
 'use client';
 
-import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Radar, X } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Radar, ShieldCheck, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { AccountModal } from '@/features/account/AccountModal';
+import { useAdminUsers } from '@/features/admin/adminApi';
 import { cn } from '@/lib/cn';
 import { TONES, type Tone } from '@/lib/tones';
 
-const NAV: { href: string; label: string; icon: typeof LayoutDashboard; tone: Tone }[] = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  tone: Tone;
+}
+
+const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tone: 'indigo' },
   { href: '/tracker', label: 'Applications', icon: KanbanSquare, tone: 'sky' },
   { href: '/summary', label: 'Insights', icon: BarChart3, tone: 'emerald' },
   { href: '/interviews', label: 'Interview prep', icon: MessagesSquare, tone: 'fuchsia' },
   { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet' },
 ];
+
+/** Only rendered for admins (the page, API and database check again). */
+const ADMIN_NAV: NavItem = { href: '/admin', label: 'Admin Panel', icon: ShieldCheck, tone: 'rose' };
 
 export interface SidebarAccount {
   displayName: string;
@@ -54,6 +65,9 @@ export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onC
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  // Non-admins never request the list.
+  const { users } = useAdminUsers(account.isAdmin);
+  const pendingCount = users.filter((u) => u.status === 'pending').length;
 
   const signOut = async () => {
     setSigningOut(true);
@@ -99,7 +113,8 @@ export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onC
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {NAV.map(({ href, label, icon: Icon, tone }) => {
+          {(account.isAdmin ? [...NAV, ADMIN_NAV] : NAV).map(({ href, label, icon: Icon, tone }) => {
+            const badge = href === ADMIN_NAV.href && pendingCount > 0 ? pendingCount : 0;
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
@@ -125,6 +140,18 @@ export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onC
                 />
                 <Icon className={cn('size-5 shrink-0', active ? TONES[tone].text : 'text-slate-400 group-hover:text-slate-600')} />
                 <span className={cn(collapsed && 'md:sr-only')}>{label}</span>
+                {badge > 0 && (
+                  <span
+                    title={`${badge} waiting for approval`}
+                    className={cn(
+                      'ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] leading-5 font-bold text-white',
+                      collapsed && 'md:absolute md:top-1 md:right-2 md:ml-0'
+                    )}
+                  >
+                    {badge}
+                    <span className="sr-only"> waiting for approval</span>
+                  </span>
+                )}
               </Link>
             );
           })}

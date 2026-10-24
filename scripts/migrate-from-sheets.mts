@@ -20,7 +20,7 @@ import {
   mapRecommendationRow,
   mapSettings,
   type MappedJob,
-} from './migrate/legacy.ts';
+} from './migrate/legacy';
 
 const ALLOWED_MIME = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
@@ -236,7 +236,7 @@ async function findUser(): Promise<string> {
   }
 }
 
-const check = <T>(label: string, res: { data: T; error: { message: string } | null }) => {
+const check = <T,>(label: string, res: { data: T; error: { message: string } | null }) => {
   if (res.error) throw new Error(`${label}: ${res.error.message}`);
   return res.data;
 };

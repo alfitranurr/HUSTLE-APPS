@@ -118,5 +118,46 @@ export interface Recommendation {
   status: RecommendationStatus;
 }
 
+// ---------------------------------------------------------------------------
+// Admin panel (metadata and counts only)
+// ---------------------------------------------------------------------------
+
+export type AccountStatus = 'pending' | 'approved' | 'suspended';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  status: AccountStatus;
+  isAdmin: boolean;
+  /** ISO times; '' when it never happened. */
+  createdAt: string;
+  emailConfirmedAt: string;
+  lastSignInAt: string;
+  reviewedAt: string;
+  jobsCount: number;
+}
+
+export interface AdminSystemStats {
+  usersTotal: number;
+  usersPending: number;
+  usersApproved: number;
+  usersSuspended: number;
+  jobs: number;
+  interviewQuestions: number;
+  recommendations: number;
+  attachments: number;
+  attachmentsBytes: number;
+  activeTokens: number;
+  databaseBytes: number;
+}
+
+export interface AdminSystemHealth {
+  stats: AdminSystemStats;
+  /** Round trip of the stats query, ms. */
+  databaseLatencyMs: number;
+  checks: { label: string; status: 'ok' | 'warn' | 'error'; detail: string }[];
+}
+
 /** A parsed job before it is stored. */
 export type ParsedJob = Pick<Recommendation, 'id' | 'title' | 'company' | 'location' | 'url'>;

@@ -2,8 +2,9 @@ import 'server-only';
 import { cache } from 'react';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import type { AccountStatus } from '@/lib/types';
 
-export type AccountStatus = 'pending' | 'approved' | 'suspended';
+export type { AccountStatus };
 
 export interface Account {
   id: string;

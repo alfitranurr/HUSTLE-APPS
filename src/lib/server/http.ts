@@ -1,7 +1,7 @@
 import 'server-only';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { getCurrentAccount } from './account';
+import { getCurrentAccount, type Account } from './account';
 import { DbError, NotFoundError, type DataContext } from './db';
 import { createClient } from '@/lib/supabase/server';
 
@@ -36,6 +36,8 @@ function toResponse(error: unknown) {
   if (error instanceof DbError) {
     console.error(`[api] database error ${error.code}:`, error.message);
     if (error.code === '23505') return fail(409, 'That already exists.');
+    if (error.code === '42501') return fail(403, 'You are not allowed to do that.');
+    if (error.code === 'P0002') return fail(404, 'Not found');
     return fail(500, 'Something went wrong. Please try again.');
   }
   const message = error instanceof Error ? error.message : String(error);
@@ -59,4 +61,19 @@ export function withAuth<Ctx = unknown>(handler: (req: NextRequest, ctx: Ctx, da
       return toResponse(error);
     }
   };
+}
+
+/**
+ * Admin-only routes: withAuth plus profiles.is_admin (a column no client can
+ * write). Non-admins get 404 so the routes don't advertise themselves. The
+ * admin RPCs check again inside the database.
+ */
+export function withAdmin<Ctx = unknown>(
+  handler: (req: NextRequest, ctx: Ctx, data: DataContext, admin: Account) => Promise<Response>
+) {
+  return withAuth<Ctx>(async (req, ctx, data) => {
+    const account = await getCurrentAccount();
+    if (!account?.isAdmin) throw new HttpError(404, 'Not found');
+    return handler(req, ctx, data, account);
+  });
 }
