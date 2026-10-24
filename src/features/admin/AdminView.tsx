@@ -1,22 +1,24 @@
 'use client';
 
-import { Activity, Ban, Clock, RefreshCw, ShieldCheck, UserCheck, Users } from 'lucide-react';
+import { Activity, Ban, Clock, KeyRound, RefreshCw, ShieldCheck, UserCheck, Users } from 'lucide-react';
 import { useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { IconButton } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { StatCard } from '@/components/ui/StatCard';
-import { useAdminUsers, useSystemHealth } from './adminApi';
+import { useAdminTokens, useAdminUsers, useSystemHealth } from './adminApi';
 import { SystemPanel } from './SystemPanel';
+import { TokensPanel } from './TokensPanel';
 import { UsersPanel, type UserFilter } from './UsersPanel';
 
-type Section = 'users' | 'system';
+type Section = 'users' | 'keys' | 'system';
 
 export function AdminView({ currentUserId }: { currentUserId: string }) {
   const [section, setSection] = useState<Section>('users');
   const [filter, setFilter] = useState<UserFilter>('all');
   const { users, isLoading, mutate } = useAdminUsers();
   const { health, isLoading: healthLoading, mutate: mutateHealth } = useSystemHealth(section === 'system');
+  const { mutate: mutateTokens } = useAdminTokens(section === 'keys');
 
   const count = (status: string) => users.filter((u) => u.status === status).length;
   const showUsers = (next: UserFilter) => {
@@ -37,6 +39,7 @@ export function AdminView({ currentUserId }: { currentUserId: string }) {
               onChange={setSection}
               options={[
                 { value: 'users', label: `Users (${users.length})`, icon: <Users className="size-4" /> },
+                { value: 'keys', label: 'Access keys', icon: <KeyRound className="size-4" /> },
                 { value: 'system', label: 'System', icon: <Activity className="size-4" /> },
               ]}
             />
@@ -45,7 +48,7 @@ export function AdminView({ currentUserId }: { currentUserId: string }) {
               variant="secondary"
               size="md"
               icon={<RefreshCw className="size-4" />}
-              onClick={() => void (section === 'users' ? mutate() : mutateHealth())}
+              onClick={() => void (section === 'users' ? mutate() : section === 'keys' ? mutateTokens() : mutateHealth())}
             />
           </>
         }
@@ -67,6 +70,8 @@ export function AdminView({ currentUserId }: { currentUserId: string }) {
           onFilterChange={setFilter}
           mutate={mutate}
         />
+      ) : section === 'keys' ? (
+        <TokensPanel />
       ) : (
         <SystemPanel health={health} loading={healthLoading} />
       )}

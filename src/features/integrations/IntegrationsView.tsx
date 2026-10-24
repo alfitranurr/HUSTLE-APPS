@@ -135,7 +135,7 @@ export function IntegrationsView() {
                     <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
                       {token.name}
                       <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">{token.prefix}…</code>
-                      {token.revokedAt && <Badge tone="rose">Turned off</Badge>}
+                      {token.revokedAt && <Badge tone="rose">{token.revokedByAdmin ? 'Turned off by admin' : 'Turned off'}</Badge>}
                     </p>
                     <p className="text-xs text-slate-500">
                       Created {formatDateTime(token.createdAt)} ·{' '}

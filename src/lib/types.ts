@@ -166,6 +166,21 @@ export interface ApiTokenInfo {
   createdAt: string;
   lastUsedAt: string;
   revokedAt: string;
+  /** Turned off by an admin rather than by the owner. */
+  revokedByAdmin: boolean;
+}
+
+/** An access key as the admin sees it (0006_admin_tokens.sql): never the key itself. */
+export interface AdminToken {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string;
+  revokedAt: string;
+  revokedByAdmin: boolean;
 }
 
 /** A parsed job before it is stored. */

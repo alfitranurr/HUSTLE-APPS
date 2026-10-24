@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { apiFetch, fetcher, jsonRequest } from '@/lib/api';
-import type { AdminSystemHealth, AdminUser } from '@/lib/types';
+import type { AdminSystemHealth, AdminToken, AdminUser } from '@/lib/types';
 
 const NO_USERS: AdminUser[] = [];
 export const ADMIN_USERS_KEY = '/api/admin/users';
@@ -31,3 +31,20 @@ export const deleteUser = (id: string) =>
   apiFetch<null>(`/api/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
 export const approveAll = () => apiFetch<{ count: number }>('/api/admin/users/approve-all', { method: 'POST' });
+
+// --- access keys -------------------------------------------------------------
+
+export function useAdminTokens(enabled: boolean) {
+  const { data, isLoading, mutate } = useSWR<AdminToken[]>(enabled ? '/api/admin/tokens' : null, fetcher<AdminToken[]>, {
+    revalidateOnFocus: false,
+  });
+  return { tokens: data ?? NO_TOKENS, isLoading, mutate };
+}
+
+const NO_TOKENS: AdminToken[] = [];
+
+export const turnOffKey = (id: string) =>
+  apiFetch<{ turnedOff: boolean }>(`/api/admin/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });
+
+export const turnOffAllKeys = (userId: string) =>
+  apiFetch<{ count: number }>(`/api/admin/users/${encodeURIComponent(userId)}/tokens`, { method: 'DELETE' });

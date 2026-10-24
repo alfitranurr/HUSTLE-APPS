@@ -9,7 +9,7 @@ import { isUuid } from '../proofs';
  * The user's own API tokens, always with the session client (RLS). Columns
  * are listed explicitly: token_hash isn't readable by clients at all.
  */
-const SELECT = 'id, name, token_prefix, created_at, last_used_at, revoked_at';
+const SELECT = 'id, name, token_prefix, created_at, last_used_at, revoked_at, revoked_by';
 
 interface TokenRow {
   id: string;
@@ -18,11 +18,12 @@ interface TokenRow {
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  revoked_by: string | null;
 }
 
 const iso = (value: string | null) => (value ? new Date(value).toISOString() : '');
 
-function toInfo(row: TokenRow): ApiTokenInfo {
+function toInfo(row: TokenRow, ownerId: string): ApiTokenInfo {
   return {
     id: row.id,
     name: row.name,
@@ -30,6 +31,7 @@ function toInfo(row: TokenRow): ApiTokenInfo {
     createdAt: iso(row.created_at),
     lastUsedAt: iso(row.last_used_at),
     revokedAt: iso(row.revoked_at),
+    revokedByAdmin: Boolean(row.revoked_by && row.revoked_by !== ownerId),
   };
 }
 
@@ -42,7 +44,7 @@ export async function listTokens(ctx: DataContext): Promise<ApiTokenInfo[]> {
   const rows = must(
     await ctx.db.from('api_tokens').select(SELECT).eq('user_id', ctx.userId).order('created_at', { ascending: false })
   ) as TokenRow[];
-  return rows.map(toInfo);
+  return rows.map((row) => toInfo(row, ctx.userId));
 }
 
 /** Creates a token and returns it in full: the only time it is ever visible. */
@@ -53,7 +55,7 @@ export async function createToken(ctx: DataContext, name: string): Promise<{ tok
     const row = must(
       await ctx.db.from('api_tokens').insert({ name, token_prefix: prefix, token_hash: hash }).select(SELECT).single()
     ) as TokenRow;
-    return { token, info: toInfo(row) };
+    return { token, info: toInfo(row, ctx.userId) };
   } catch (error) {
     // The 5-active-tokens rule lives in a trigger (private.enforce_api_token_rules).
     if (error instanceof DbError && error.code === '23514' && error.message.includes('at most 5')) {

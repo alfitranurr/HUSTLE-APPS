@@ -1,5 +1,5 @@
 import 'server-only';
-import type { AdminSystemStats, AdminUser } from '@/lib/types';
+import type { AdminSystemStats, AdminToken, AdminUser } from '@/lib/types';
 import { must, type DataContext } from '../db';
 
 /**
@@ -57,4 +57,42 @@ export async function systemStats(ctx: DataContext): Promise<AdminSystemStats> {
     storageBytes: Number(s.storage_bytes),
     databaseBytes: Number(s.database_bytes),
   };
+}
+
+// --- access keys (0006_admin_tokens.sql) -------------------------------------
+
+interface AdminTokenRow {
+  id: string;
+  user_id: string;
+  email: string;
+  name: string;
+  token_prefix: string;
+  created_at: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
+  revoked_by_admin: boolean;
+}
+
+export async function listAllTokens(ctx: DataContext): Promise<AdminToken[]> {
+  const rows = must(await ctx.db.rpc('admin_list_tokens')) as AdminTokenRow[];
+  return rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    email: row.email,
+    name: row.name,
+    prefix: row.token_prefix,
+    createdAt: iso(row.created_at),
+    lastUsedAt: iso(row.last_used_at),
+    revokedAt: iso(row.revoked_at),
+    revokedByAdmin: row.revoked_by_admin,
+  }));
+}
+
+/** False when the key was already off. */
+export async function revokeAnyToken(ctx: DataContext, id: string): Promise<boolean> {
+  return must(await ctx.db.rpc('admin_revoke_token', { token_id: id })) as boolean;
+}
+
+export async function revokeUserTokens(ctx: DataContext, userId: string): Promise<number> {
+  return must(await ctx.db.rpc('admin_revoke_user_tokens', { target: userId })) as number;
 }

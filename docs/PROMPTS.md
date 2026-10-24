@@ -20,6 +20,8 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 1c | Backup + apply `0004_admin.sql` | Lewat `psql`, 24 Okt |
 | [x] | Tahap 1d | Migrasi `0005_admin_privacy.sql` + tes lokal | 129/129 |
 | [x] | Tahap 1d | Backup + apply `0005_admin_privacy.sql` | Lewat `psql`, 24 Okt, dengan izin |
+| [x] | Tahap 1e | `0006_admin_tokens.sql` (admin kelola access key): tes lokal + apply | 145/145, 24 Okt, dengan izin |
+| [ ] | Tahap 1e | Tes tab Access keys di Admin Panel | User |
 | [x] | Tahap 0 (sisa) | Email confirm aktif, password minimal 8 | Dicek lewat `/auth/v1/settings`: confirm on, Google off |
 | [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | |
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
@@ -33,7 +35,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 4 | API token + halaman "Connect AI" (kode) | vitest 55, build lulus |
 | [x] | Tahap 4 | `hustle-mcp` v2.0.0 (kode) | 15/15 tes |
 | [x] | Tahap 4 | Tes end-to-end dengan access key asli | 24 Okt: HTTP 13 kasus + MCP stdio (list, add/attach dry-run, guard duplikat) |
-| [ ] | Tahap 4/6 | Upstash Redis dibuat + env diisi | User (akun Upstash/Vercel) |
+| [x] | Tahap 4/6 | Upstash Redis dibuat + env diisi | 24 Okt via Vercel Storage; tes rate limit lulus |
 | [ ] | Tahap 6 | `hustle-mcp` dipublikasikan (npm) atau cara lain dibagikan | Perlu keputusan user |
 | [ ] | Tes E2E | 2 akun tes lulus | |
 | [ ] | Tes E2E | Akun test-a / test-b dihapus | |

@@ -370,6 +370,40 @@ check('system stats count accounts', s && s.users_total === 7 && s.users_suspend
 check('system stats hold no content totals', s && ['jobs', 'interview_questions', 'recommendations', 'attachments'].every((k) => !(k in s)), show(r));
 check('system stats keep capacity figures', s && 'storage_bytes' in s && 'database_bytes' in s && 'active_tokens' in s, show(r));
 
+// ── Admin: access keys ──────────────────────────────────────────────
+console.log('\nAdmin access keys:');
+const keyB = (await db.query(`select id from public.api_tokens where token_hash = $1`, [HASH('b')])).rows[0].id;
+for (const [sql, params] of [
+  ['select * from public.admin_list_tokens()', []],
+  ['select public.admin_revoke_token($1)', [keyB]],
+  ['select public.admin_revoke_user_tokens($1)', [A]],
+]) {
+  r = await as('authenticated', A, sql, params);
+  check(`non-admin cannot ${sql.match(/admin_\w+/)[0]}`, !!r.error, show(r));
+  r = await as('anon', null, sql, params);
+  check(`anon cannot ${sql.match(/admin_\w+/)[0]}`, !!r.error);
+}
+r = await as('authenticated', ADM, `select * from public.admin_list_tokens()`);
+check("admin lists every account's keys", r.rows?.some((t) => t.user_id === A) && r.rows?.some((t) => t.user_id === P), show(r));
+check('admin key list never carries the key hash', r.rows && !Object.keys(r.rows[0]).some((k) => /hash/i.test(k)), show(r.rows?.[0]));
+r = await as('authenticated', ADM, `select public.admin_revoke_token($1) as done`, [keyB]);
+check("admin turns off another user's key", r.rows?.[0]?.done === true, show(r));
+r = await as('service_role', null, `select public.verify_api_token($1) as uid`, [HASH('b')]);
+check('a key turned off by the admin stops working', r.rows?.[0]?.uid === null, show(r));
+r = await as('authenticated', A, `select revoked_by from public.api_tokens where id = $1`, [keyB]);
+check('the owner can see the admin turned it off', r.rows?.[0]?.revoked_by === ADM, show(r));
+r = await as('authenticated', A, `update public.api_tokens set revoked_by = null where id = $1`, [keyB]);
+check('the owner cannot change revoked_by', !!r.error);
+r = await as('authenticated', ADM, `select public.admin_revoke_token($1) as done`, [keyB]);
+check('turning off an already-off key reports false', r.rows?.[0]?.done === false, show(r));
+r = await as('authenticated', ADM, `select public.admin_revoke_token('00000000-0000-0000-0000-00000000dead')`);
+check('turning off an unknown key is an error', !!r.error);
+const activeA = (await db.query(`select count(*)::int as n from public.api_tokens where user_id = $1 and revoked_at is null`, [A])).rows[0].n;
+r = await as('authenticated', ADM, `select public.admin_revoke_user_tokens($1) as n`, [A]);
+check("admin turns off all of an account's keys", activeA > 0 && r.rows?.[0]?.n === activeA, show(r));
+r = await db.query(`select count(*)::int as n from public.api_tokens where user_id = $1 and revoked_at is null`, [A]);
+check('no active keys left for that account', r.rows[0].n === 0);
+
 // ── Cascades ────────────────────────────────────────────────────────
 console.log('\nCascades:');
 await as('authenticated', A, `delete from public.jobs where id = $1`, [jobA]);
