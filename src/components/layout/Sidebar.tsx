@@ -16,6 +16,8 @@ interface NavItem {
   label: string;
   icon: typeof LayoutDashboard;
   tone: Tone;
+  /** Feature still being tried out; shown as a small "Beta" tag. */
+  beta?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -23,7 +25,7 @@ const NAV: NavItem[] = [
   { href: '/tracker', label: 'Applications', icon: KanbanSquare, tone: 'sky' },
   { href: '/summary', label: 'Insights', icon: BarChart3, tone: 'emerald' },
   { href: '/interviews', label: 'Interview prep', icon: MessagesSquare, tone: 'fuchsia' },
-  { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet' },
+  { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet', beta: true },
   { href: '/integrations', label: 'Connect AI', icon: Plug, tone: 'teal' },
 ];
 
@@ -114,7 +116,7 @@ export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onC
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {(account.isAdmin ? [...NAV, ADMIN_NAV] : NAV).map(({ href, label, icon: Icon, tone }) => {
+          {(account.isAdmin ? [...NAV, ADMIN_NAV] : NAV).map(({ href, label, icon: Icon, tone, beta }) => {
             const badge = href === ADMIN_NAV.href && pendingCount > 0 ? pendingCount : 0;
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
@@ -141,6 +143,16 @@ export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onC
                 />
                 <Icon className={cn('size-5 shrink-0', active ? TONES[tone].text : 'text-slate-400 group-hover:text-slate-600')} />
                 <span className={cn(collapsed && 'md:sr-only')}>{label}</span>
+                {beta && (
+                  <span
+                    className={cn(
+                      'ml-auto rounded-full bg-amber-50 px-1.5 py-px text-[10px] font-semibold tracking-wide text-amber-700 uppercase ring-1 ring-amber-200 ring-inset',
+                      collapsed && 'md:sr-only'
+                    )}
+                  >
+                    Beta
+                  </span>
+                )}
                 {badge > 0 && (
                   <span
                     title={`${badge} waiting for approval`}

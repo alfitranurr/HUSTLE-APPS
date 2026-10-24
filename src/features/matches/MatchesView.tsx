@@ -4,6 +4,7 @@ import { CheckCircle2, ClipboardPaste, EyeOff, Inbox, Search, SearchX, Sparkles 
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input, Select } from '@/components/ui/Field';
@@ -99,7 +100,8 @@ export function MatchesView() {
     <div className="space-y-6">
       <PageHeader
         title="Job match"
-        description="The jobs LinkedIn recommends to you, scored against your profile. Rule-based and free."
+        badge={<Badge tone="amber">Beta</Badge>}
+        description="The jobs LinkedIn recommends to you, scored against your profile. Rule-based and free. Still in beta: scores are a rough guide and may change."
         actions={
           <Button icon={<ClipboardPaste className="size-4" />} onClick={() => setPasting(true)}>
             Paste from LinkedIn
