@@ -7,7 +7,7 @@
 | Tahap | Status | Catatan |
 |---|---|---|
 | 0. Project Supabase | ✅ | 1 project saja (keputusan user): ref `rzzzqmvafauvdpbzupdv` = **production**. MCP `supabase` terpasang `--scope local` di folder ini, fitur `docs,database,debugging,development`, sudah login OAuth. Belum diisi: Email confirm, redirect URL, env (URL, publishable key, secret key). Google login dibatalkan (keputusan user 24 Okt) |
-| 1. Branch + versi + skema/RLS | 🔄 sudah di-apply, tinggal Security Advisor | Sudah: branch; token env lama di-`git stash`; Next 16.4.3 (tsc + build lulus); `@supabase/ssr` 0.12.7, `supabase-js` 2.118; dev: pglite, vitest, tsx. **Migrasi** `supabase/migrations/0001_core.sql` (7 tabel + RLS + grant per kolom + `record_practice`), `0002_api_tokens.sql`, `0003_storage.sql` (bucket `proofs` private). **`npm run test:db` → 92/92 lulus** (bootstrap meniru default grant Supabase). Belum di-commit. **1b, 24 Okt:**
+| 1. Branch + versi + skema/RLS | ✅ di-apply; Security Advisor 24 Okt: **0 error, 9 warning disengaja** | Sudah: branch; token env lama di-`git stash`; Next 16.4.3 (tsc + build lulus); `@supabase/ssr` 0.12.7, `supabase-js` 2.118; dev: pglite, vitest, tsx. **Migrasi** `supabase/migrations/0001_core.sql` (7 tabel + RLS + grant per kolom + `record_practice`), `0002_api_tokens.sql`, `0003_storage.sql` (bucket `proofs` private). **`npm run test:db` → 92/92 lulus** (bootstrap meniru default grant Supabase). Belum di-commit. **1b, 24 Okt:**
 - Cek read-only lewat `psql` (`SUPABASE_DB_URL` di `.env.local`, session pooler) → PG 17.11, `public` kosong, 0 user, 0 bucket.
 - Backup `pg_dump` (`public`, `auth`, `storage`) di `D:\AL FITRA\backups\hustle-supabase\2026-10-24_120000_before-0001\`.
 - Project ada di akun Supabase alfitranurrportfolio; `supabase link` CLI gagal karena CLI login dengan akun lain (tidak dibutuhkan, backup memakai `pg_dump`).
@@ -25,6 +25,17 @@
 | 4b. Endpoint MCP di aplikasi (`/api/mcp`) | ✅ kode + tes e2e 24 Okt | Keputusan user: cara membagikan MCP ke pengguna lain = endpoint di dalam aplikasi (bukan npm). Streamable HTTP stateless (`@modelcontextprotocol/sdk` 1.32.2 dipin, `WebStandardStreamableHTTPServerTransport`, JSON response), auth access key lewat `withAuth({ token: true })` + rate limit yang sama; sesi browser ditolak. Tool: `hustle_list_applications`, `hustle_add_application` (dry run default, guard duplikat, validasi form), `hustle_update_application`, `hustle_proof_link`. **Batasan:** server jarak jauh tidak bisa membaca file di komputer pengguna, jadi bukti lewat link `/tracker?edit=<id>` (deep link baru yang membuka form lamaran). Halaman Connect AI: setup Claude Code (`--transport http` + header), Cursor/VS Code (JSON `url` + `headers`), Claude Desktop (`mcp-remote`, butuh Node.js). `hustle-mcp` lokal tetap ada untuk pemakaian pribadi (bisa melampirkan file langsung). Tes e2e (client MCP resmi via HTTP, hanya baca/dry-run): 4 tool, list 203, dry-run, guard duplikat, link bukti, id salah → error rapi, key salah/tanpa key → 401 |
 | 5. Migrasi 203 lamaran | ✅ 24 Okt | Dimajukan sebelum tahap 4 atas permintaan user (skema sudah stabil). `scripts/migrate-from-sheets.mts` (+ `scripts/migrate/legacy.ts`, 14 tes vitest): dry-run default, `--apply`, idempoten. 15 file Drive hanya bisa dibaca service account → skrip mencoba OAuth lalu service account. **Perbaikan teks disetujui user:** find/replace lama "done"→"In Progress" dibalik (7 nama perusahaan + 3 link "Indonesia", 13 catatan "Done … ✅"); 1 link Web tidak valid dipindah ke catatan. Backup `D:\AL FITRA\backups\hustle-supabase\2026-10-24_130206_before-migrate-sheets\`. Hasil: 203/203 lamaran (status + stage identik), 99/99 file (28 MB, 0 baris tanpa file, 0 file di luar folder user), 1 interview, target mingguan; rekomendasi/profil kosong di Sheet. Sheet + Drive tidak diubah |
 | 6. Preview → production | ⬜ | Setelah izin user |
+
+### Security Advisor (24 Okt 2026): 0 error, 9 warning yang diterima
+
+- **8× `0029 authenticated_security_definer_function_executable`**: `admin_list_users`, `admin_set_status`,
+  `admin_approve_all_pending`, `admin_system_stats`, `admin_list_tokens`, `admin_revoke_token`,
+  `admin_revoke_user_tokens`, `record_practice`. Sengaja bisa dipanggil `authenticated` (Admin Panel dan tombol
+  practice). Setiap fungsi admin mengecek `private.is_admin()` di dalam dan menolak selain admin (42501);
+  `record_practice` hanya mengubah baris milik `auth.uid()` dan menolak akun yang belum approved. Dibuktikan oleh
+  tes RLS (145) dan dicek di production (sebagai non-admin → "Admin only"). `anon` tidak punya execute.
+- **1× `auth_leaked_password_protection`**: fitur HaveIBeenPwned hanya untuk paket Pro. Di Free: password minimal 8
+  karakter + verifikasi email wajib. Nyalakan jika project naik ke Pro.
 
 ### Catatan implementasi tahap 1 (24 Okt 2026)
 

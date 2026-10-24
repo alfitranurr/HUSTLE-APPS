@@ -15,7 +15,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 1b | Apply `0002_api_tokens.sql` | Lewat `psql`, 24 Okt |
 | [x] | Tahap 1b | Apply `0003_storage.sql` | Lewat `psql`, 24 Okt |
 | [x] | Tahap 1b | RLS aktif di semua tabel (cek SQL) | 8 tabel, semuanya ada policy |
-| [ ] | Tahap 1b | Security Advisor bersih | Butuh MCP atau dashboard → Advisors |
+| [x] | Tahap 1b | Security Advisor | 24 Okt: 0 error, 9 warning yang disengaja (lihat MULTI_USER_PLAN tahap 1) |
 | [x] | Tahap 1c | Migrasi `0004_admin.sql` + tes lokal | 127/127 |
 | [x] | Tahap 1c | Backup + apply `0004_admin.sql` | Lewat `psql`, 24 Okt |
 | [x] | Tahap 1d | Migrasi `0005_admin_privacy.sql` + tes lokal | 129/129 |
