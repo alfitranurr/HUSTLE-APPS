@@ -68,7 +68,7 @@ Semua langkah sejak 24 Oktober 2026. Rincian teknis per tahap ada di tabel statu
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
 | [x] | Tahap 2 | Kode auth Supabase (proxy, login/signup, callback, reset password, `/pending`, hapus akun) | tsc/eslint/vitest/build lulus |
 | [x] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | 24 Okt, user |
-| [x] | Tahap 2 | Akun alfitranurr@gmail.com dijadikan admin | 24 Okt, dengan izin; id `7601bd7c-…` |
+| [x] | Tahap 2 | Akun owner dijadikan admin | 24 Okt, dengan izin |
 | [x] | Tahap 3 | Repository + Storage, kode Google dihapus (kode) | tsc/eslint/vitest 26/26/build lulus |
 | [x] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti | 24 Okt, user; DB dicek: tetap 203 lamaran, 99 file, tanpa sisa |
 | [x] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin (kode) | RPC dicek di production |
