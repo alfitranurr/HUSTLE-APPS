@@ -32,7 +32,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 3b | Tes Admin Panel di browser | User, 24 Okt: berhasil |
 | [x] | Tahap 4 | API token + halaman "Connect AI" (kode) | vitest 55, build lulus |
 | [x] | Tahap 4 | `hustle-mcp` v2.0.0 (kode) | 15/15 tes |
-| [ ] | Tahap 4 | Tes end-to-end dengan access key asli | User buat kunci di localhost |
+| [x] | Tahap 4 | Tes end-to-end dengan access key asli | 24 Okt: HTTP 13 kasus + MCP stdio (list, add/attach dry-run, guard duplikat) |
 | [ ] | Tahap 4/6 | Upstash Redis dibuat + env diisi | User (akun Upstash/Vercel) |
 | [ ] | Tahap 6 | `hustle-mcp` dipublikasikan (npm) atau cara lain dibagikan | Perlu keputusan user |
 | [ ] | Tes E2E | 2 akun tes lulus | |
