@@ -18,6 +18,8 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [ ] | Tahap 1b | Security Advisor bersih | Butuh MCP atau dashboard → Advisors |
 | [x] | Tahap 1c | Migrasi `0004_admin.sql` + tes lokal | 127/127 |
 | [x] | Tahap 1c | Backup + apply `0004_admin.sql` | Lewat `psql`, 24 Okt |
+| [x] | Tahap 1d | Migrasi `0005_admin_privacy.sql` + tes lokal | 129/129 |
+| [x] | Tahap 1d | Backup + apply `0005_admin_privacy.sql` | Lewat `psql`, 24 Okt, dengan izin |
 | [x] | Tahap 0 (sisa) | Email confirm aktif, password minimal 8 | Dicek lewat `/auth/v1/settings`: confirm on, Google off |
 | [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | |
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
@@ -27,7 +29,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 3 | Repository + Storage, kode Google dihapus (kode) | tsc/eslint/vitest 26/26/build lulus |
 | [ ] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti, interview, Job match, target mingguan | User |
 | [x] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin (kode) | RPC dicek di production |
-| [ ] | Tahap 3b | Tes Admin Panel di browser | User |
+| [x] | Tahap 3b | Tes Admin Panel di browser | User, 24 Okt: berhasil |
 | [ ] | Tahap 4 | API token + halaman "Connect AI (MCP)" | |
 | [ ] | Tahap 4 | `hustle-mcp` v2.0.0 | |
 | [ ] | Tes E2E | 2 akun tes lulus | |

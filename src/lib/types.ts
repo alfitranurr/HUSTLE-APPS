@@ -119,7 +119,8 @@ export interface Recommendation {
 }
 
 // ---------------------------------------------------------------------------
-// Admin panel (metadata and counts only)
+// Admin panel: account management data only. No usage or content figures
+// (data minimisation, UU PDP / GDPR); see 0005_admin_privacy.sql.
 // ---------------------------------------------------------------------------
 
 export type AccountStatus = 'pending' | 'approved' | 'suspended';
@@ -135,7 +136,6 @@ export interface AdminUser {
   emailConfirmedAt: string;
   lastSignInAt: string;
   reviewedAt: string;
-  jobsCount: number;
 }
 
 export interface AdminSystemStats {
@@ -143,12 +143,9 @@ export interface AdminSystemStats {
   usersPending: number;
   usersApproved: number;
   usersSuspended: number;
-  jobs: number;
-  interviewQuestions: number;
-  recommendations: number;
-  attachments: number;
-  attachmentsBytes: number;
   activeTokens: number;
+  /** Capacity only: total size of proof files and of the database. */
+  storageBytes: number;
   databaseBytes: number;
 }
 

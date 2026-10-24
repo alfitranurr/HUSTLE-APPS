@@ -28,7 +28,7 @@ export function AdminView({ currentUserId }: { currentUserId: string }) {
     <div className="space-y-6">
       <PageHeader
         title="Admin Panel"
-        description="Approve new accounts and check system health. You see account details and counts, never anyone's applications."
+        description="Approve new accounts and check system health. Only what account management needs is shown: nobody's applications or activity."
         actions={
           <>
             <SegmentedControl

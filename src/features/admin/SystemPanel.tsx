@@ -28,11 +28,10 @@ export function SystemPanel({ health, loading }: { health: AdminSystemHealth | u
     );
   }
   const { stats, checks } = health;
+  // Account and capacity figures only: no usage or content counts (privacy, 0005_admin_privacy.sql).
   const totals = [
-    { label: 'Applications', value: stats.jobs },
-    { label: 'Interview questions', value: stats.interviewQuestions },
-    { label: 'Job recommendations', value: stats.recommendations },
-    { label: 'Proof files', value: stats.attachments },
+    { label: 'Accounts', value: stats.usersTotal },
+    { label: 'Waiting for approval', value: stats.usersPending },
     { label: 'Active API tokens', value: stats.activeTokens },
   ];
 
@@ -59,7 +58,7 @@ export function SystemPanel({ health, loading }: { health: AdminSystemHealth | u
       </Card>
 
       <Card accent="violet">
-        <CardHeader title="Usage" description="Totals across all accounts (no one's content is shown)" />
+        <CardHeader title="Capacity" description="Supabase free plan limits. How people use Hustle is not shown." />
         <CardContent className="space-y-5">
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {totals.map((item) => (
@@ -83,9 +82,9 @@ export function SystemPanel({ health, loading }: { health: AdminSystemHealth | u
               <span className="flex items-center gap-2 font-medium text-slate-700">
                 <HardDrive className="size-4 text-slate-400" /> Proof files
               </span>
-              <span className="text-slate-500 tabular-nums">{mb(stats.attachmentsBytes)} of 1 GB</span>
+              <span className="text-slate-500 tabular-nums">{mb(stats.storageBytes)} of 1 GB</span>
             </p>
-            <ProgressBar value={(stats.attachmentsBytes / FREE_STORAGE_BYTES) * 100} tone="violet" label="Storage used" />
+            <ProgressBar value={(stats.storageBytes / FREE_STORAGE_BYTES) * 100} tone="violet" label="Storage used" />
           </div>
         </CardContent>
       </Card>

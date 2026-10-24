@@ -329,9 +329,9 @@ for (const [sql, params] of [
   r = await as('anon', null, sql, params);
   check(`anon cannot ${sql.match(/admin_\w+/)[0]}`, !!r.error);
 }
-r = await as('authenticated', ADM, `select id, email, status, jobs_count from public.admin_list_users()`);
+r = await as('authenticated', ADM, `select * from public.admin_list_users()`);
 check('admin lists every account, pending first', r.rows?.length === 4 && r.rows[0].id === P, show(r));
-check('admin sees job counts, not job data', r.rows?.find((u) => u.id === A)?.jobs_count === 1, show(r));
+check('admin list carries no usage data (no application counts)', r.rows && !Object.keys(r.rows[0]).some((k) => /job|count|application/i.test(k)), show(r.rows?.[0]));
 r = await as('authenticated', ADM, `select 1 from public.jobs`);
 check("admin still can't read other users' jobs", !r.error && r.rows.length === 0, show(r));
 r = await as('authenticated', ADM, `select public.admin_set_status($1, 'approved')`, [P]);
@@ -366,7 +366,9 @@ r = await db.query(`select status from public.profiles where id = $1`, [P]);
 check('approve all leaves suspended accounts suspended', r.rows[0].status === 'suspended');
 r = await as('authenticated', ADM, `select public.admin_system_stats() as s`);
 const s = r.rows?.[0]?.s;
-check('system stats are aggregate counts', s && s.users_total === 7 && s.users_suspended === 1 && s.users_pending === 0 && s.jobs === 3, show(r));
+check('system stats count accounts', s && s.users_total === 7 && s.users_suspended === 1 && s.users_pending === 0, show(r));
+check('system stats hold no content totals', s && ['jobs', 'interview_questions', 'recommendations', 'attachments'].every((k) => !(k in s)), show(r));
+check('system stats keep capacity figures', s && 'storage_bytes' in s && 'database_bytes' in s && 'active_tokens' in s, show(r));
 
 // ── Cascades ────────────────────────────────────────────────────────
 console.log('\nCascades:');

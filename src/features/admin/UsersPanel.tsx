@@ -184,7 +184,6 @@ export function UsersPanel({ users, loading, currentUserId, filter, onFilterChan
                 <th scope="col" className="py-3 pr-3 pl-5">Account</th>
                 <th scope="col" className="px-3 py-3">Registered (WIB)</th>
                 <th scope="col" className="px-3 py-3">Last sign-in</th>
-                <th scope="col" className="px-3 py-3 text-right">Applications</th>
                 <th scope="col" className="px-3 py-3">Status</th>
                 <th scope="col" className="px-3 py-3 pr-5 text-right">Actions</th>
               </tr>
@@ -201,7 +200,6 @@ export function UsersPanel({ users, loading, currentUserId, filter, onFilterChan
                   </td>
                   <td className="px-3 py-3 whitespace-nowrap text-slate-600">{wib(user.createdAt)}</td>
                   <td className="px-3 py-3 whitespace-nowrap text-slate-600">{wib(user.lastSignInAt)}</td>
-                  <td className="px-3 py-3 text-right text-slate-600 tabular-nums">{user.jobsCount}</td>
                   <td className="px-3 py-3">
                     <Badge tone={STATUS_TONE[user.status]} dot>
                       {user.status}
@@ -221,7 +219,7 @@ export function UsersPanel({ users, loading, currentUserId, filter, onFilterChan
                   {badges(user)}
                 </div>
                 <p className="text-xs text-slate-500">
-                  Registered {wib(user.createdAt)} · {user.jobsCount} applications
+                  Registered {wib(user.createdAt)} · last sign-in {wib(user.lastSignInAt)}
                 </p>
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone={STATUS_TONE[user.status]} dot>

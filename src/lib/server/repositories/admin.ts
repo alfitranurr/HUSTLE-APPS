@@ -4,8 +4,9 @@ import { must, type DataContext } from '../db';
 
 /**
  * Admin data, all through the admin_* RPCs with the admin's own client: the
- * database checks is_admin again and only ever returns account metadata and
- * aggregate counts, never another user's applications.
+ * database checks is_admin again and only returns what account management
+ * needs (status, sign-in times, capacity), never anything about how people
+ * use Hustle (0005_admin_privacy.sql).
  */
 
 interface AdminUserRow {
@@ -18,7 +19,6 @@ interface AdminUserRow {
   email_confirmed_at: string | null;
   last_sign_in_at: string | null;
   reviewed_at: string | null;
-  jobs_count: number;
 }
 
 const iso = (value: string | null) => (value ? new Date(value).toISOString() : '');
@@ -35,7 +35,6 @@ export async function listUsers(ctx: DataContext): Promise<AdminUser[]> {
     emailConfirmedAt: iso(row.email_confirmed_at),
     lastSignInAt: iso(row.last_sign_in_at),
     reviewedAt: iso(row.reviewed_at),
-    jobsCount: row.jobs_count,
   }));
 }
 
@@ -54,12 +53,8 @@ export async function systemStats(ctx: DataContext): Promise<AdminSystemStats> {
     usersPending: s.users_pending,
     usersApproved: s.users_approved,
     usersSuspended: s.users_suspended,
-    jobs: s.jobs,
-    interviewQuestions: s.interview_questions,
-    recommendations: s.recommendations,
-    attachments: s.attachments,
-    attachmentsBytes: Number(s.attachments_bytes),
     activeTokens: s.active_tokens,
+    storageBytes: Number(s.storage_bytes),
     databaseBytes: Number(s.database_bytes),
   };
 }
