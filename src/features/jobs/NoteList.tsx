@@ -4,25 +4,10 @@
  * dropped so they aren't doubled. A single unlabeled line stays a paragraph.
  */
 
-interface NoteLine {
-  label?: string;
-  text: string;
-}
+import { parseNote } from '@/lib/notes';
 
-/** "Found on: Instagram" → label + text. Not for URLs ("https://…") or long sentences with a colon. */
-const LABELLED = /^([^:]{1,40}?)\s*:\s*(.*)$/;
-
-export function parseNote(note: string): NoteLine[] {
-  return note
-    .split(/\r?\n/)
-    .map((line) => line.trim().replace(/^([-•*·]|\d+[.)])\s+/, ''))
-    .filter(Boolean)
-    .map((line) => {
-      const match = LABELLED.exec(line);
-      if (!match || /https?$/i.test(match[1]) || match[1].split(' ').length > 5) return { text: line };
-      return { label: match[1], text: match[2] };
-    });
-}
+// Re-exported for the note editor.
+export { parseNote };
 
 export function NoteList({ note }: { note: string }) {
   const lines = parseNote(note);

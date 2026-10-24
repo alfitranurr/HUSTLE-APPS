@@ -47,13 +47,15 @@ const STEPS = [
 ];
 
 const CAN = [
-  'See your list of applications',
-  'Add a new application, and give you a link to attach proof (a screenshot or PDF)',
-  'Move an application to its next stage or status',
+  'See your applications, and every detail of one',
+  'Add an application with any field of the form: links, dates, stage dates, notes',
+  'Edit any field, move it to the next stage, or mark a follow-up',
+  'Delete an application, only after you confirm',
+  'Remove proof files, and give you a link to add new ones (a screenshot or PDF)',
 ];
 
 const CANNOT = [
-  'Delete anything',
+  'Upload files from your computer (you add proof through the link)',
   'Change your settings or see your interview prep',
   'Create other keys, or see anyone else’s data',
 ];
@@ -146,7 +148,7 @@ export function IntegrationsView() {
     <div className="space-y-6">
       <PageHeader
         title="Connect an AI assistant"
-        description="Let an AI assistant such as Claude add and update your applications when you ask it in chat. No forms to fill in."
+        description="Let an AI assistant such as Claude add, edit and delete your applications when you ask it in chat. No forms to fill in."
         actions={createButton}
       />
 
