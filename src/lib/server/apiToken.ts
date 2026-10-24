@@ -31,12 +31,15 @@ export function bearerToken(header: string | null): string | null {
 }
 
 const TOKEN_ROUTES = [
+  // The built-in MCP server; its tools stay within the same limits.
+  { path: /^\/api\/mcp\/?$/, methods: ['GET', 'POST', 'DELETE'] },
   { path: /^\/api\/jobs\/?$/, methods: ['GET', 'POST'] },
   { path: /^\/api\/jobs\/[^/]+\/?$/, methods: ['GET', 'PUT', 'PATCH'] },
 ];
 
 /**
- * What a token may do: list, add and update applications (the MCP tools).
+ * What a token may do: list, add and update applications (the MCP tools,
+ * through /api/mcp or the applications API).
  * No deletes, no bulk changes, nothing outside applications.
  */
 export function tokenAllowed(method: string, pathname: string): boolean {

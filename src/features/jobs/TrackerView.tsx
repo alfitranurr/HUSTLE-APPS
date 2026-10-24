@@ -1,7 +1,7 @@
 'use client';
 
 import { Briefcase, Download, Columns3, LayoutGrid, List, Plus, RotateCw, SearchX } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, IconButton } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -30,9 +30,20 @@ import { useJobMutations } from './useJobMutations';
 type View = 'table' | 'cards' | 'board';
 const PAGE_SIZE = 20;
 
-export function TrackerView({ initialFilters }: { initialFilters?: Partial<JobFilters> }) {
+export function TrackerView({ initialFilters, editId }: { initialFilters?: Partial<JobFilters>; editId?: string }) {
   const { jobs, error, isLoading, isValidating, mutate } = useJobs();
   const { openCreate, handlers, dialogs } = useJobDialogs(mutate);
+
+  // /tracker?edit=<id> (links from the AI assistant): open that application's form once it has loaded.
+  const openedEdit = useRef(false);
+  useEffect(() => {
+    if (!editId || openedEdit.current) return;
+    const job = jobs.find((j) => j.id === editId);
+    if (!job) return;
+    openedEdit.current = true;
+    handlers.onEdit(job);
+    window.history.replaceState(null, '', '/tracker');
+  }, [editId, jobs, handlers]);
   const { moveToStage } = useJobMutations(mutate);
   const bulk = useBulkActions(mutate);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());

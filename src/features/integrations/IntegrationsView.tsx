@@ -21,8 +21,10 @@ import {
   createToken,
   desktopConfig,
   KEY_PLACEHOLDER,
+  mcpUrl,
   regenerateToken,
   revokeToken,
+  urlConfig,
   useTokens,
 } from './integrationsApi';
 
@@ -36,7 +38,7 @@ const MAX_ACTIVE = 5;
 
 const STEPS = [
   { title: 'Create an access key', text: 'A private key that lets your AI assistant into your Hustle account, and only yours.' },
-  { title: 'Paste the setup into your AI app', text: 'Hustle gives you ready-made setup text for Claude Code, Claude Desktop or Cursor. Copy, paste, done.' },
+  { title: 'Paste the setup into your AI app', text: 'Hustle gives you ready-made setup for Claude Code, Claude Desktop, Cursor or VS Code. Nothing to install: copy, paste, done.' },
   {
     title: 'Ask in plain words',
     text: '“I just applied for the Finance role at Fore Coffee on LinkedIn. Add it to Hustle and attach the confirmation screenshot from my Downloads folder.”',
@@ -45,7 +47,7 @@ const STEPS = [
 
 const CAN = [
   'See your list of applications',
-  'Add a new application, with proof files (a screenshot or PDF of your application)',
+  'Add a new application, and give you a link to attach proof (a screenshot or PDF)',
   'Move an application to its next stage or status',
 ];
 
@@ -302,22 +304,10 @@ export function IntegrationsView() {
           <div className="space-y-5">
             <div className="flex items-start gap-2 rounded-lg bg-teal-50 p-3 text-sm text-teal-900">
               <MessageSquareText className="mt-0.5 size-4 shrink-0 text-teal-600" />
-              <span>
-                Pick the app you use and copy its setup. Your key and this site&apos;s address are already filled in. Your
-                computer needs <strong>Node.js</strong> (free, from nodejs.org).
-              </span>
+              <span>Pick the app you use and copy its setup. Your key and Hustle&apos;s address are already filled in.</span>
             </div>
-            <CopyBlock label="Claude Code: paste into your terminal" value={claudeCodeCommand(baseUrl, created.token)} />
-            <CopyBlock
-              label="Claude Desktop or Cursor: paste into the app's MCP settings file"
-              value={desktopConfig(baseUrl, created.token)}
-            />
+            <SetupBlocks baseUrl={baseUrl} token={created.token} />
             <CopyBlock label="Just the key (for other apps)" value={created.token} />
-            <p className="text-xs text-slate-500">
-              Windows and Claude Desktop won&apos;t start it? Change <code>&quot;command&quot;: &quot;npx&quot;</code> to{' '}
-              <code>&quot;command&quot;: &quot;cmd&quot;</code> and put <code>&quot;/c&quot;, &quot;npx&quot;</code> at the
-              start of <code>&quot;args&quot;</code>.
-            </p>
           </div>
         )}
       </Modal>
@@ -339,11 +329,7 @@ export function IntegrationsView() {
               <strong>Regenerate</strong> next to the key: you get a new one and the old one stops working.
             </span>
           </div>
-          <CopyBlock label="Claude Code: paste into your terminal" value={claudeCodeCommand(baseUrl, KEY_PLACEHOLDER)} />
-          <CopyBlock
-            label="Claude Desktop or Cursor: paste into the app's MCP settings file"
-            value={desktopConfig(baseUrl, KEY_PLACEHOLDER)}
-          />
+          <SetupBlocks baseUrl={baseUrl} token={KEY_PLACEHOLDER} />
         </div>
       </Modal>
 
@@ -422,5 +408,22 @@ function PermissionList({ tone, title, items }: { tone: 'allowed' | 'blocked'; t
         ))}
       </ul>
     </div>
+  );
+}
+
+/** The same setup in the "new key" and "View setup" dialogs, so they can never drift apart. */
+function SetupBlocks({ baseUrl, token }: { baseUrl: string; token: string }) {
+  return (
+    <>
+      <CopyBlock label="Claude Code: paste into your terminal" value={claudeCodeCommand(baseUrl, token)} />
+      <CopyBlock label="Cursor, VS Code, Windsurf: add to the app's MCP settings (JSON)" value={urlConfig(baseUrl, token)} />
+      <div className="space-y-1.5">
+        <CopyBlock label="Claude Desktop: add to claude_desktop_config.json" value={desktopConfig(baseUrl, token)} />
+        <p className="text-xs text-slate-500">
+          Claude Desktop needs <strong className="font-medium text-slate-600">Node.js</strong> (free, from nodejs.org) for
+          this one. Server address for any other app: <code>{mcpUrl(baseUrl)}</code>
+        </p>
+      </div>
+    </>
   );
 }

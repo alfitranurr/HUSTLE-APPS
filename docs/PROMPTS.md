@@ -23,7 +23,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 1e | `0006_admin_tokens.sql` (admin kelola access key): tes lokal + apply | 145/145, 24 Okt, dengan izin |
 | [ ] | Tahap 1e | Tes tab Access keys di Admin Panel | User |
 | [x] | Tahap 0 (sisa) | Email confirm aktif, password minimal 8 | Dicek lewat `/auth/v1/settings`: confirm on, Google off |
-| [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | localhost terbukti jalan; production + preview Vercel belum dicek |
+| [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | 24 Okt: Site URL production + localhost + production ✓; **wildcard preview Vercel belum** |
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
 | [x] | Tahap 2 | Kode auth Supabase (proxy, login/signup, callback, reset password, `/pending`, hapus akun) | tsc/eslint/vitest/build lulus |
 | [ ] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | 24 Okt: daftar, verifikasi, login, approval ✓; reset password belum dites |
@@ -36,7 +36,7 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 4 | `hustle-mcp` v2.0.0 (kode) | 15/15 tes |
 | [x] | Tahap 4 | Tes end-to-end dengan access key asli | 24 Okt: HTTP 13 kasus + MCP stdio (list, add/attach dry-run, guard duplikat) |
 | [x] | Tahap 4/6 | Upstash Redis dibuat + env diisi | 24 Okt via Vercel Storage; tes rate limit lulus |
-| [ ] | Tahap 6 | `hustle-mcp` dipublikasikan (npm) atau cara lain dibagikan | Perlu keputusan user |
+| [x] | Tahap 4b | Endpoint MCP di aplikasi `/api/mcp` (pilihan user, bukan npm) | 24 Okt, tes e2e lulus |
 | [ ] | Tes E2E | 2 akun tes lulus | |
 | [ ] | Tes E2E | Akun test-a / test-b dihapus | |
 | [x] | Tahap 5 | Dry-run migrasi dicek | 24 Okt, perbaikan teks disetujui |

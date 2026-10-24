@@ -40,6 +40,7 @@ describe('tokenAllowed', () => {
     expect(tokenAllowed('POST', '/api/jobs')).toBe(true);
     expect(tokenAllowed('PUT', '/api/jobs/123')).toBe(true);
     expect(tokenAllowed('PATCH', '/api/jobs/123')).toBe(true);
+    expect(tokenAllowed('POST', '/api/mcp')).toBe(true);
   });
 
   it('refuses deletes, bulk and every other area', () => {

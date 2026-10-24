@@ -18,32 +18,39 @@ export const createToken = (name: string) =>
 
 export const revokeToken = (id: string) => apiFetch<null>(`/api/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
-/** How the MCP server is started; the same for every account, only URL and token differ. */
-export const MCP_PACKAGE = 'hustle-mcp';
+/** Hustle's built-in MCP server (Streamable HTTP): nothing to install, just the URL and a key. */
+export const mcpUrl = (baseUrl: string) => `${baseUrl}/api/mcp`;
+
+const pretty = (value: unknown) => JSON.stringify(value, null, 2);
 
 export function claudeCodeCommand(baseUrl: string, token: string) {
   return [
-    'claude mcp add --scope user hustle',
-    `  -e HUSTLE_BASE_URL=${baseUrl}`,
-    `  -e HUSTLE_API_TOKEN=${token}`,
-    `  -- npx -y ${MCP_PACKAGE}`,
+    'claude mcp add --scope user --transport http hustle',
+    `  ${mcpUrl(baseUrl)}`,
+    `  --header "Authorization: Bearer ${token}"`,
   ].join(' \\\n');
 }
 
+/** Cursor, VS Code, Windsurf and other apps that take a remote server URL with headers. */
+export function urlConfig(baseUrl: string, token: string) {
+  return pretty({ mcpServers: { hustle: { url: mcpUrl(baseUrl), headers: { Authorization: `Bearer ${token}` } } } });
+}
+
+/**
+ * Claude Desktop's config file only starts local programs, so mcp-remote
+ * bridges to the URL (needs Node.js). The header goes through an env var
+ * because spaces in args break on Windows.
+ */
 export function desktopConfig(baseUrl: string, token: string) {
-  return JSON.stringify(
-    {
-      mcpServers: {
-        hustle: {
-          command: 'npx',
-          args: ['-y', MCP_PACKAGE],
-          env: { HUSTLE_BASE_URL: baseUrl, HUSTLE_API_TOKEN: token },
-        },
+  return pretty({
+    mcpServers: {
+      hustle: {
+        command: 'npx',
+        args: ['-y', 'mcp-remote', mcpUrl(baseUrl), '--header', 'Authorization:${HUSTLE_AUTH}'],
+        env: { HUSTLE_AUTH: `Bearer ${token}` },
       },
     },
-    null,
-    2
-  );
+  });
 }
 
 export const regenerateToken = (id: string) =>
