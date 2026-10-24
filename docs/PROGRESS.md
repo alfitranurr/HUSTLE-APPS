@@ -1,10 +1,51 @@
-# Prompt siap tempel: migrasi Hustle multi-user
+# Progress: migrasi Hustle multi-user
 
-Tempel di sesi Claude Code yang dibuka dari folder `D:\AL FITRA\GITHUB\HUSTLE APPS` (tempat MCP Supabase tersambung). Jalankan berurutan, satu tahap per sesi atau per beberapa pesan. Setiap prompt meminta Claude membaca `CLAUDE.md` dan `docs/MULTI_USER_PLAN.md`, jadi tidak perlu menjelaskan ulang.
+_Terakhir diperbarui: 24 Oktober 2026 · branch `feat/multi-user` · rencana lengkap di `docs/MULTI_USER_PLAN.md`_
 
-## Checklist progres
+Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan pemilik akun · 🤖 dikerjakan Claude · 🔒 butuh izin pemilik
 
-Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di tabel status `docs/MULTI_USER_PLAN.md`.
+## Sisa pekerjaan
+
+### A. Deploy (urut)
+
+| # | Pekerjaan | Siapa | Status |
+|---|---|---|---|
+| 1 | Isi env Supabase di Vercel (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (sensitive) | 🤖 lewat Vercel CLI, atas permintaan pemilik | 🔄 |
+| 2 | Push branch `feat/multi-user` + buat Pull Request ke `master` | 🤖 🔒 | ⬜ |
+| 3 | Tes **preview deployment**: login, 203 lamaran, file bukti, Admin Panel, Connect AI, `/api/mcp` | 👤 (🤖 cek log) | ⬜ |
+| 4 | Merge ke `master` → production `hustle-apps-six.vercel.app` | 🤖 🔒 | ⬜ |
+| 5 | Cek production setelah merge (login, data, `/api/mcp`) | 🤖 + 👤 | ⬜ |
+
+### B. Tepat setelah production jalan
+
+| # | Pekerjaan | Siapa | Status |
+|---|---|---|---|
+| 6 | Ganti config MCP `hustle` di Claude ke versi URL (`--transport http`); config lama (login password) mati setelah merge | 🤖 🔒 | ⬜ |
+| 7 | Regenerate access key "Laptop" (sempat ditempel di chat), pakai key baru di langkah 6 | 👤 | ⬜ |
+| 8 | Update `README.md`, root `PROGRESS.md`, bagian "Current work" di `CLAUDE.md` | 🤖 | ⬜ |
+
+### C. Bersih-bersih keamanan (setelah production stabil)
+
+| # | Pekerjaan | Siapa | Status |
+|---|---|---|---|
+| 9 | Supabase: matikan legacy API keys + rotate secret key (sempat ditempel di chat), update `.env.local` + Vercel | 👤 (🤖 memandu, update env) | ⬜ |
+| 10 | Upstash: reset token (sempat ditempel di chat), salin yang baru ke `.env.local` | 👤 | ⬜ |
+| 11 | Hapus env lama di Vercel: `OWNER_EMAIL`, `OWNER_NAME`, `LOGIN_PASSWORD`, `JWT_SECRET`, `GOOGLE_*` | 🤖 🔒 | ⬜ |
+| 12 | Cabut / rotate secret Google lama (OAuth client, service account); Sheet + Drive tetap arsip | 👤 | ⬜ |
+| 13 | Hapus env Google + `HUSTLE_API_TOKEN` dari `.env.local` | 🤖 | ⬜ |
+| 14 | Buang `git stash` lama (token env, sudah digantikan) | 🤖 🔒 | ⬜ |
+
+### D. Opsional
+
+| # | Pekerjaan | Siapa | Status |
+|---|---|---|---|
+| 15 | Isi Stage dates 8 lamaran lama yang sudah lewat Screening (Insights jadi akurat) | 👤 | ⬜ |
+| 16 | Simpan folder `hustle-mcp` ke git (sekarang bukan repo; backup 1.0.1 ada) | 🤖 🔒 | ⬜ |
+| 17 | Jika naik ke paket Pro: nyalakan *leaked password protection* di Supabase | 👤 | ⬜ |
+
+## Sudah selesai (riwayat)
+
+Semua langkah sejak 24 Oktober 2026. Rincian teknis per tahap ada di tabel status `docs/MULTI_USER_PLAN.md`.
 
 | | Prompt | Langkah | Catatan |
 |---|---|---|---|
@@ -41,19 +82,20 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tes E2E | Akun test-a / test-b dihapus | Dicek: hanya akun owner, tanpa profil/file yatim |
 | [x] | Tahap 5 | Dry-run migrasi dicek | 24 Okt, perbaikan teks disetujui |
 | [x] | Tahap 5 | 203 lamaran dimigrasi, jumlah cocok dengan Sheet | 203/203, 99 file, status/stage identik |
-| [ ] | Tahap 6 | Commit + push + PR + preview Vercel dites | |
-| [ ] | Tahap 6 | Merge ke `master`, production jalan | |
-| [ ] | Tahap 6 | Secret Google lama di-rotate / dicabut | |
 
 ---
 
-## Mulai / lanjut kapan saja (prompt umum)
+## Prompt siap tempel
+
+Tempel di sesi Claude Code yang dibuka dari folder `D:\AL FITRA\GITHUB\HUSTLE APPS`. Setiap prompt meminta Claude membaca `CLAUDE.md` dan `docs/MULTI_USER_PLAN.md`, jadi tidak perlu menjelaskan ulang.
+
+### Mulai / lanjut kapan saja (prompt umum)
 
 ```text
 Baca CLAUDE.md dan docs/MULTI_USER_PLAN.md. Ringkas status tiap tahap dari tabel status dan cek git status branch feat/multi-user, lalu lanjutkan tahap yang sedang berjalan. Ikuti aturan keamanan Supabase di CLAUDE.md: perintah baca boleh langsung, setiap perintah tulis ke database tunggu izin saya.
 ```
 
-## Tahap 1: skema database + RLS + tes lokal
+### Tahap 1: skema database + RLS + tes lokal
 
 ```text
 Baca CLAUDE.md dan docs/MULTI_USER_PLAN.md, lalu kerjakan tahap 1.
@@ -63,7 +105,7 @@ Baca CLAUDE.md dan docs/MULTI_USER_PLAN.md, lalu kerjakan tahap 1.
 4. Jangan apply ke Supabase dulu. Tunjukkan ringkasan tabel, policy, dan hasil tes, lalu update tabel status di docs/MULTI_USER_PLAN.md.
 ```
 
-## Tahap 1b: apply migrasi ke Supabase (setelah tes lokal lulus)
+### Tahap 1b: apply migrasi ke Supabase (setelah tes lokal lulus)
 
 ```text
 Tes RLS lokal sudah lulus. Sekarang:
@@ -72,7 +114,7 @@ Tes RLS lokal sudah lulus. Sekarang:
 3. Setelah itu jalankan Security Advisor dan list tables untuk memastikan RLS aktif di semua tabel dan tidak ada peringatan. Update tabel status.
 ```
 
-## Tahap 0 (sisa): pengaturan dashboard Supabase
+### Tahap 0 (sisa): pengaturan dashboard Supabase
 
 ```text
 Pandu saya langkah demi langkah mengisi pengaturan dashboard Supabase untuk project rzzzqmvafauvdpbzupdv:
@@ -82,19 +124,19 @@ Pandu saya langkah demi langkah mengisi pengaturan dashboard Supabase untuk proj
 Cek hasilnya secara read-only kalau bisa lewat MCP.
 ```
 
-## Tahap 2: autentikasi Supabase
+### Tahap 2: autentikasi Supabase
 
 ```text
 Baca CLAUDE.md dan docs/MULTI_USER_PLAN.md, lalu kerjakan tahap 2 (bagian "2. Auth"): src/lib/supabase/{server,client,proxy,admin}.ts pola Preloved, tulis ulang src/proxy.ts, halaman login, signup, auth/callback (code + token_hash), forgot-password, reset-password, signout, nama di sidebar dari profiles, dan fitur hapus akun. Hapus auth HMAC lama dan env OWNER_*/LOGIN_PASSWORD/JWT_SECRET. Baca dulu dokumentasi Next.js 16 di node_modules/next/dist/docs untuk proxy dan route handler. Jalankan tsc, eslint, build, dan unit test safeNextPath. Update tabel status.
 ```
 
-## Tahap 3: lapisan data ke Supabase + Storage
+### Tahap 3: lapisan data ke Supabase + Storage
 
 ```text
 Kerjakan tahap 3 di docs/MULTI_USER_PLAN.md: withAuth memberi ctx { db, userId, via }, tulis ulang semua repository (jobs, interviews, settings, profile, recommendations) di atas Supabase dengan tanda tangan fungsi tetap sama, lampiran ke bucket proofs dengan signed URL (attachments = {id, name, url}, keepAttachments pakai id), hapus semua kode Google/Gmail beserta dependensinya, update CSP di next.config.ts. Tambahkan unit test vitest untuk mapper repository. Jalankan tsc, eslint, build, dan test. Update tabel status.
 ```
 
-## Tahap 4: API token per akun + halaman "Connect AI (MCP)" + hustle-mcp v2
+### Tahap 4: API token per akun + halaman "Connect AI (MCP)" + hustle-mcp v2
 
 ```text
 Kerjakan tahap 4 di docs/MULTI_USER_PLAN.md:
@@ -104,19 +146,19 @@ Kerjakan tahap 4 di docs/MULTI_USER_PLAN.md:
 Jalankan semua tes. Update tabel status.
 ```
 
-## Tes end-to-end dengan 2 akun (setelah tahap 1–4)
+### Tes end-to-end dengan 2 akun (setelah tahap 1–4)
 
 ```text
 Bantu saya tes end-to-end di lokal (npm run dev) sesuai bagian Verifikasi nomor 4: daftar 2 akun tes (test-a dan test-b), pastikan data tidak saling terlihat lewat UI dan lewat API langsung, upload/lihat/hapus bukti, generate token dan tes hustle-mcp v2, token di-revoke → 401, token ke /api/settings → 401. Setelah selesai, hapus kedua akun tes (minta izin saya untuk penghapusannya).
 ```
 
-## Tahap 5: migrasi 203 lamaran lama
+### Tahap 5: migrasi 203 lamaran lama
 
 ```text
 Kerjakan tahap 5 di docs/MULTI_USER_PLAN.md: buat scripts/migrate-from-sheets.ts (tsx). Jalankan dulu --dry-run dan tunjukkan jumlah per tabel, distribusi status/stage, jumlah file lampiran, dan 5 contoh hasil mapping. Jangan menulis apa pun ke Supabase sebelum saya setuju. Setelah saya setuju: backup database, jalankan migrasi ke akun saya, lalu verifikasi jumlahnya sama persis dengan Google Sheet. Google Sheet dan Drive tidak boleh diubah.
 ```
 
-## Tahap 6: preview lalu production
+### Tahap 6: preview lalu production
 
 ```text
 Kerjakan tahap 6 di docs/MULTI_USER_PLAN.md: rangkum semua perubahan di branch feat/multi-user, commit dengan pesan yang rapi, lalu tanya saya sebelum push. Setelah saya setuju: push branch, buat Pull Request, dan bantu cek deploy preview Vercel (env Supabase di Vercel, redirect URL preview). Setelah saya tes dan setuju, merge ke master, update PROGRESS.md dan README, dan pastikan production jalan. Ingatkan saya untuk rotate atau cabut secret Google lama setelah stabil.
