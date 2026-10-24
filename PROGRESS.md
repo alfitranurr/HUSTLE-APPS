@@ -1,8 +1,6 @@
 # Progress — Hustle (Job Search Tracker)
 
-_Terakhir diperbarui: 23 Oktober 2026_
-
-> **Migrasi multi-user (Supabase) sedang berjalan** di branch `feat/multi-user`: progres dan sisa pekerjaan ada di [`docs/PROGRESS.md`](docs/PROGRESS.md). Dokumen ini diperbarui penuh setelah merge ke production.
+_Terakhir diperbarui: 24 Oktober 2026_
 
 Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · ↩️ dibuat lalu dicabut atas permintaan
 
@@ -10,8 +8,10 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 
 | | |
 |---|---|
-| **Production** | https://hustle-apps-six.vercel.app — commit `284a922` (merge PR #3), 14 Okt 2026 |
-| **Rilis terbaru** | PR #7 — Job match (rekomendasi LinkedIn + skor kecocokan, rule-based & gratis) |
+| **Production** | https://hustle-career.vercel.app — commit `9f760c1` (merge PR #11), 24 Okt 2026. `hustle-apps-six.vercel.app` dialihkan (308) ke sini |
+| **Rilis terbaru** | PR #9–#11 — **multi-user di Supabase**: akun + approval admin, RLS, Admin Panel, access key per akun, MCP bawaan `/api/mcp` dengan CRUD penuh |
+| **Backend** | Supabase (Postgres + Auth + Storage, project `rzzzqmvafauvdpbzupdv`), Upstash Redis untuk rate limit access key. Google Sheet + Drive lama hanya arsip |
+| **Migrasi** | Rencana + riwayat: `docs/MULTI_USER_PLAN.md`. Sisa bersih-bersih: tabel di `docs/PROGRESS.md` |
 | **Tooling** | GitHub CLI (`gh`) dan Vercel CLI terpasang & login; folder lokal ter-link ke project Vercel `hustle-apps` |
 
 ## Checklist tindakan
@@ -19,10 +19,11 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 - [x] Merge PR #1, #2, #3 (live di production)
 - [x] Pulihkan `LastUpdated` 90 lamaran yang tereset oleh perbaikan stage (backup dulu, lalu restore; Needs follow-up kembali 106)
 - [x] Merge PR #4, #5, #6 berurutan → production
+- [x] Migrasi multi-user (PR #9–#11): 203 lamaran + 99 file bukti dipindah ke Supabase, domain `hustle-career.vercel.app`
 - [ ] **Job match**: upload PDF profil LinkedIn (*More → Save to PDF*), atur Target roles / Locations / Never show
-- [ ] **Job match via Gmail**: aktifkan email *Job recommendations* di LinkedIn, aktifkan Gmail API + scope `gmail.readonly` di Google Cloud (status *In production*), jalankan `node scripts/google-oauth-token.mjs`, masukkan token baru ke Vercel → sekaligus menuntaskan rotasi refresh token di bawah
+- ↩️ **Job match via Gmail**: dicabut saat migrasi multi-user (scope Gmail butuh verifikasi Google untuk aplikasi publik); Job match sekarang lewat tempel halaman saja
 - [ ] Buka Interview prep → **Add starter questions**, lalu tulis jawaban STAR untuk pertanyaan Behavioral dan isi catatan tes
-- [ ] **Rotasi `GOOGLE_CLIENT_SECRET` & `GOOGLE_REFRESH_TOKEN`** — pernah tercetak di log Vercel oleh kode lama. Reset di Google Cloud Console, lalu masukkan nilai baru ke Vercel + `.env.local` _(harus dilakukan pemilik akun)_
+- [ ] **Cabut secret Google lama** (OAuth client + service account): aplikasi sudah tidak memakainya. Bersama rotasi key Supabase/Upstash, ada di tabel bersih-bersih `docs/PROGRESS.md` _(harus dilakukan pemilik akun)_
 - [ ] Jalankan pembersihan data dari UI: banner stage di Applications + "Close as no response" di Dashboard (183 lamaran terbuka, mayoritas > 60 hari tanpa kabar)
 - [ ] Lengkapi Platform / Level / Lokasi di lamaran lama (baru 21–24 dari 201 terisi) agar kartu Application profile bermakna
 - [ ] Tentukan item backlog berikutnya (Interview prep P1–P8, Dashboard D4–D6, Applications A4–A8, Insights I5–I6)
@@ -44,6 +45,9 @@ Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · 
 | PR #6 | Interview prep: kartu "In your pipeline", tombol Interview prep di detail lamaran, mode latihan + timer 2 menit; Insights: kartu Companies menggantikan Top positions, timeline lebih jelas | ✅ |
 | PR #7 | **Job match**: halaman baru di sidebar — lowongan rekomendasi LinkedIn (email Gmail + tempel halaman "Top job picks for you"), profil dari PDF LinkedIn, skor 0–100 rule-based dengan alasan, Add to Applications (form terisi otomatis), Dismiss | ✅ |
 | PR #8 | Notes per poin: tampil sebagai bullet (label tebal) di detail; form edit per poin (Label + isi, Enter = poin baru, chip label cepat, hapus); Notes lebar penuh di detail & form | ✅ |
+| PR #9 | **Multi-user di Supabase**: daftar/login email + verifikasi, approval admin (`/pending`), RLS + grant per kolom (tes 145), Storage privat untuk bukti, Admin Panel (Users / Access keys / System, tanpa data pemakaian), access key per akun + halaman Connect AI, MCP bawaan `/api/mcp`, Insights berbasis bukti tahap + jalur tiap lamaran + persen 2 desimal, Job match **Beta** (tanpa Gmail), migrasi 203 lamaran + 99 file dari Sheet | ✅ live 24 Okt |
+| PR #10 | Hapus access key yang sudah dimatikan (`0007`), dokumen domain baru | ✅ live 24 Okt |
+| PR #11 | MCP CRUD penuh: baca detail, tambah/ubah semua kolom form, hapus (dengan konfirmasi), hapus file bukti | ✅ live 24 Okt |
 
 ### Detail PR #4 — Insights
 | Item | Perubahan | Status |
