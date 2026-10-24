@@ -11,7 +11,7 @@ Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan p
 | # | Pekerjaan | Siapa | Status |
 |---|---|---|---|
 | 1 | Isi env Supabase di Vercel (Production + Preview): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` (Secret) | 🤖 lewat Vercel CLI, atas permintaan pemilik | ✅ 24 Okt; 2 nilai publik dicek cocok (hash), secret dicek di langkah 3 |
-| 2 | Push branch `feat/multi-user` + buat Pull Request ke `master` | 🤖 🔒 | ⬜ |
+| 2 | Push branch `feat/multi-user` + buat Pull Request ke `master` | 🤖 🔒 | ✅ 24 Okt: [PR #9](https://github.com/alfitranurr/HUSTLE-APPS/pull/9); data uji di tes diganti nama fiktif (repo publik) |
 | 3 | Tes **preview deployment**: login, 203 lamaran, file bukti, Admin Panel (System: "Secret key: Works", "Rate limiting" hijau), Connect AI, `/api/mcp` | 👤 (🤖 cek log) | ⬜ |
 | 4 | Merge ke `master` → production `hustle-apps-six.vercel.app` | 🤖 🔒 | ⬜ |
 | 5 | Cek production setelah merge (login, data, `/api/mcp`) | 🤖 + 👤 | ⬜ |
