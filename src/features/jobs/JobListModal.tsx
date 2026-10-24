@@ -14,6 +14,7 @@ import { formatDate } from '@/lib/format';
 import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
 import { DEFAULT_SORT, sortJobs } from './filters';
+import { StagePath } from './StagePath';
 import { selectionHref, type JobSelection } from './selection';
 
 interface JobListModalProps {
@@ -101,13 +102,14 @@ export function JobListModal({ selection, jobs, context, onClose, onOpen }: JobL
                 type="button"
                 onClick={() => onOpen(job)}
                 className={cn(
-                  'flex w-full cursor-pointer flex-col gap-2 border-l-4 px-4 py-3 text-left transition-colors hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between',
+                  'flex w-full cursor-pointer flex-col gap-2 border-l-4 px-4 py-3 text-left transition-colors hover:bg-slate-50 sm:flex-row sm:items-start sm:justify-between',
                   TONES[STATUS_TONE[job.status]].edge
                 )}
               >
-                <span className="min-w-0">
+                <span className="min-w-0 space-y-1">
                   <span className="block truncate text-sm font-semibold text-slate-900">{job.company}</span>
                   <span className="block truncate text-xs text-slate-500">{job.position || 'Position not set'}</span>
+                  <StagePath job={job} />
                 </span>
                 <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                   <StageBadge stage={job.stage} />

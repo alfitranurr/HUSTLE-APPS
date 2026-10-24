@@ -294,3 +294,31 @@ export function coverage(jobs: Job[], pick: (job: Job) => string, ignore: string
     return value && !ignore.includes(value);
   }).length;
 }
+
+export interface PathStep {
+  stage: JobStage;
+  label: string;
+  /** yyyy-mm-dd or the applied date; '' when the stage has no date. */
+  date: string;
+  /** The application's current stage. */
+  current: boolean;
+}
+
+/**
+ * The stages an application went through, in order (same evidence rule as
+ * the funnel), for showing its journey: Applied → HR Interview → User Interview.
+ */
+export function stagePath(job: Job): PathStep[] {
+  return JOB_STAGES.filter((stage) => reachedStage(job, stage)).map((stage) => ({
+    stage,
+    label: STAGE_SHORT_LABEL[stage],
+    date: stage === JOB_STAGES[0] ? job.appliedAt : (job.stageDates[stage] ?? ''),
+    current: stage === job.stage,
+  }));
+}
+
+/** True when the application is past screening but no earlier stage has a date: likely missing history. */
+export function missingEarlierDates(job: Job): boolean {
+  const index = stageIndex(job.stage);
+  return index > stageIndex('Document Screening') && JOB_STAGES.slice(1, index).every((stage) => !job.stageDates[stage]);
+}

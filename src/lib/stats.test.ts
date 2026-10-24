@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { selectReached } from '@/features/jobs/selection';
-import { computeJobStats, mostCommonStop, pipelineFunnel, reachedInterview, reachedStage, rejectionPoints } from './stats';
+import {
+  computeJobStats,
+  missingEarlierDates,
+  mostCommonStop,
+  pipelineFunnel,
+  reachedInterview,
+  reachedStage,
+  rejectionPoints,
+  stagePath,
+} from './stats';
 import type { Job, JobStage, JobStatus } from './types';
 import type { StageDates } from './stageDates';
 
@@ -113,5 +122,24 @@ describe('mostCommonStop', () => {
     ];
     expect(mostCommonStop(jobs)).toMatchObject({ stage: 'Document Screening', count: 6 });
     expect(mostCommonStop(jobs.filter((j) => j.stage !== 'Document Screening'))).toBeNull();
+  });
+});
+
+describe('stagePath', () => {
+  it('lists only the stages gone through, in order, with their dates', () => {
+    const j = job('User Interview', 'Failed', { 'HR Interview': '2026-07-12', 'User Interview': '2026-07-20' });
+    expect(stagePath(j).map((s) => [s.label, s.date, s.current])).toEqual([
+      ['Applied', '2026-05-01T09:00', false],
+      ['HR Interview', '2026-07-12', false],
+      ['User Interview', '2026-07-20', true],
+    ]);
+    expect(missingEarlierDates(j)).toBe(false);
+  });
+
+  it('flags old applications whose earlier stages have no dates', () => {
+    const j = job('User Interview', 'Failed');
+    expect(stagePath(j).map((s) => s.label)).toEqual(['Applied', 'User Interview']);
+    expect(missingEarlierDates(j)).toBe(true);
+    expect(missingEarlierDates(job('Document Screening'))).toBe(false);
   });
 });
