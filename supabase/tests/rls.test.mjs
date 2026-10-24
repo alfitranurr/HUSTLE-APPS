@@ -269,6 +269,19 @@ check('after revoking, a new token fits under the limit', !r.error, show(r));
 r = await as('authenticated', A, `update public.api_tokens set revoked_at = null where id = $1`, [tokA]);
 check('a revoked token cannot be restored', !!r.error);
 
+// Deleting (0007): own keys only, and only once turned off.
+r = await as('authenticated', B, `insert into public.api_tokens (name, token_prefix, token_hash) values ('Old laptop', 'hst_bb22', $1) returning id`, [HASH('8')]);
+const tokB = r.rows?.[0]?.id;
+r = await as('authenticated', B, `delete from public.api_tokens where id = $1`, [tokB]);
+check('an active key cannot be deleted (turn it off first)', !r.error && r.affected === 0, show(r));
+await as('authenticated', B, `update public.api_tokens set revoked_at = now() where id = $1`, [tokB]);
+r = await as('authenticated', A, `delete from public.api_tokens where id = $1`, [tokB]);
+check("A can't delete B's turned-off key", !r.error && r.affected === 0, show(r));
+r = await as('authenticated', B, `delete from public.api_tokens where id = $1`, [tokB]);
+check('B deletes own turned-off key', !r.error && r.affected === 1, show(r));
+r = await as('anon', null, `delete from public.api_tokens`);
+check('anon cannot delete keys', !!r.error || r.affected === 0);
+
 r = await as('anon', null, `select public.verify_api_token($1)`, [HASH('b')]);
 check('anon cannot call verify_api_token', !!r.error);
 r = await as('authenticated', A, `select public.verify_api_token($1)`, [HASH('b')]);
