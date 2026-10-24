@@ -21,15 +21,15 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 1d | Migrasi `0005_admin_privacy.sql` + tes lokal | 129/129 |
 | [x] | Tahap 1d | Backup + apply `0005_admin_privacy.sql` | Lewat `psql`, 24 Okt, dengan izin |
 | [x] | Tahap 1e | `0006_admin_tokens.sql` (admin kelola access key): tes lokal + apply | 145/145, 24 Okt, dengan izin |
-| [ ] | Tahap 1e | Tes tab Access keys di Admin Panel | User |
+| [x] | Tahap 1e | Tes tab Access keys di Admin Panel | 24 Okt, user |
 | [x] | Tahap 0 (sisa) | Email confirm aktif, password minimal 8 | Dicek lewat `/auth/v1/settings`: confirm on, Google off |
-| [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | 24 Okt: Site URL production + localhost + production ✓; **wildcard preview Vercel belum** |
+| [x] | Tahap 0 (sisa) | Site URL + Redirect URLs | 24 Okt: Site URL production; localhost, production, wildcard preview Vercel |
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
 | [x] | Tahap 2 | Kode auth Supabase (proxy, login/signup, callback, reset password, `/pending`, hapus akun) | tsc/eslint/vitest/build lulus |
-| [ ] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | 24 Okt: daftar, verifikasi, login, approval ✓; reset password belum dites |
+| [x] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | 24 Okt, user |
 | [x] | Tahap 2 | Akun alfitranurr@gmail.com dijadikan admin | 24 Okt, dengan izin; id `7601bd7c-…` |
 | [x] | Tahap 3 | Repository + Storage, kode Google dihapus (kode) | tsc/eslint/vitest 26/26/build lulus |
-| [ ] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti, interview, Job match, target mingguan | User |
+| [x] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti | 24 Okt, user; DB dicek: tetap 203 lamaran, 99 file, tanpa sisa |
 | [x] | Tahap 3b | Admin Panel: sidebar, `/admin` (Users + System), API admin (kode) | RPC dicek di production |
 | [x] | Tahap 3b | Tes Admin Panel di browser | User, 24 Okt: berhasil |
 | [x] | Tahap 4 | API token + halaman "Connect AI" (kode) | vitest 55, build lulus |
@@ -37,8 +37,8 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 4 | Tes end-to-end dengan access key asli | 24 Okt: HTTP 13 kasus + MCP stdio (list, add/attach dry-run, guard duplikat) |
 | [x] | Tahap 4/6 | Upstash Redis dibuat + env diisi | 24 Okt via Vercel Storage; tes rate limit lulus |
 | [x] | Tahap 4b | Endpoint MCP di aplikasi `/api/mcp` (pilihan user, bukan npm) | 24 Okt, tes e2e lulus |
-| [ ] | Tes E2E | 2 akun tes lulus | |
-| [ ] | Tes E2E | Akun test-a / test-b dihapus | |
+| [x] | Tes E2E | 2 akun tes lulus | 24 Okt, user |
+| [x] | Tes E2E | Akun test-a / test-b dihapus | Dicek: hanya akun owner, tanpa profil/file yatim |
 | [x] | Tahap 5 | Dry-run migrasi dicek | 24 Okt, perbaikan teks disetujui |
 | [x] | Tahap 5 | 203 lamaran dimigrasi, jumlah cocok dengan Sheet | 203/203, 99 file, status/stage identik |
 | [ ] | Tahap 6 | Commit + push + PR + preview Vercel dites | |
