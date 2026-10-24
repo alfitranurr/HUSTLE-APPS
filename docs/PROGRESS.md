@@ -17,14 +17,15 @@ Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan p
 | 5 | Cek production setelah merge (login, data, `/api/mcp`) | 🤖 + 👤 | ✅ 24 Okt: `/login` baru, `/dashboard` → login, `/api/jobs` 401, `/api/mcp` menolak key salah |
 | 5b | Domain utama **`hustle-career.vercel.app`** (permintaan user; `hustle.vercel.app` milik akun lain). `hustle-apps-six.vercel.app` tetap jalan | 🤖 | ✅ 24 Okt, dicek |
 | 5d | Alamat lama `hustle-apps-six.vercel.app` dimatikan: redirect permanen 308 ke `hustle-career.vercel.app` (path ikut; tidak dihapus supaya namanya tidak bisa diambil orang lain). Deployment lama hanya bisa dibuka lewat login Vercel | 🤖 atas permintaan user | ✅ 24 Okt, dicek |
-| 5c | Supabase URL Configuration: Site URL → `https://hustle-career.vercel.app`, tambah Redirect URL `https://hustle-career.vercel.app/**` (yang lama tetap) | 👤 | ⬜ |
+| 5c | Supabase URL Configuration: Site URL → `https://hustle-career.vercel.app`, tambah Redirect URL `https://hustle-career.vercel.app/**` | 👤 | ✅ 24 Okt |
 
 ### B. Tepat setelah production jalan
 
 | # | Pekerjaan | Siapa | Status |
 |---|---|---|---|
-| 6 | Ganti config MCP `hustle` di Claude ke versi URL (`--transport http`); config lama (login password) mati setelah merge | 🤖 🔒 | ⬜ |
-| 7 | Regenerate access key "Laptop" (sempat ditempel di chat), pakai key baru di langkah 6 | 👤 | ⬜ |
+| 6 | Ganti config MCP `hustle` di Claude ke versi URL (`--transport http`); config lama (login password) mati setelah merge | 🤖 🔒 | ✅ 24 Okt: user scope → `https://hustle-career.vercel.app/api/mcp`, Connected, tool dites (203 lamaran) |
+| 7 | Regenerate access key "Laptop" (sempat ditempel di chat), pakai key baru di langkah 6 | 👤 | ✅ 24 Okt (key baru juga sempat ditempel di chat: regenerate sekali lagi jika ingin bersih) |
+| 7b | Tombol **Delete** untuk key yang sudah dimatikan (`0007_delete_turned_off_keys.sql` + UI) | 🤖 🔒 | 🔄 kode + tes RLS 149 ✅; apply DB + deploy menunggu izin |
 | 8 | Update `README.md`, root `PROGRESS.md`, bagian "Current work" di `CLAUDE.md` | 🤖 | ⬜ |
 
 ### C. Bersih-bersih keamanan (setelah production stabil)

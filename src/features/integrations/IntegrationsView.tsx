@@ -24,6 +24,7 @@ import {
   mcpUrl,
   regenerateToken,
   revokeToken,
+  deleteToken,
   urlConfig,
   useTokens,
 } from './integrationsApi';
@@ -66,6 +67,7 @@ export function IntegrationsView() {
   const [created, setCreated] = useState<{ token: string; info: ApiTokenInfo; replaced?: boolean } | null>(null);
   const [revoking, setRevoking] = useState<ApiTokenInfo | null>(null);
   const [regenerating, setRegenerating] = useState<ApiTokenInfo | null>(null);
+  const [removing, setRemoving] = useState<ApiTokenInfo | null>(null);
   const [showingSetup, setShowingSetup] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -96,6 +98,21 @@ export function IntegrationsView() {
       toast.success(`"${revoking.name}" is turned off. Anything using it stops working now.`);
       await mutate();
       setRevoking(null);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!removing) return;
+    setBusy(true);
+    try {
+      await deleteToken(removing.id);
+      toast.success(`"${removing.name}" deleted.`);
+      await mutate();
+      setRemoving(null);
     } catch (err) {
       toast.error(errorMessage(err));
     } finally {
@@ -206,7 +223,9 @@ export function IntegrationsView() {
                       <KeyStatus token={token} />
                     </td>
                     <td className="px-3 py-3 pr-5 text-right">
-                      {!token.revokedAt && (
+                      {token.revokedAt ? (
+                        <DeleteKeyButton name={token.name} onClick={() => setRemoving(token)} />
+                      ) : (
                         <KeyActions name={token.name} onRegenerate={() => setRegenerating(token)} onTurnOff={() => setRevoking(token)} />
                       )}
                     </td>
@@ -228,7 +247,9 @@ export function IntegrationsView() {
                   </p>
                   <div className="flex items-center justify-between gap-2">
                     <KeyStatus token={token} />
-                    {!token.revokedAt && (
+                    {token.revokedAt ? (
+                      <DeleteKeyButton name={token.name} onClick={() => setRemoving(token)} />
+                    ) : (
                       <KeyActions name={token.name} onRegenerate={() => setRegenerating(token)} onTurnOff={() => setRevoking(token)} />
                     )}
                   </div>
@@ -345,6 +366,16 @@ export function IntegrationsView() {
       />
 
       <ConfirmDialog
+        open={removing !== null}
+        title="Delete this access key?"
+        description={`"${removing?.name ?? ''}" is already turned off. Deleting removes it from this list for good.`}
+        confirmLabel="Delete"
+        loading={busy}
+        onConfirm={() => void remove()}
+        onCancel={() => setRemoving(null)}
+      />
+
+      <ConfirmDialog
         open={revoking !== null}
         title="Turn off this access key?"
         description={`Your AI assistant will stop working wherever "${revoking?.name ?? ''}" is used. You can't turn it back on, but you can create a new key anytime.`}
@@ -425,5 +456,21 @@ function SetupBlocks({ baseUrl, token }: { baseUrl: string; token: string }) {
         </p>
       </div>
     </>
+  );
+}
+
+/** Only for keys already turned off; active keys are turned off first. */
+function DeleteKeyButton({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      icon={<Trash2 className="size-3.5 text-rose-600" />}
+      className="text-rose-700"
+      aria-label={`Delete ${name}`}
+      onClick={onClick}
+    >
+      Delete
+    </Button>
   );
 }

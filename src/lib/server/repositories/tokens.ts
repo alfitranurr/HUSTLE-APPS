@@ -105,3 +105,19 @@ export async function regenerateToken(ctx: DataContext, id: string): Promise<{ t
   await revokeToken(ctx, id);
   return createToken(ctx, old.name);
 }
+
+/** Removes one of the owner's keys for good. Only turned-off keys (the database enforces this too). */
+export async function deleteToken(ctx: DataContext, id: string): Promise<void> {
+  sessionOnly(ctx);
+  if (!isUuid(id)) throw new NotFoundError('Key not found');
+  const rows = must(
+    await ctx.db
+      .from('api_tokens')
+      .delete()
+      .eq('user_id', ctx.userId)
+      .eq('id', id)
+      .not('revoked_at', 'is', null)
+      .select('id')
+  );
+  if (rows.length === 0) throw new NotFoundError('Key not found, or still in use: turn it off first');
+}

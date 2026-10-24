@@ -16,7 +16,11 @@ export function useTokens() {
 export const createToken = (name: string) =>
   apiFetch<{ token: string; info: ApiTokenInfo }>('/api/tokens', jsonRequest('POST', { name }));
 
-export const revokeToken = (id: string) => apiFetch<null>(`/api/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });
+export const revokeToken = (id: string) =>
+  apiFetch<null>(`/api/tokens/${encodeURIComponent(id)}/revoke`, { method: 'POST' });
+
+/** Only for turned-off keys. */
+export const deleteToken = (id: string) => apiFetch<null>(`/api/tokens/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
 /** Hustle's built-in MCP server (Streamable HTTP): nothing to install, just the URL and a key. */
 export const mcpUrl = (baseUrl: string) => `${baseUrl}/api/mcp`;
