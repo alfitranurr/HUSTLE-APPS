@@ -23,10 +23,10 @@ Centang (`[x]`) setelah langkahnya benar-benar selesai. Rincian status ada di ta
 | [x] | Tahap 1e | `0006_admin_tokens.sql` (admin kelola access key): tes lokal + apply | 145/145, 24 Okt, dengan izin |
 | [ ] | Tahap 1e | Tes tab Access keys di Admin Panel | User |
 | [x] | Tahap 0 (sisa) | Email confirm aktif, password minimal 8 | Dicek lewat `/auth/v1/settings`: confirm on, Google off |
-| [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | |
+| [ ] | Tahap 0 (sisa) | Site URL + Redirect URLs | localhost terbukti jalan; production + preview Vercel belum dicek |
 | [x] | Tahap 0 (sisa) | Env Supabase di `.env.local` | 24 Okt; secret key dicek (admin API 200) |
 | [x] | Tahap 2 | Kode auth Supabase (proxy, login/signup, callback, reset password, `/pending`, hapus akun) | tsc/eslint/vitest/build lulus |
-| [ ] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | Setelah tahap 0 |
+| [ ] | Tahap 2 | Tes login sungguhan (daftar, verifikasi email, login, reset password) | 24 Okt: daftar, verifikasi, login, approval ✓; reset password belum dites |
 | [x] | Tahap 2 | Akun alfitranurr@gmail.com dijadikan admin | 24 Okt, dengan izin; id `7601bd7c-…` |
 | [x] | Tahap 3 | Repository + Storage, kode Google dihapus (kode) | tsc/eslint/vitest 26/26/build lulus |
 | [ ] | Tahap 3 | Tes di browser: tambah/edit/hapus lamaran + bukti, interview, Job match, target mingguan | User |
