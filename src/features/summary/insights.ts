@@ -1,11 +1,11 @@
 import { formatPercent } from '@/lib/format';
-import { biggestDrop, type FunnelStep, type JobStats, type RejectionPoint } from '@/lib/stats';
+import type { JobStats, RejectionPoint, StopPoint } from '@/lib/stats';
 
 /** Rejection points need a few applications at that stage before the rate means anything. */
 const MIN_REACHED_FOR_HOTSPOT = 3;
 
 /** Plain-language suggestions derived from the funnel numbers. */
-export function buildInsights(stats: JobStats, funnel: FunnelStep[], rejections: RejectionPoint[]): string[] {
+export function buildInsights(stats: JobStats, stop: StopPoint | null, rejections: RejectionPoint[]): string[] {
   if (stats.total === 0) return ['Add a few applications to unlock insights about your search.'];
   const tips: string[] = [];
 
@@ -17,10 +17,9 @@ export function buildInsights(stats: JobStats, funnel: FunnelStep[], rejections:
     tips.push(`${formatPercent(stats.interviewRate)} of applications reach an interview — your CV is working. Focus on interview preparation.`);
   }
 
-  const drop = biggestDrop(funnel);
-  if (drop) {
+  if (stop) {
     tips.push(
-      `Most applications stall between ${drop.from.label} and ${drop.to.label}: ${drop.to.reached} of ${drop.from.reached} moved on. Put your next effort into that step.`
+      `Most applications end up at ${stop.label}: ${stop.count} of ${stats.total} (${formatPercent(stop.share)}). Put your next effort into getting past that step.`
     );
   }
 

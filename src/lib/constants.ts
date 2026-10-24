@@ -61,6 +61,9 @@ export const CONTRACT_STAGES: readonly JobStage[] = ['Offering Letter', 'Contrac
 /** An application counts as "interviewed" once it reaches this stage or later. */
 export const FIRST_INTERVIEW_STAGE: JobStage = 'HR Interview';
 
+/** Interview steps: having been through any of them counts as "reached an interview". */
+export const INTERVIEW_STAGES: readonly JobStage[] = ['HR Interview', 'User Interview', 'FGD/LGD'];
+
 /** Stages with a test or interview ahead: worth preparing for in Interview prep. */
 export const PREP_STAGES: readonly JobStage[] = ['Assessment Test', 'HR Interview', 'User Interview', 'FGD/LGD'];
 

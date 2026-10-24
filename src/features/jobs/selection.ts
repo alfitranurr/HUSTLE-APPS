@@ -1,6 +1,6 @@
 import { STAGE_SHORT_LABEL, STATUS_TONE, type JobStage, type JobStatus } from '@/lib/constants';
 import { parseDate } from '@/lib/format';
-import { SEGMENTS, stageIndex, type Segment } from '@/lib/stats';
+import { reachedStage, SEGMENTS, type Segment } from '@/lib/stats';
 import type { Tone } from '@/lib/tones';
 import type { Job } from '@/lib/types';
 import type { JobFilters } from './filters';
@@ -49,11 +49,11 @@ export const selectRejectedAt = (stage: JobStage): JobSelection => ({
   filters: { segment: 'rejected', stage },
 });
 
-/** "Reached this stage or went further", the funnel's definition. */
+/** Went through this stage (the funnel's definition: at it now, or a date recorded for it). */
 export const selectReached = (stage: JobStage): JobSelection => ({
-  title: `Reached ${STAGE_SHORT_LABEL[stage]} or further`,
+  title: `Went through ${STAGE_SHORT_LABEL[stage]}`,
   tone: 'indigo',
-  match: (job) => stageIndex(job.stage) >= stageIndex(stage),
+  match: (job) => reachedStage(job, stage),
 });
 
 export const selectPosition = (position: string, tone: Tone = 'indigo'): JobSelection => ({

@@ -327,7 +327,8 @@ export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormM
             {reachedStages.length > 0 && (
               <div className="rounded-lg bg-slate-50 p-3">
                 <p className="mb-1 text-xs text-slate-500">
-                  Stage dates · filled in when the stage changes; adjust or backfill if needed.
+                  Stage dates · filled in when the stage changes. Add a date for each stage you went through; leave
+                  skipped stages empty (Insights only counts stages with a date).
                 </p>
                 <div className="divide-y divide-slate-200/70">
                   {reachedStages.map((stage) => (
