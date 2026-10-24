@@ -4,7 +4,7 @@ import { KeyRound, MessageSquareText, Plus, ShieldCheck, Trash2 } from 'lucide-r
 import { useState, type FormEvent } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Badge } from '@/components/ui/Badge';
-import { Button, IconButton } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -110,7 +110,8 @@ export function IntegrationsView() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/* items-start: the key list keeps its own height instead of stretching to the side card. */}
+      <div className="grid items-start gap-6 lg:grid-cols-3">
         <Card accent="indigo" className="lg:col-span-2">
           <CardHeader
             title="Your access keys"
@@ -127,33 +128,61 @@ export function IntegrationsView() {
               className="m-5 mt-0"
             />
           ) : (
-            <ul className="divide-y divide-slate-100 border-t border-slate-100">
-              {[...active, ...revoked].map((token) => (
-                <li key={token.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-                  <KeyRound className={token.revokedAt ? 'size-4 text-slate-300' : 'size-4 text-teal-600'} />
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
-                      {token.name}
-                      <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">{token.prefix}…</code>
-                      {token.revokedAt && <Badge tone="rose">{token.revokedByAdmin ? 'Turned off by admin' : 'Turned off'}</Badge>}
+            <>
+              {/* Table from sm up, stacked cards on phones (same pattern as the Admin Panel). */}
+              <table className="hidden w-full border-t border-slate-100 text-left text-sm sm:table">
+                <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
+                  <tr>
+                    <th scope="col" className="py-3 pr-3 pl-5">Name</th>
+                    <th scope="col" className="px-3 py-3">Created</th>
+                    <th scope="col" className="px-3 py-3">Last used</th>
+                    <th scope="col" className="px-3 py-3">Status</th>
+                    <th scope="col" className="px-3 py-3 pr-5 text-right">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {[...active, ...revoked].map((token) => (
+                    <tr key={token.id} className="hover:bg-slate-50/70">
+                      <td className="py-3 pr-3 pl-5">
+                        <span className="block font-semibold text-slate-900">{token.name}</span>
+                        <code className="text-xs text-slate-500">{token.prefix}…</code>
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap text-slate-600">{formatDateTime(token.createdAt)}</td>
+                      <td className="px-3 py-3 whitespace-nowrap text-slate-600">
+                        {token.lastUsedAt ? formatRelative(token.lastUsedAt) : 'Not used yet'}
+                      </td>
+                      <td className="px-3 py-3">
+                        <KeyStatus token={token} />
+                      </td>
+                      <td className="px-3 py-3 pr-5 text-right">
+                        {!token.revokedAt && <TurnOffButton name={token.name} onClick={() => setRevoking(token)} />}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <ul className="divide-y divide-slate-100 border-t border-slate-100 sm:hidden">
+                {[...active, ...revoked].map((token) => (
+                  <li key={token.id} className="space-y-2 px-5 py-4">
+                    <p className="text-sm">
+                      <span className="font-semibold text-slate-900">{token.name}</span>{' '}
+                      <code className="text-xs text-slate-500">{token.prefix}…</code>
                     </p>
                     <p className="text-xs text-slate-500">
                       Created {formatDateTime(token.createdAt)} ·{' '}
                       {token.lastUsedAt ? `last used ${formatRelative(token.lastUsedAt)}` : 'not used yet'}
-                      {token.revokedAt && ` · turned off ${formatRelative(token.revokedAt)}`}
                     </p>
-                  </div>
-                  {!token.revokedAt && (
-                    <IconButton
-                      label={`Turn off ${token.name}`}
-                      icon={<Trash2 className="size-4" />}
-                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                      onClick={() => setRevoking(token)}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
+                    <div className="flex items-center justify-between gap-2">
+                      <KeyStatus token={token} />
+                      {!token.revokedAt && <TurnOffButton name={token.name} onClick={() => setRevoking(token)} />}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </Card>
 
@@ -249,5 +278,36 @@ export function IntegrationsView() {
         onCancel={() => setRevoking(null)}
       />
     </div>
+  );
+}
+
+function KeyStatus({ token }: { token: ApiTokenInfo }) {
+  if (!token.revokedAt) {
+    return (
+      <Badge tone="emerald" dot>
+        In use
+      </Badge>
+    );
+  }
+  return (
+    <span className="flex flex-col items-start gap-0.5">
+      <Badge tone="rose">{token.revokedByAdmin ? 'Turned off by admin' : 'Turned off'}</Badge>
+      <span className="text-xs text-slate-400">{formatRelative(token.revokedAt)}</span>
+    </span>
+  );
+}
+
+function TurnOffButton({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      icon={<Trash2 className="size-3.5 text-rose-600" />}
+      className="text-rose-700"
+      aria-label={`Turn off ${name}`}
+      onClick={onClick}
+    >
+      Turn off
+    </Button>
   );
 }

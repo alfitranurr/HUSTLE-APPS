@@ -3,7 +3,7 @@
 import { KeyRound, Search, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/Badge';
-import { Button, IconButton } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -123,40 +123,58 @@ export function TokensPanel() {
           className="m-4"
         />
       ) : (
-        <ul className="divide-y divide-slate-100">
-          {visible.map((token) => (
-            <li key={token.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
-              <KeyRound className={token.revokedAt ? 'size-4 shrink-0 text-slate-300' : 'size-4 shrink-0 text-teal-600'} />
-              <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-2 text-sm">
-                  <span className="font-semibold break-all text-slate-900">{token.email}</span>
-                  <span className="text-slate-400">·</span>
-                  <span className="font-medium text-slate-700">{token.name}</span>
-                  <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">{token.prefix}…</code>
-                  {token.revokedAt ? (
-                    <Badge tone="rose">{token.revokedByAdmin ? 'Turned off by admin' : 'Turned off by owner'}</Badge>
-                  ) : (
-                    <Badge tone="emerald" dot>
-                      In use
-                    </Badge>
-                  )}
+        <>
+          {/* Same layout as the Users tab: table from md up, stacked cards on phones. */}
+          <table className="hidden w-full text-left text-sm md:table">
+            <thead className="border-b border-slate-200 bg-slate-50/70 text-xs font-semibold text-slate-500">
+              <tr>
+                <th scope="col" className="py-3 pr-3 pl-5">Account</th>
+                <th scope="col" className="px-3 py-3">Key</th>
+                <th scope="col" className="px-3 py-3">Created (WIB)</th>
+                <th scope="col" className="px-3 py-3">Last used</th>
+                <th scope="col" className="px-3 py-3">Status</th>
+                <th scope="col" className="px-3 py-3 pr-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {visible.map((token) => (
+                <tr key={token.id} className="hover:bg-slate-50/70">
+                  <td className="py-3 pr-3 pl-5 font-semibold break-all text-slate-900">{token.email}</td>
+                  <td className="px-3 py-3">
+                    <span className="block font-medium text-slate-800">{token.name}</span>
+                    <code className="text-xs text-slate-500">{token.prefix}…</code>
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap text-slate-600">{wib(token.createdAt)}</td>
+                  <td className="px-3 py-3 whitespace-nowrap text-slate-600">{wib(token.lastUsedAt)}</td>
+                  <td className="px-3 py-3">
+                    <KeyStatus token={token} />
+                  </td>
+                  <td className="px-3 py-3 pr-5 text-right">
+                    <TurnOff token={token} onClick={() => setTurningOff(token)} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <ul className="divide-y divide-slate-100 md:hidden">
+            {visible.map((token) => (
+              <li key={token.id} className="space-y-2 p-4">
+                <p className="font-semibold break-all text-slate-900">{token.email}</p>
+                <p className="text-sm text-slate-700">
+                  {token.name} <code className="text-xs text-slate-500">{token.prefix}…</code>
                 </p>
                 <p className="text-xs text-slate-500">
-                  Created {wib(token.createdAt)} (WIB) · last used {wib(token.lastUsedAt)}
-                  {token.revokedAt && ` · turned off ${wib(token.revokedAt)}`}
+                  Created {wib(token.createdAt)} · last used {wib(token.lastUsedAt)}
                 </p>
-              </div>
-              {!token.revokedAt && (
-                <IconButton
-                  label={`Turn off ${token.name} of ${token.email}`}
-                  icon={<Trash2 className="size-4" />}
-                  className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                  onClick={() => setTurningOff(token)}
-                />
-              )}
-            </li>
-          ))}
-        </ul>
+                <div className="flex items-center justify-between gap-2">
+                  <KeyStatus token={token} />
+                  <TurnOff token={token} onClick={() => setTurningOff(token)} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
       <ConfirmDialog
@@ -191,5 +209,37 @@ export function TokensPanel() {
         onCancel={() => setTurningOffAll(null)}
       />
     </Card>
+  );
+}
+
+function KeyStatus({ token }: { token: AdminToken }) {
+  if (!token.revokedAt) {
+    return (
+      <Badge tone="emerald" dot>
+        In use
+      </Badge>
+    );
+  }
+  return (
+    <span className="flex flex-col items-start gap-0.5">
+      <Badge tone="rose">{token.revokedByAdmin ? 'Turned off by admin' : 'Turned off by owner'}</Badge>
+      <span className="text-xs text-slate-400">{wib(token.revokedAt)}</span>
+    </span>
+  );
+}
+
+function TurnOff({ token, onClick }: { token: AdminToken; onClick: () => void }) {
+  if (token.revokedAt) return <span className="text-xs text-slate-400">—</span>;
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      icon={<Trash2 className="size-3.5 text-rose-600" />}
+      className="text-rose-700"
+      aria-label={`Turn off ${token.name} of ${token.email}`}
+      onClick={onClick}
+    >
+      Turn off
+    </Button>
   );
 }
