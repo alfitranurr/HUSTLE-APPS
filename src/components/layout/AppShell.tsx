@@ -5,10 +5,10 @@ import { useState, type ReactNode } from 'react';
 import { IconButton } from '@/components/ui/Button';
 import { useJobs } from '@/hooks/useJobs';
 import { cn } from '@/lib/cn';
-import { Brand, Sidebar } from './Sidebar';
+import { Brand, Sidebar, type SidebarAccount } from './Sidebar';
 import { SplashScreen } from './SplashScreen';
 
-export function AppShell({ ownerName, children }: { ownerName: string; children: ReactNode }) {
+export function AppShell({ account, children }: { account: SidebarAccount; children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   // Warm the shared applications cache once; until it arrives, show the splash.
@@ -26,7 +26,7 @@ export function AppShell({ ownerName, children }: { ownerName: string; children:
       </a>
 
       <Sidebar
-        ownerName={ownerName}
+        account={account}
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((c) => !c)}
         mobileOpen={mobileOpen}

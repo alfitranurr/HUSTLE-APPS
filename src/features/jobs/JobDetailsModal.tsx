@@ -157,7 +157,7 @@ export function JobDetailsModal({ job, onClose, onEdit }: JobDetailsModalProps) 
             <JobLinkList job={job} />
           </Panel>
           <Panel title="Attachments" count={job.attachments.length}>
-            <AttachmentList urls={job.attachments} />
+            <AttachmentList attachments={job.attachments} />
           </Panel>
         </div>
       </div>

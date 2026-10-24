@@ -7,6 +7,7 @@ import {
   MASTERY_STATUSES,
   RECOMMENDATION_STATUSES,
 } from './constants';
+import { toDateOnly, wallToTimestamptz } from './jakartaTime';
 import { ISO_DATE } from './stageDates';
 
 /** Shared request schemas (server-side source of truth; the forms mirror the rules). */
@@ -34,9 +35,9 @@ const link = z
 export const jobFieldsSchema = z.object({
   company: required(200),
   position: optional(200),
-  appliedAt: required(40),
-  scheduledAt: optional(40),
-  contractDate: optional(40),
+  appliedAt: required(40).refine((v) => wallToTimestamptz(v) !== null, 'must be a valid date'),
+  scheduledAt: optional(40).refine((v) => !v || wallToTimestamptz(v) !== null, 'must be a valid date'),
+  contractDate: optional(40).refine((v) => !v || toDateOnly(v) !== null, 'must be a valid date'),
   /** JSON object { stage: 'yyyy-mm-dd' } sent by the form. */
   stageDates: z
     .string()

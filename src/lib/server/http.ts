@@ -1,9 +1,9 @@
 import 'server-only';
-import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
-import { readSession, SESSION_COOKIE } from '@/lib/auth';
-import { NotFoundError } from './google/sheet';
+import { getCurrentAccount } from './account';
+import { DbError, NotFoundError, type DataContext } from './db';
+import { createClient } from '@/lib/supabase/server';
 
 /** Thrown inside handlers to return a specific status + user-safe message. */
 export class HttpError extends Error {
@@ -23,11 +23,6 @@ export function fail(status: number, error: string, init?: ResponseInit) {
   return NextResponse.json({ success: false, error }, { ...init, status });
 }
 
-export async function getSession() {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  return readSession(token);
-}
-
 function toResponse(error: unknown) {
   if (error instanceof HttpError) return fail(error.status, error.message);
   if (error instanceof NotFoundError) return fail(404, error.message);
@@ -36,21 +31,30 @@ function toResponse(error: unknown) {
     const field = first?.path.join('.');
     return fail(400, field ? `${field}: ${first.message}` : (first?.message ?? 'Invalid request'));
   }
-  // Log only the message: googleapis errors carry request config incl. auth headers.
+  // Database errors are logged with their code but never sent raw: they can
+  // reveal table, column and policy names.
+  if (error instanceof DbError) {
+    console.error(`[api] database error ${error.code}:`, error.message);
+    if (error.code === '23505') return fail(409, 'That already exists.');
+    return fail(500, 'Something went wrong. Please try again.');
+  }
   const message = error instanceof Error ? error.message : String(error);
   console.error('[api] unexpected error:', message);
   return fail(500, 'Something went wrong. Please try again.');
 }
 
 /**
- * Wraps a route handler with a session check and uniform error handling.
- * proxy.ts also guards /api, this is defence in depth.
+ * Wraps a route handler with a session + approval check and uniform error
+ * handling, and hands it the data context (user's client, so RLS applies).
+ * proxy.ts also guards /api and RLS guards the data: defence in depth.
  */
-export function withAuth<Ctx = unknown>(handler: (req: NextRequest, ctx: Ctx) => Promise<Response>) {
+export function withAuth<Ctx = unknown>(handler: (req: NextRequest, ctx: Ctx, data: DataContext) => Promise<Response>) {
   return async (req: NextRequest, ctx: Ctx): Promise<Response> => {
     try {
-      if (!(await getSession())) return fail(401, 'Unauthorized');
-      return await handler(req, ctx);
+      const account = await getCurrentAccount();
+      if (!account) return fail(401, 'Unauthorized');
+      if (account.status !== 'approved') return fail(403, 'Your account is waiting for approval.');
+      return await handler(req, ctx, { db: await createClient(), userId: account.id, via: 'session' });
     } catch (error) {
       return toResponse(error);
     }

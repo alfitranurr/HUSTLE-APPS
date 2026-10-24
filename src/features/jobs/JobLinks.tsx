@@ -1,7 +1,7 @@
 import { ExternalLink, Globe, Paperclip } from 'lucide-react';
 import { InstagramIcon, LinkedinIcon } from '@/components/BrandIcons';
 import { cn } from '@/lib/cn';
-import type { Job } from '@/lib/types';
+import type { Attachment, Job } from '@/lib/types';
 import { safeHref } from '@/lib/urls';
 
 const LINKS = [
@@ -67,18 +67,18 @@ export function JobLinkList({ job }: { job: Job }) {
 }
 
 /** Full-width rows of the proof attachments, for the details view. */
-export function AttachmentList({ urls }: { urls: string[] }) {
-  const safe = urls.map(safeHref).filter(Boolean);
-  if (safe.length === 0) return <p className="text-sm text-slate-400">No attachments.</p>;
+export function AttachmentList({ attachments }: { attachments: Attachment[] }) {
+  if (attachments.length === 0) return <p className="text-sm text-slate-400">No attachments.</p>;
   return (
     <ul className="space-y-2">
-      {safe.map((url, i) => (
-        <li key={url}>
-          <a href={url} target="_blank" rel="noopener noreferrer" className={ROW}>
+      {attachments.map((file) => (
+        <li key={file.id}>
+          {/* Same-origin route that redirects to a short-lived signed URL. */}
+          <a href={file.url} target="_blank" rel="noopener noreferrer" className={ROW}>
             <Paperclip className="size-4 shrink-0 text-indigo-500" />
             <span className="min-w-0 flex-1">
-              <span className="block font-medium text-slate-900">Attachment {i + 1}</span>
-              <span className="block truncate text-xs text-slate-500">Google Drive</span>
+              <span className="block truncate font-medium text-slate-900">{file.name}</span>
+              <span className="block truncate text-xs text-slate-500">Opens in a new tab</span>
             </span>
             <ExternalLink className="size-4 shrink-0 text-slate-400" />
           </a>

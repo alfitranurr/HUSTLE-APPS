@@ -1,15 +1,17 @@
 import type { NextConfig } from 'next';
 
 const isDev = process.env.NODE_ENV === 'development';
+// Auth calls go from the browser straight to Supabase; signed proof URLs are served from there too.
+const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin : '';
 
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' blob: data:",
+  `img-src 'self' blob: data: ${supabaseOrigin}`.trim(),
   "font-src 'self'",
   // Indonesian province/city list used by the application form.
-  "connect-src 'self' https://ibnux.github.io",
+  `connect-src 'self' https://ibnux.github.io ${supabaseOrigin}`.trim(),
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

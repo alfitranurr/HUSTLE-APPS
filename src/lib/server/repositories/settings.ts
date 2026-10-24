@@ -1,47 +1,31 @@
 import 'server-only';
 import { DEFAULT_WEEKLY_TARGETS } from '@/lib/constants';
 import type { WeeklyTargets } from '@/lib/types';
-import { ensureSheet, readValues, writeValues } from '../google/sheet';
+import { must, owned, type DataContext } from '../db';
 
-/** Key/value settings stored in a "Settings" tab (column A = key, B = value). */
-const SHEET = 'Settings';
-const KEYS = { applications: 'weeklyApplicationsTarget', interviews: 'weeklyInterviewsTarget' } as const;
+/** Weekly targets in user_settings (one row per user, created at sign-up). */
 
-async function readMap(): Promise<Map<string, string>> {
-  await ensureSheet(SHEET, ['Key', 'Value']);
-  const rows = await readValues(`${SHEET}!A2:B`);
-  return new Map(rows.filter(([key]) => key).map(([key, value]) => [key, value ?? '']));
+export async function getWeeklyTargets(ctx: DataContext): Promise<WeeklyTargets> {
+  const row = must(
+    await ctx.db
+      .from('user_settings')
+      .select('weekly_applications, weekly_interviews')
+      .eq('user_id', ctx.userId)
+      .maybeSingle()
+  ) as { weekly_applications: number; weekly_interviews: number } | null;
+  return row
+    ? { applications: row.weekly_applications, interviews: row.weekly_interviews }
+    : { ...DEFAULT_WEEKLY_TARGETS };
 }
 
-const toCount = (value: string | undefined, fallback: number) => {
-  const n = Number.parseInt(value ?? '', 10);
-  return Number.isFinite(n) && n >= 0 ? n : fallback;
-};
-
-/** A single free-form setting, '' when unset. */
-export async function getSetting(key: string): Promise<string> {
-  return (await readMap()).get(key) ?? '';
-}
-
-export async function setSetting(key: string, value: string): Promise<void> {
-  const map = await readMap();
-  map.set(key, value);
-  await writeValues(`${SHEET}!A2:B${map.size + 1}`, [...map].map(([k, v]) => [k, v]));
-}
-
-export async function getWeeklyTargets(): Promise<WeeklyTargets> {
-  const map = await readMap();
-  return {
-    applications: toCount(map.get(KEYS.applications), DEFAULT_WEEKLY_TARGETS.applications),
-    interviews: toCount(map.get(KEYS.interviews), DEFAULT_WEEKLY_TARGETS.interviews),
-  };
-}
-
-export async function setWeeklyTargets(targets: WeeklyTargets): Promise<WeeklyTargets> {
-  const map = await readMap();
-  map.set(KEYS.applications, String(targets.applications));
-  map.set(KEYS.interviews, String(targets.interviews));
-  // Rewrite the whole (tiny) table so keys stay unique.
-  await writeValues(`${SHEET}!A2:B${map.size + 1}`, [...map].map(([k, v]) => [k, v]));
+export async function setWeeklyTargets(ctx: DataContext, targets: WeeklyTargets): Promise<WeeklyTargets> {
+  must(
+    await ctx.db
+      .from('user_settings')
+      .upsert(
+        owned(ctx, { weekly_applications: targets.applications, weekly_interviews: targets.interviews }),
+        { onConflict: 'user_id' }
+      )
+  );
   return targets;
 }

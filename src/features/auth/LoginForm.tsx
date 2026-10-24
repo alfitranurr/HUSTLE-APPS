@@ -1,76 +1,96 @@
 'use client';
 
-import { AlertCircle, Eye, EyeOff } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Field, Input } from '@/components/ui/Field';
-import { apiFetch, errorMessage, jsonRequest } from '@/lib/api';
+import { safeNextPath } from '@/lib/safeRedirect';
+import { createClient } from '@/lib/supabase/client';
+import { FormAlert } from './AuthCard';
+import { authErrorMessage, authRedirect } from './authRedirect';
+import { PasswordInput } from './PasswordInput';
 
-export function LoginForm() {
+export function LoginForm({ next, initialError }: { next?: string; initialError?: string }) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ?? null);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resent, setResent] = useState(false);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
-    try {
-      await apiFetch('/api/auth/login', jsonRequest('POST', { email, password }));
-      window.location.assign('/dashboard');
-    } catch (err) {
-      setError(errorMessage(err));
+    setResent(false);
+    const { error: signInError } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+    if (signInError) {
+      setUnconfirmed(signInError.code === 'email_not_confirmed');
+      setError(authErrorMessage(signInError));
       setLoading(false);
+      return;
     }
+    // The (app) layout sends pending accounts on to /pending.
+    router.replace(safeNextPath(next));
+    router.refresh();
+  };
+
+  const resend = async () => {
+    const { error: resendError } = await createClient().auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: authRedirect(next) },
+    });
+    if (resendError) setError(authErrorMessage(resendError));
+    else setResent(true);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-      {error && (
-        <div role="alert" className="flex items-start gap-2 rounded-lg border-l-4 border-rose-500 bg-rose-50 p-3 text-sm text-rose-700">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          {error}
-        </div>
-      )}
+    <div className="mt-6">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {error && (
+          <FormAlert>
+            {error}
+            {unconfirmed && !resent && (
+              <button type="button" onClick={resend} className="mt-1 block cursor-pointer font-semibold underline">
+                Resend verification email
+              </button>
+            )}
+          </FormAlert>
+        )}
+        {resent && <FormAlert tone="success">Verification email sent. Check your inbox.</FormAlert>}
 
-      <Field label="Email">
-        <Input
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={loading}
-          placeholder="you@example.com"
-        />
-      </Field>
-
-      <div>
-        <Field label="Password">
+        <Field label="Email">
           <Input
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
+            type="email"
+            autoComplete="email"
             required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
+            placeholder="you@example.com"
+          />
+        </Field>
+
+        <div>
+          <PasswordInput
+            label="Password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={loading}
           />
-        </Field>
-        <button
-          type="button"
-          onClick={() => setShowPassword((s) => !s)}
-          className="mt-1.5 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800"
-        >
-          {showPassword ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-          {showPassword ? 'Hide password' : 'Show password'}
-        </button>
-      </div>
+          <Link href="/forgot-password" className="float-right -mt-5 text-xs font-medium text-indigo-600 hover:text-indigo-500">
+            Forgot password?
+          </Link>
+        </div>
 
-      <Button type="submit" loading={loading} disabled={!email || !password} className="w-full">
-        Sign in
-      </Button>
-    </form>
+        <Button type="submit" loading={loading} disabled={!email || !password} className="w-full">
+          Sign in
+        </Button>
+      </form>
+    </div>
   );
 }

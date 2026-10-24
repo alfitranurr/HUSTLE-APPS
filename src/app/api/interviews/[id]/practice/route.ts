@@ -4,7 +4,7 @@ import { recordPractice } from '@/lib/server/repositories/interviews';
 type Ctx = { params: Promise<{ id: string }> };
 
 /** Records one practice round for a question. */
-export const POST = withAuth<Ctx>(async (_req, { params }) => {
+export const POST = withAuth<Ctx>(async (_req, { params }, data) => {
   const { id } = await params;
-  return ok(await recordPractice(id));
+  return ok(await recordPractice(data, id));
 });

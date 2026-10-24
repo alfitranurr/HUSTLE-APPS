@@ -1,16 +1,20 @@
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
-import { getAuthEnv } from '@/lib/env';
-import { getSession } from '@/lib/server/http';
+import { getCurrentAccount } from '@/lib/server/account';
 
-/** Authenticated area. proxy.ts redirects first; this re-checks on the server (defence in depth). */
+/**
+ * Signed-in, approved area. proxy.ts redirects signed-out visitors first; this
+ * re-checks on the server and also sends pending/suspended accounts to /pending.
+ */
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const session = await getSession();
-  if (!session) redirect('/login');
+  const account = await getCurrentAccount();
+  if (!account) redirect('/login');
+  if (account.status !== 'approved') redirect('/pending');
 
-  const { OWNER_NAME } = getAuthEnv();
-  const ownerName = OWNER_NAME || session.sub.split('@')[0];
-
-  return <AppShell ownerName={ownerName}>{children}</AppShell>;
+  return (
+    <AppShell account={{ displayName: account.displayName, email: account.email, isAdmin: account.isAdmin }}>
+      {children}
+    </AppShell>
+  );
 }

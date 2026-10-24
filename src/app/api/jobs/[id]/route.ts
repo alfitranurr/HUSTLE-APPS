@@ -1,13 +1,12 @@
-import { trashFiles } from '@/lib/server/google/drive';
 import { ok, withAuth } from '@/lib/server/http';
 import { parseJobForm } from '@/lib/server/jobForm';
-import { deleteJob, getJob, patchJob, updateJob, type JobPatch } from '@/lib/server/repositories/jobs';
+import { deleteJob, patchJob, updateJob, type JobPatch } from '@/lib/server/repositories/jobs';
 import { jobPatchSchema } from '@/lib/validation';
 
 type Ctx = { params: Promise<{ id: string }> };
 
 /** Quick updates from the board and follow-up list. Always bumps "last updated". */
-export const PATCH = withAuth<Ctx>(async (req, { params }) => {
+export const PATCH = withAuth<Ctx>(async (req, { params }, data) => {
   const { id } = await params;
   const { stage, status } = jobPatchSchema.parse(await req.json());
   const patch: JobPatch = {};
@@ -15,21 +14,18 @@ export const PATCH = withAuth<Ctx>(async (req, { params }) => {
   if (status) patch.status = status;
   // A signed contract is a success unless the caller says otherwise.
   if (stage === 'Contract Signed / Done' && !status) patch.status = 'Success';
-  return ok(await patchJob(id, patch));
+  return ok(await patchJob(data, id, patch));
 });
 
-export const PUT = withAuth<Ctx>(async (req, { params }) => {
+export const PUT = withAuth<Ctx>(async (req, { params }, data) => {
   const { id } = await params;
-  const existing = await getJob(id);
-  const { data, removedAttachments } = await parseJobForm(await req.formData(), existing);
-  const { after } = await updateJob(id, data);
-  await trashFiles(removedAttachments);
+  const { data: fields, uploads, keepAttachmentIds } = await parseJobForm(await req.formData());
+  const { after } = await updateJob(data, id, fields, { keepAttachmentIds, uploads });
   return ok(after);
 });
 
-export const DELETE = withAuth<Ctx>(async (_req, { params }) => {
+export const DELETE = withAuth<Ctx>(async (_req, { params }, data) => {
   const { id } = await params;
-  const job = await deleteJob(id);
-  await trashFiles(job.attachments);
+  await deleteJob(data, id);
   return ok(null);
 });

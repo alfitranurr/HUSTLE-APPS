@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { readSession, SESSION_COOKIE } from '@/lib/auth';
+import { updateSession, withSessionCookies } from '@/lib/supabase/proxy';
 
-const PUBLIC_API = new Set(['/api/auth/login']);
+/** Signed-out pages: a signed-in visitor is sent on to the app instead. */
+const GUEST_PAGES = new Set(['/login', '/signup', '/forgot-password']);
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 function isCrossOrigin(request: NextRequest) {
@@ -15,35 +16,36 @@ function isCrossOrigin(request: NextRequest) {
 }
 
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   const isApi = pathname.startsWith('/api/');
 
-  // Reject cross-site writes to the API (CSRF defence on top of SameSite=Lax).
-  if (isApi && !SAFE_METHODS.has(request.method) && isCrossOrigin(request)) {
+  // Reject cross-site writes (CSRF defence on top of SameSite=Lax cookies).
+  if ((isApi || pathname === '/auth/signout') && !SAFE_METHODS.has(request.method) && isCrossOrigin(request)) {
     return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
   }
 
-  if (isApi && PUBLIC_API.has(pathname)) return NextResponse.next();
+  const { response, userId } = await updateSession(request);
 
-  const session = await readSession(request.cookies.get(SESSION_COOKIE)?.value);
+  // Email links land here before a session exists.
+  if (pathname.startsWith('/auth/')) return response;
 
   if (isApi) {
-    return session
-      ? NextResponse.next()
-      : NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    return userId
+      ? response
+      : withSessionCookies(NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 }), response);
   }
 
-  if (pathname === '/login') {
-    return session ? NextResponse.redirect(new URL('/dashboard', request.url)) : NextResponse.next();
+  if (GUEST_PAGES.has(pathname)) {
+    return userId ? withSessionCookies(NextResponse.redirect(new URL('/dashboard', request.url)), response) : response;
   }
 
-  if (!session) {
-    const response = NextResponse.redirect(new URL('/login', request.url));
-    if (request.cookies.has(SESSION_COOKIE)) response.cookies.delete(SESSION_COOKIE);
-    return response;
+  if (!userId) {
+    const login = new URL('/login', request.url);
+    if (pathname !== '/' && pathname !== '/dashboard') login.searchParams.set('next', `${pathname}${search}`);
+    return withSessionCookies(NextResponse.redirect(login), response);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

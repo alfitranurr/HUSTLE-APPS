@@ -20,7 +20,7 @@ import {
 } from '@/lib/constants';
 import { toDateInput, toDateKey, toDateTimeLocal } from '@/lib/format';
 import { pruneStageDates, type StageDates } from '@/lib/stageDates';
-import type { Job } from '@/lib/types';
+import type { Attachment, Job } from '@/lib/types';
 import { safeHref } from '@/lib/urls';
 import { AttachmentField, validateFiles } from './AttachmentField';
 import { saveJob } from './jobApi';
@@ -114,7 +114,7 @@ interface JobFormModalProps {
 export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormModalProps) {
   const toast = useToast();
   const [values, setValues] = useState(() => ({ ...initialValues(job), ...(job ? {} : defaults) }));
-  const [keptAttachments, setKeptAttachments] = useState<string[]>(job?.attachments ?? []);
+  const [keptAttachments, setKeptAttachments] = useState<Attachment[]>(job?.attachments ?? []);
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [saving, setSaving] = useState(false);
@@ -150,7 +150,7 @@ export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormM
     if (!needsSchedule) form.set('scheduledAt', '');
     if (!needsContract) form.set('contractDate', '');
     form.set('stageDates', JSON.stringify(pruneStageDates(stageDates, values.stage)));
-    keptAttachments.forEach((url) => form.append('keepAttachments', url));
+    keptAttachments.forEach((file) => form.append('keepAttachments', file.id));
     files.forEach((file) => form.append('files', file));
 
     setSaving(true);
@@ -357,7 +357,7 @@ export function JobFormModal({ open, job, defaults, onClose, onSaved }: JobFormM
             </div>
             <AttachmentField
               existing={keptAttachments}
-              onRemoveExisting={(url) => setKeptAttachments((list) => list.filter((u) => u !== url))}
+              onRemoveExisting={(id) => setKeptAttachments((list) => list.filter((file) => file.id !== id))}
               files={files}
               onFilesChange={(next) => {
                 setFiles(next);

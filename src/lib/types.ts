@@ -28,10 +28,17 @@ export interface Job {
     website: string;
     other: string;
   };
-  /** Google Drive URLs of uploaded proof files. */
-  attachments: string[];
+  /** Uploaded proof files. */
+  attachments: Attachment[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** A proof file. `url` is an app route that redirects to a short-lived signed URL. */
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
 }
 
 export interface InterviewQuestion {

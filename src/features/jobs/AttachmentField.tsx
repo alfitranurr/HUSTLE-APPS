@@ -4,7 +4,7 @@ import { FileText, Paperclip, UploadCloud, X } from 'lucide-react';
 import { useRef } from 'react';
 import { IconButton } from '@/components/ui/Button';
 import { ACCEPTED_UPLOADS, MAX_UPLOAD_FILE_MB, MAX_UPLOAD_FILES } from '@/lib/constants';
-import { safeHref } from '@/lib/urls';
+import type { Attachment } from '@/lib/types';
 
 const ACCEPTED_EXTENSIONS = ACCEPTED_UPLOADS.split(',');
 const MAX_TOTAL_MB = 4.4;
@@ -23,8 +23,8 @@ export function validateFiles(files: File[]): string | null {
 }
 
 interface AttachmentFieldProps {
-  existing: string[];
-  onRemoveExisting: (url: string) => void;
+  existing: Attachment[];
+  onRemoveExisting: (id: string) => void;
   files: File[];
   onFilesChange: (files: File[]) => void;
   error?: string;
@@ -69,18 +69,23 @@ export function AttachmentField({ existing, onRemoveExisting, files, onFilesChan
 
       {(existing.length > 0 || files.length > 0) && (
         <ul className="mt-3 space-y-1.5">
-          {existing.map((url, i) => (
-            <li key={url} className="flex items-center justify-between gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm">
+          {existing.map((file) => (
+            <li key={file.id} className="flex items-center justify-between gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-sm">
               <a
-                href={safeHref(url)}
+                href={file.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex min-w-0 items-center gap-2 text-indigo-700 hover:underline"
               >
                 <Paperclip className="size-4 shrink-0" />
-                <span className="truncate">Saved file {i + 1}</span>
+                <span className="truncate">{file.name}</span>
               </a>
-              <IconButton label="Remove saved file" icon={<X className="size-4" />} onClick={() => onRemoveExisting(url)} disabled={disabled} />
+              <IconButton
+                label={`Remove ${file.name}`}
+                icon={<X className="size-4" />}
+                onClick={() => onRemoveExisting(file.id)}
+                disabled={disabled}
+              />
             </li>
           ))}
           {files.map((file, i) => (

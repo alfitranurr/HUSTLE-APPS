@@ -14,12 +14,10 @@ export function useProfile() {
 }
 
 export function useRecommendations() {
-  const { data, isLoading, mutate } = useSWR<{ items: Recommendation[]; lastSync: string }>(
-    '/api/recommendations',
-    fetcher<{ items: Recommendation[]; lastSync: string }>,
-    { revalidateOnFocus: false }
-  );
-  return { items: data?.items ?? NO_ITEMS, lastSync: data?.lastSync ?? '', isLoading, mutate };
+  const { data, isLoading, mutate } = useSWR<Recommendation[]>('/api/recommendations', fetcher<Recommendation[]>, {
+    revalidateOnFocus: false,
+  });
+  return { items: data ?? NO_ITEMS, isLoading, mutate };
 }
 
 export const saveProfile = (input: ProfileInput) => apiFetch<CandidateProfile>('/api/profile', jsonRequest('PUT', input));
@@ -34,9 +32,6 @@ export interface ImportResult {
   found: number;
   added: number;
 }
-
-export const syncGmail = () =>
-  apiFetch<ImportResult & { emails: number; syncedAt: string }>('/api/recommendations/sync', { method: 'POST' });
 
 export const importPasted = (text: string) =>
   apiFetch<ImportResult>('/api/recommendations/paste', jsonRequest('POST', { text }));
