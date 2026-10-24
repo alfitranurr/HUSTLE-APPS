@@ -19,7 +19,7 @@ export function buildInsights(stats: JobStats, stop: StopPoint | null, rejection
 
   if (stop) {
     tips.push(
-      `Most applications end up at ${stop.label}: ${stop.count} of ${stats.total} (${formatPercent(stop.share)}). Put your next effort into getting past that step.`
+      `Most applications end up at ${stop.label}: ${stop.count} of your ${stats.total} applications. Put your next effort into getting past that step.`
     );
   }
 

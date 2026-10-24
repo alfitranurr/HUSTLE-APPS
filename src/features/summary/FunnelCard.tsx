@@ -1,7 +1,6 @@
 import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { selectReached, type JobSelection } from '@/features/jobs/selection';
-import { formatPercent } from '@/lib/format';
 import type { FunnelStep, StopPoint } from '@/lib/stats';
 import { rowLabel, SelectableRow } from './SelectableRow';
 
@@ -11,7 +10,7 @@ interface FunnelCardProps {
   onSelect: (selection: JobSelection) => void;
 }
 
-/** How many applications went through each stage, as a share of all applications. */
+/** How many applications went through each stage, as plain counts ("4 of 203"); the bar shows the share. */
 export function FunnelCard({ steps, stop, onSelect }: FunnelCardProps) {
   const total = steps[0]?.reached ?? 0;
 
@@ -19,7 +18,7 @@ export function FunnelCard({ steps, stop, onSelect }: FunnelCardProps) {
     <Card accent="indigo" className="h-full">
       <CardHeader
         title="Pipeline conversion"
-        description="Applications that went through each stage. A stage counts only if you were in it or it has a date, since steps can be skipped."
+        description="How many of your applications got to each stage. Stages you skipped aren't counted."
       />
       <CardContent className="space-y-4">
         {total === 0 ? (
@@ -31,7 +30,7 @@ export function FunnelCard({ steps, stop, onSelect }: FunnelCardProps) {
                 <MapPin className="mt-0.5 size-4 shrink-0 text-amber-600" />
                 <span>
                   Most applications end up at <strong className="font-semibold">{stop.label}</strong>: {stop.count} of{' '}
-                  {total} ({formatPercent(stop.share)}).
+                  your {total} applications.
                 </span>
               </p>
             )}
@@ -50,9 +49,9 @@ export function FunnelCard({ steps, stop, onSelect }: FunnelCardProps) {
                         style={{ width: step.reached > 0 ? `max(${step.ofTotal}%, 0.375rem)` : 0 }}
                       />
                     </span>
-                    <span className="w-40 text-right tabular-nums">
+                    <span className="w-24 text-right tabular-nums">
                       <span className="font-semibold text-slate-900">{step.reached}</span>
-                      <span className="ml-1.5 text-xs text-slate-500">{formatPercent(step.ofTotal)} of all</span>
+                      <span className="ml-1 text-xs text-slate-500">of {total}</span>
                     </span>
                   </SelectableRow>
                 </li>
