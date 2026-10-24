@@ -1,75 +1,108 @@
 # Hustle — job search tracker
 
-A private, single-user web app to track job applications, upcoming tests and
-interviews, weekly goals and STAR interview answers. Data lives in a Google
-Sheet; proof-of-application files are stored in a Google Drive folder.
+A web app to track job applications, upcoming tests and interviews, weekly
+goals and STAR interview answers. Anyone can sign up; every account's data is
+isolated by row-level security, and new accounts wait for admin approval.
+AI assistants (Claude, Cursor, VS Code…) can manage your applications through
+a built-in MCP server.
 
-Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and Recharts.
+Live at **https://hustle-career.vercel.app**.
+
+Built with Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, zod and
+Recharts, on Supabase (Postgres, Auth, Storage) and Vercel.
 
 ## Features
 
+- **Accounts**: email + password sign-up with email verification, password reset, self-service account deletion. New accounts are *pending* until an admin approves them.
 - **Dashboard**: key numbers, upcoming tests/interviews, weekly targets with streak, follow-up queue, recent applications and a 12-month activity heatmap.
-- **Applications**: search, filters, sortable table, cards, and a drag-and-drop **board** by pipeline stage; CSV export of the current view.
+- **Applications**: search, filters, sortable table, cards, and a drag-and-drop **board** by pipeline stage; CSV export; proof files (PDF/PNG/JPG/WebP) in private storage.
 - **Follow-up reminders**: in-progress applications with no update for 14+ days are flagged; "Followed up" resets the clock.
-- **Insights**: interview and offer rates, status/stage/level/location/platform breakdowns, top positions and a 12-month timeline, filterable by timeframe.
+- **Insights**: interview and offer rates, pipeline by stage (a stage counts only when it really happened), where you get rejected, breakdowns and a 12-month timeline; every number opens the list behind it, with each application's journey.
 - **Interview prep**: question bank with STAR drafts and study notes, a starter pack, practice mode with a timer, mastery tracking and a rule-based answer check.
-- **Job match**: the jobs LinkedIn recommends to you (from LinkedIn's recommendation emails in Gmail, or the pasted "Top job picks for you" page), scored 0-100 against your profile from LinkedIn's "Save to PDF". Rule-based, no AI and no scraping; one click adds a job to Applications.
-
-The Google Sheet uses three tabs, created automatically when missing:
-`DataLowongan` (applications, columns A–U), `Interviews`, `Settings`, `Profile` and `Recommendations` (Job match).
+- **Job match** *(beta)*: paste LinkedIn's "Top job picks for you" page; jobs are scored 0-100 against your profile from LinkedIn's "Save to PDF". Rule-based, no AI and no scraping.
+- **Connect AI**: per-account access keys (shown once, regenerate, turn off, delete) and an MCP server at `/api/mcp` with full create / read / update / delete of applications.
+- **Admin Panel** (admins only): approve, suspend or delete accounts, review and turn off access keys, system health and capacity. Admins never see anyone's applications or usage figures.
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env.local   # then fill in every value
+cp .env.example .env.local   # fill in the Supabase values
 npm run dev                  # http://localhost:3000
 ```
 
 The app validates its configuration at startup and refuses to run if a
-required variable is missing or too weak (see `.env.example`).
+required variable is missing (see `.env.example`):
 
-### Job match: Gmail access (one time)
+| Variable | Where it is used |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser and server (public; RLS protects the data) |
+| `SUPABASE_SECRET_KEY` | Server only: deleting accounts and the access-key path |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` (or `UPSTASH_REDIS_REST_*`) | Optional: shared rate limit for access keys (Upstash Redis) |
+| `SUPABASE_DB_URL` | Local only: migrations, backups, psql checks |
 
-1. LinkedIn → Settings → Notifications → Searching for a job → **Job recommendations**: turn Email on.
-2. Google Cloud Console: enable the **Gmail API**, add the `gmail.readonly` scope to the OAuth consent screen and set the app to **In production** (in Testing, tokens for this scope expire after 7 days).
-3. `node scripts/google-oauth-token.mjs` signs you in and writes a new `GOOGLE_REFRESH_TOKEN` to `.env.local` (never printed). If Google reports `redirect_uri_mismatch`, add `http://localhost:53682/oauth2callback` to the OAuth client's redirect URIs.
-4. Put the new token in Vercel (Production + Preview) and redeploy.
+### Database
 
-Without Gmail access, paste the "Top job picks for you" page instead.
+Migrations live in `supabase/migrations/` (`0001`–`0007`) and are applied in
+order. Every schema or policy change must pass the RLS suite first:
 
-| Script              | What it does                 |
-| ------------------- | ---------------------------- |
-| `npm run dev`       | Development server           |
-| `npm run build`     | Production build             |
-| `npm run lint`      | ESLint                       |
-| `npm run typecheck` | TypeScript, no emit          |
+```bash
+npm run test:db    # Postgres in WASM (PGlite) with Supabase-like roles: RLS, grants, RPCs
+```
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | TypeScript, no emit |
+| `npm test` | Unit tests (vitest) |
+| `npm run test:db` | Database / RLS tests |
+
+### Connecting an AI assistant
+
+In the app, open **Connect AI**, create an access key and copy the setup for
+your app. For Claude Code:
+
+```bash
+claude mcp add --scope user --transport http hustle https://hustle-career.vercel.app/api/mcp \
+  --header "Authorization: Bearer hst_your_key"
+```
+
+Tools: `hustle_list_applications`, `hustle_get_application`,
+`hustle_add_application`, `hustle_update_application`,
+`hustle_delete_application` (needs `confirm`), `hustle_proof_link`. Adding and
+deleting are previews until confirmed. A remote server can't read files on your
+computer, so new proof files are added through a link to the form.
 
 ## Project structure
 
 ```
 src/
   app/                    Routes only (thin pages + API route handlers)
-    (app)/                Authenticated pages, wrapped in the app shell
-    api/                  JSON API: auth, jobs, interviews
-    login/                Sign-in page
-  components/
-    ui/                   Design-system primitives (Button, Card, Modal, ...)
-    layout/               App shell, sidebar, page header
-  features/               Feature modules: dashboard, jobs, summary, interviews, auth
-  hooks/                  Shared client hooks
-  lib/                    Framework-agnostic logic: constants, types, formatting, stats
-    server/               Server-only code (never imported by client components)
-      google/             Sheets + Drive clients and helpers
-      repositories/       Sheet rows <-> domain objects
-  proxy.ts                Auth gate for pages and API (Next.js 16 "middleware")
+    (app)/                Signed-in, approved pages wrapped in the app shell (incl. admin, integrations)
+    api/                  JSON API: jobs, interviews, profile, recommendations, tokens, admin, mcp
+    auth/                 Email link callback, sign out
+    login/ signup/ …      Auth pages, /pending for accounts awaiting approval
+  components/             Design-system primitives and layout
+  features/               Feature modules: dashboard, jobs, summary, interviews, matches, integrations, admin, auth
+  lib/                    Framework-agnostic logic: constants, types, formatting, stats, notes, validation
+    supabase/             Supabase clients (browser, server, proxy, secret-key)
+    server/               Server-only code: auth context, repositories, proof files, access keys, MCP server
+  proxy.ts                Session refresh, CSRF check and page/API gate (Next.js 16 "middleware")
+supabase/
+  migrations/             Schema, RLS, storage, admin and access-key migrations
+  tests/rls.test.mjs      RLS suite
+scripts/
+  migrate-from-sheets.mts One-time import from the old Google Sheet (dry run by default)
+docs/                     Multi-user plan and progress
 ```
 
 Conventions:
 
 - **One source of truth** for statuses, stages, platforms and colours: `src/lib/constants.ts` and `src/lib/tones.ts`.
-- **Domain types** in `src/lib/types.ts`; sheet column names never leak past `lib/server/repositories`.
-- **Validation** with zod in `src/lib/validation.ts`, shared by API routes and mirrored in forms.
+- **Domain types** in `src/lib/types.ts`; database columns never leak past `lib/server/repositories`.
+- **Validation** with zod in `src/lib/validation.ts`, shared by API routes, the MCP tools and mirrored in forms.
 - API responses are always `{ success: true, data }` or `{ success: false, error }`; use `apiFetch` on the client.
 
 ## Design
@@ -81,12 +114,18 @@ The brand colour is indigo; no gradients. Colours come from named tones
 
 ## Security
 
-- Every page and API route requires a valid session (checked in `proxy.ts` and again in each handler).
-- Session: HMAC-signed, httpOnly, SameSite=Lax cookie (Secure outside development), 7-day expiry.
-- Login is rate-limited and compares credentials in constant time.
-- Cross-origin writes to the API are rejected.
-- Sheet writes use `RAW` input so values are never evaluated as formulas.
-- Uploads: max 5 files, 4 MB each, PDF/PNG/JPG/WebP verified by file signature; files stay private in Drive.
-- Only files inside the configured Drive folder can be deleted.
+Four layers check every request, so a bug in one is caught by the next:
+
+1. `proxy.ts` refreshes the Supabase session and sends signed-out visitors to `/login`; cross-origin writes are rejected.
+2. The `(app)` layout re-checks the session and sends pending or suspended accounts to `/pending`.
+3. Every API route (`withAuth` / `withAdmin`) checks the session, approval and, for admin routes, the admin flag.
+4. **Row-level security** in Postgres: every table and the proof bucket only ever return the caller's own rows, and a restrictive policy blocks accounts that aren't approved. Per-column grants stop clients writing `user_id`, counters, hashes or admin flags.
+
+More:
+
+- **Access keys** (`hst_…`) are stored as SHA-256 hashes, shown once, limited to five per account, and only reach applications (list, read, add, edit, delete through MCP). The access-key path is the only one using the secret key; every query on it is scoped to the key's owner (covered by tests). 60 requests per minute per key via Upstash.
+- **Admin RPCs** check the admin flag inside the database and return account management data only (no application counts or content).
+- **Proof files** live in a private bucket at `{user}/{application}/…`, are verified by file signature, and open through 60-second signed URLs.
+- Database errors are logged, never returned to the client.
 - Security headers (CSP, HSTS, X-Frame-Options, etc.) are set in `next.config.ts`.
-- Secrets are only read server-side via `src/lib/env.ts`; nothing is exposed with `NEXT_PUBLIC_`.
+- Supabase Security Advisor: 0 errors; the warnings left are intentional and documented in `docs/MULTI_USER_PLAN.md`.

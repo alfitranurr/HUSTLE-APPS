@@ -27,7 +27,7 @@ Legenda: ✅ selesai · 🔄 sedang dikerjakan · ⬜ belum · 👤 dikerjakan p
 | 7 | Regenerate access key "Laptop" (sempat ditempel di chat), pakai key baru di langkah 6 | 👤 | ✅ 24 Okt (key baru juga sempat ditempel di chat: regenerate sekali lagi jika ingin bersih) |
 | 7b | Tombol **Delete** untuk key yang sudah dimatikan (`0007_delete_turned_off_keys.sql` + UI) | 🤖 🔒 | ✅ 24 Okt: 0007 di-apply (backup), PR #10 → production |
 | 7c | MCP CRUD penuh (permintaan user): `hustle_get_application`, add/edit semua kolom form (link, jadwal, tanggal kontrak, stage dates, catatan per poin), hapus file bukti, `hustle_delete_application` (wajib `confirm`); halaman Connect AI diperbarui | 🤖 🔒 | ✅ 24 Okt: tes tulis di akun (tambah → ubah → hapus, data kembali 203), PR #11 → production, 6 tool aktif |
-| 8 | Update `README.md`, root `PROGRESS.md`, bagian "Current work" di `CLAUDE.md` | 🤖 | ⬜ |
+| 8 | Update `README.md`, root `PROGRESS.md`, bagian "Current work" di `CLAUDE.md` | 🤖 | ✅ 24 Okt |
 
 ### C. Bersih-bersih keamanan (setelah production stabil)
 
