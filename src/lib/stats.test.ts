@@ -39,7 +39,7 @@ function job(stage: JobStage, status: JobStatus = 'In Progress', stageDates: Sta
 }
 
 describe('reachedStage: a stage counts only with evidence', () => {
-  // Like PT Fore Kopi: signed a contract, only that date recorded, no FGD/LGD.
+  // A signed contract with only that date recorded and no FGD/LGD (a real case from the migrated data).
   const signed = job('Contract Signed / Done', 'Success', { 'Contract Signed / Done': '2026-10-14' });
 
   it('counts the current stage', () => {

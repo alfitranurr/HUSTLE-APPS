@@ -56,8 +56,8 @@ describe('normalisation of old values', () => {
 
 describe('repairText', () => {
   it('turns the in-word damage back into "done"', () => {
-    expect(repairText('PT Vale InIn Progresssia', false)).toBe('PT Vale Indonesia');
-    expect(repairText('https://vale.com/in/inIn Progresssia/kerja', false)).toBe('https://vale.com/in/indonesia/kerja');
+    expect(repairText('PT Contoh InIn Progresssia', false)).toBe('PT Contoh Indonesia');
+    expect(repairText('https://example.com/in/inIn Progresssia/kerja', false)).toBe('https://example.com/in/indonesia/kerja');
     expect(repairText('lokerinIn Progresssia-share', false)).toBe('lokerindonesia-share');
   });
 
@@ -91,7 +91,7 @@ describe('mapJobRow', () => {
       rowFrom({
         ID: 'ID-1',
         Timestamp: '5/24/2026 7:18:03',
-        Company: 'PT Vale InIn Progresssia',
+        Company: 'PT Contoh InIn Progresssia',
         Status: 'progress',
         CurrentStage: 'Online Test',
         Kategori: 'Intern',
@@ -104,7 +104,7 @@ describe('mapJobRow', () => {
       issues
     )!;
     expect(job.legacyId).toBe('ID-1');
-    expect(job.row.company).toBe('PT Vale Indonesia');
+    expect(job.row.company).toBe('PT Contoh Indonesia');
     expect(job.row.note).toBe('1. Done Submission ✅');
     expect(job.row.applied_at).toBe('2026-05-24T07:18:03+07:00'); // falls back to the Timestamp
     expect(job.row.created_at).toBe('2026-05-24T07:18:03+07:00');
