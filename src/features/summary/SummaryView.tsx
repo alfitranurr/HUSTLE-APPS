@@ -24,6 +24,7 @@ import {
   countBy,
   filterByTimeframe,
   monthlyTimeline,
+  mostCommonStop,
   pipelineFunnel,
   positionStats,
   rejectionPoints,
@@ -58,6 +59,7 @@ export function SummaryView() {
       stats: computeJobStats(jobs),
       status: countBy(jobs, (j) => j.status),
       funnel: pipelineFunnel(jobs),
+      stop: mostCommonStop(jobs),
       rejections: rejectionPoints(jobs),
       positionStats: positionStats(jobs, 1),
       companies: companyStats(jobs),
@@ -138,7 +140,7 @@ export function SummaryView() {
             />
             <CardContent>
               <ul className="space-y-2 text-sm text-slate-700">
-                {buildInsights(stats, data.funnel, data.rejections).map((tip) => (
+                {buildInsights(stats, data.stop, data.rejections).map((tip) => (
                   <li key={tip} className="border-l-2 border-amber-300 pl-3">
                     {tip}
                   </li>
@@ -167,7 +169,7 @@ export function SummaryView() {
           {/* Where the search leaks: how far applications get and where they are turned down. */}
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2">
-              <FunnelCard steps={data.funnel} onSelect={show} />
+              <FunnelCard steps={data.funnel} stop={data.stop} onSelect={show} />
             </div>
             <RejectionsCard points={data.rejections} noResponse={stats.noResponse} onSelect={show} />
           </div>

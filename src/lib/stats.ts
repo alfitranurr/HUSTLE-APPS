@@ -1,4 +1,4 @@
-import { FIRST_INTERVIEW_STAGE, JOB_STAGES, STAGE_SHORT_LABEL, type JobStage, type JobStatus } from './constants';
+import { INTERVIEW_STAGES, JOB_STAGES, STAGE_SHORT_LABEL, type JobStage, type JobStatus } from './constants';
 import { addDays, parseDate, percent, startOfDay, toDateKey } from './format';
 import type { Job } from './types';
 
@@ -6,11 +6,20 @@ export function stageIndex(stage: JobStage): number {
   return JOB_STAGES.indexOf(stage);
 }
 
-const INTERVIEW_INDEX = stageIndex(FIRST_INTERVIEW_STAGE);
+/**
+ * Did this application go through `stage`? Only with evidence: it is at that
+ * stage now, or a date was recorded for it. Hiring processes skip steps, so
+ * being further along proves nothing about the steps in between. Every
+ * application counts as applied ("Not Started").
+ */
+export function reachedStage(job: Job, stage: JobStage): boolean {
+  if (stage === JOB_STAGES[0]) return true;
+  return job.stage === stage || Boolean(job.stageDates[stage]);
+}
 
-/** True once an application has reached HR interview or any later stage. */
+/** True once an application has been through an HR, user or FGD/LGD interview (same evidence rule). */
 export function reachedInterview(job: Job): boolean {
-  return stageIndex(job.stage) >= INTERVIEW_INDEX;
+  return INTERVIEW_STAGES.some((stage) => reachedStage(job, stage));
 }
 
 export function isActive(job: Job): boolean {
@@ -155,41 +164,44 @@ export function monthlyTimeline(jobs: Job[], months = 12, now = new Date()): Tim
 export interface FunnelStep {
   stage: JobStage;
   label: string;
-  /** Applications that reached this stage or any later one. */
+  /** Applications that went through this stage (see reachedStage). */
   reached: number;
-  /** Share of the previous step that made it here (null for the first step). */
-  fromPrevious: number | null;
+  /** Share of all applications. Steps can be skipped, so a step-to-step rate would mislead. */
   ofTotal: number;
 }
 
-/** How far applications got: "reached at least this stage", in pipeline order. */
+/** How many applications went through each stage, in pipeline order. */
 export function pipelineFunnel(jobs: Job[]): FunnelStep[] {
   const total = jobs.length;
-  let previous = total;
-  return JOB_STAGES.map((stage, i) => {
-    const reached = jobs.filter((job) => stageIndex(job.stage) >= i).length;
-    const step: FunnelStep = {
-      stage,
-      label: STAGE_SHORT_LABEL[stage],
-      reached,
-      fromPrevious: i === 0 ? null : percent(reached, previous),
-      ofTotal: percent(reached, total),
-    };
-    previous = reached;
-    return step;
+  return JOB_STAGES.map((stage) => {
+    const reached = jobs.filter((job) => reachedStage(job, stage)).length;
+    return { stage, label: STAGE_SHORT_LABEL[stage], reached, ofTotal: percent(reached, total) };
   });
 }
 
-/** The step with the lowest pass rate, ignoring tiny bases that would just be noise. */
-export function biggestDrop(steps: FunnelStep[], minBase = 5): { from: FunnelStep; to: FunnelStep } | null {
-  let worst: { from: FunnelStep; to: FunnelStep } | null = null;
-  for (let i = 1; i < steps.length; i++) {
-    const from = steps[i - 1];
-    const to = steps[i];
-    if (from.reached < minBase || to.fromPrevious === null) continue;
-    if (!worst || to.fromPrevious < (worst.to.fromPrevious ?? 100)) worst = { from, to };
+export interface StopPoint {
+  stage: JobStage;
+  label: string;
+  /** Applications whose latest stage is this one. */
+  count: number;
+  /** Share of all applications. */
+  share: number;
+}
+
+/**
+ * Where applications most often end up: the stage (after applying, before
+ * signing) that is the latest one for the most applications. Ignored when too
+ * few applications sit there to mean anything.
+ */
+export function mostCommonStop(jobs: Job[], minCount = 5): StopPoint | null {
+  let best: StopPoint | null = null;
+  for (const stage of JOB_STAGES.slice(1, -1)) {
+    const count = jobs.filter((job) => job.stage === stage).length;
+    if (count >= minCount && (!best || count > best.count)) {
+      best = { stage, label: STAGE_SHORT_LABEL[stage], count, share: percent(count, jobs.length) };
+    }
   }
-  return worst;
+  return best;
 }
 
 export interface RejectionPoint {
@@ -204,9 +216,9 @@ export interface RejectionPoint {
 
 /** Where rejections happen, in pipeline order (stages with at least one rejection). */
 export function rejectionPoints(jobs: Job[]): RejectionPoint[] {
-  return JOB_STAGES.map((stage, i) => {
+  return JOB_STAGES.map((stage) => {
     const rejected = jobs.filter((job) => job.status === 'Failed' && job.stage === stage).length;
-    const reached = jobs.filter((job) => stageIndex(job.stage) >= i).length;
+    const reached = jobs.filter((job) => reachedStage(job, stage)).length;
     return { stage, label: STAGE_SHORT_LABEL[stage], rejected, reached, rate: percent(rejected, reached) };
   }).filter((point) => point.rejected > 0);
 }
@@ -281,4 +293,32 @@ export function coverage(jobs: Job[], pick: (job: Job) => string, ignore: string
     const value = pick(job).trim();
     return value && !ignore.includes(value);
   }).length;
+}
+
+export interface PathStep {
+  stage: JobStage;
+  label: string;
+  /** yyyy-mm-dd or the applied date; '' when the stage has no date. */
+  date: string;
+  /** The application's current stage. */
+  current: boolean;
+}
+
+/**
+ * The stages an application went through, in order (same evidence rule as
+ * the funnel), for showing its journey: Applied → HR Interview → User Interview.
+ */
+export function stagePath(job: Job): PathStep[] {
+  return JOB_STAGES.filter((stage) => reachedStage(job, stage)).map((stage) => ({
+    stage,
+    label: STAGE_SHORT_LABEL[stage],
+    date: stage === JOB_STAGES[0] ? job.appliedAt : (job.stageDates[stage] ?? ''),
+    current: stage === job.stage,
+  }));
+}
+
+/** True when the application is past screening but no earlier stage has a date: likely missing history. */
+export function missingEarlierDates(job: Job): boolean {
+  const index = stageIndex(job.stage);
+  return index > stageIndex('Document Screening') && JOB_STAGES.slice(1, index).every((stage) => !job.stageDates[stage]);
 }

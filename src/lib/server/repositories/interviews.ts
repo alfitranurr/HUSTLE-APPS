@@ -1,111 +1,123 @@
 import 'server-only';
-import { DIFFICULTIES, INTERVIEW_CATEGORIES, type Difficulty } from '@/lib/constants';
+import type { Difficulty, MasteryStatus } from '@/lib/constants';
 import type { InterviewQuestion, InterviewQuestionInput } from '@/lib/types';
-import {
-  appendRows,
-  columnLetter,
-  deleteRow,
-  ensureSheet,
-  NotFoundError,
-  readValues,
-  writeValues,
-} from '../google/sheet';
+import { DbError, must, NotFoundError, owned, type DataContext } from '../db';
+import { isUuid } from '../proofs';
 
-const SHEET = 'Interviews';
-const COLUMNS = [
-  'ID', 'Category', 'Question', 'Situation', 'Task', 'Action', 'Result', 'TargetCompany', 'Difficulty', 'Status', 'Notes',
-  'LastPracticed', 'PracticeCount',
-] as const;
-const LAST = columnLetter(COLUMNS.length);
+interface QuestionRow {
+  id: string;
+  category: string;
+  question: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  target_company: string;
+  difficulty: string;
+  status: string;
+  notes: string;
+  practice_count: number;
+  last_practiced_at: string | null;
+}
 
-function toQuestion(cells: string[]): InterviewQuestion {
-  const [id, category, question, situation, task, action, result, targetCompany, difficulty, status, notes, lastPracticedAt, practiceCount] =
-    cells;
+const SELECT =
+  'id, category, question, situation, task, action, result, target_company, difficulty, status, notes, practice_count, last_practiced_at';
+
+export function toQuestion(row: QuestionRow): InterviewQuestion {
   return {
-    id: id ?? '',
-    category: (INTERVIEW_CATEGORIES as readonly string[]).includes(category) ? category : 'HR / General',
-    question: question ?? '',
-    situation: situation ?? '',
-    task: task ?? '',
-    action: action ?? '',
-    result: result ?? '',
-    targetCompany: targetCompany ?? '',
-    difficulty: DIFFICULTIES.includes(difficulty as Difficulty) ? (difficulty as Difficulty) : 'Medium',
-    status: status === 'Mastered' ? 'Mastered' : 'Practice Needed',
-    notes: notes ?? '',
-    lastPracticedAt: lastPracticedAt ?? '',
-    practiceCount: Math.max(0, Number.parseInt(practiceCount ?? '', 10) || 0),
+    id: row.id,
+    category: row.category,
+    question: row.question,
+    situation: row.situation,
+    task: row.task,
+    action: row.action,
+    result: row.result,
+    targetCompany: row.target_company,
+    // The database's check constraints only allow known values.
+    difficulty: row.difficulty as Difficulty,
+    status: row.status as MasteryStatus,
+    notes: row.notes,
+    lastPracticedAt: row.last_practiced_at ? new Date(row.last_practiced_at).toISOString() : '',
+    practiceCount: row.practice_count,
   };
 }
 
-function toCells(q: InterviewQuestion): string[] {
-  return [
-    q.id, q.category, q.question, q.situation, q.task, q.action, q.result, q.targetCompany, q.difficulty, q.status, q.notes,
-    q.lastPracticedAt, String(q.practiceCount),
+function toRow(input: Partial<InterviewQuestionInput>) {
+  const row: Record<string, string> = {};
+  const map: [keyof InterviewQuestionInput, string][] = [
+    ['category', 'category'],
+    ['question', 'question'],
+    ['situation', 'situation'],
+    ['task', 'task'],
+    ['action', 'action'],
+    ['result', 'result'],
+    ['targetCompany', 'target_company'],
+    ['difficulty', 'difficulty'],
+    ['status', 'status'],
+    ['notes', 'notes'],
   ];
+  // Only fields that were sent: a partial update must not reset the others.
+  for (const [key, column] of map) if (input[key] !== undefined) row[column] = input[key] as string;
+  return row;
 }
 
-let headerChecked = false;
+const notFound = () => new NotFoundError('Interview question not found');
 
-async function readAll() {
-  await ensureSheet(SHEET, COLUMNS);
-  const [header = [], ...rows] = await readValues(`${SHEET}!A1:${LAST}`);
-  // Columns added after the original layout (Notes, practice tracking) get their header once.
-  if (!headerChecked) {
-    headerChecked = true;
-    const missing = COLUMNS.map((name, i) => ({ name, i })).filter(({ i }) => !header[i]);
-    for (const { name, i } of missing) await writeValues(`${SHEET}!${columnLetter(i + 1)}1`, [[name]]);
-  }
-  return rows
-    .map((cells, i) => ({ question: toQuestion(cells), row: i + 2 }))
-    .filter(({ question }) => question.id && question.question);
+export async function listQuestions(ctx: DataContext): Promise<InterviewQuestion[]> {
+  const rows = must(
+    await ctx.db.from('interview_questions').select(SELECT).eq('user_id', ctx.userId).order('created_at', { ascending: true })
+  ) as QuestionRow[];
+  return rows.map(toQuestion);
 }
 
-async function find(id: string) {
-  const found = (await readAll()).find((entry) => entry.question.id === id);
-  if (!found) throw new NotFoundError('Interview question not found');
-  return found;
+/** Inserts one or more questions in a single request. */
+export async function createQuestions(ctx: DataContext, inputs: InterviewQuestionInput[]): Promise<InterviewQuestion[]> {
+  const rows = must(
+    await ctx.db
+      .from('interview_questions')
+      .insert(inputs.map((input) => owned(ctx, toRow(input))))
+      .select(SELECT)
+  ) as QuestionRow[];
+  return rows.map(toQuestion);
 }
 
-export async function listQuestions(): Promise<InterviewQuestion[]> {
-  return (await readAll()).map(({ question }) => question);
-}
-
-/** Appends one or more questions in a single request. */
-export async function createQuestions(inputs: InterviewQuestionInput[]): Promise<InterviewQuestion[]> {
-  await ensureSheet(SHEET, COLUMNS);
-  const stamp = Date.now();
-  const questions = inputs.map((input, i) => ({
-    ...input,
-    id: inputs.length === 1 ? `iq_${stamp}` : `iq_${stamp}_${i}`,
-    lastPracticedAt: '',
-    practiceCount: 0,
-  }));
-  await appendRows(`${SHEET}!A:${LAST}`, questions.map(toCells));
-  return questions;
-}
-
-export async function createQuestion(input: InterviewQuestionInput): Promise<InterviewQuestion> {
-  const [question] = await createQuestions([input]);
+export async function createQuestion(ctx: DataContext, input: InterviewQuestionInput): Promise<InterviewQuestion> {
+  const [question] = await createQuestions(ctx, [input]);
   return question;
 }
 
-export async function updateQuestion(id: string, changes: Partial<InterviewQuestionInput>): Promise<InterviewQuestion> {
-  const { question, row } = await find(id);
-  const updated = { ...question, ...changes, id };
-  await writeValues(`${SHEET}!A${row}:${LAST}${row}`, [toCells(updated)]);
-  return updated;
+export async function updateQuestion(
+  ctx: DataContext,
+  id: string,
+  changes: Partial<InterviewQuestionInput>
+): Promise<InterviewQuestion> {
+  if (!isUuid(id)) throw notFound();
+  const values = toRow(changes);
+  const query = Object.keys(values).length
+    ? ctx.db.from('interview_questions').update(values).eq('user_id', ctx.userId).eq('id', id).select(SELECT)
+    : ctx.db.from('interview_questions').select(SELECT).eq('user_id', ctx.userId).eq('id', id);
+  const row = must(await query.maybeSingle()) as QuestionRow | null;
+  if (!row) throw notFound();
+  return toQuestion(row);
 }
 
-/** One practice round: bump the counter and stamp the time (server-side, so counts never go backwards). */
-export async function recordPractice(id: string): Promise<InterviewQuestion> {
-  const { question, row } = await find(id);
-  const updated = { ...question, lastPracticedAt: new Date().toISOString(), practiceCount: question.practiceCount + 1 };
-  await writeValues(`${SHEET}!A${row}:${LAST}${row}`, [toCells(updated)]);
-  return updated;
+/** One practice round: an atomic increment in the database (record_practice). */
+export async function recordPractice(ctx: DataContext, id: string): Promise<InterviewQuestion> {
+  if (!isUuid(id)) throw notFound();
+  if (ctx.via === 'token') {
+    // The RPC relies on auth.uid(), which the secret-key client doesn't have.
+    throw new DbError('record_practice needs a user session', '42501');
+  }
+  const row = must(await ctx.db.rpc('record_practice', { question_id: id })) as QuestionRow | null;
+  // The RPC returns a row of nulls when the question isn't the caller's.
+  if (!row?.id) throw notFound();
+  return toQuestion(row);
 }
 
-export async function deleteQuestion(id: string): Promise<void> {
-  const { row } = await find(id);
-  await deleteRow(SHEET, row);
+export async function deleteQuestion(ctx: DataContext, id: string): Promise<void> {
+  if (!isUuid(id)) throw notFound();
+  const deleted = must(
+    await ctx.db.from('interview_questions').delete().eq('user_id', ctx.userId).eq('id', id).select('id')
+  );
+  if (deleted.length === 0) throw notFound();
 }

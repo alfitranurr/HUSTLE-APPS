@@ -1,25 +1,45 @@
 'use client';
 
-import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Radar, X } from 'lucide-react';
+import { BarChart3, ChevronsLeft, ChevronsRight, KanbanSquare, LayoutDashboard, LogOut, MessagesSquare, Plug, Radar, ShieldCheck, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { IconButton } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { apiFetch } from '@/lib/api';
+import { AccountModal } from '@/features/account/AccountModal';
+import { useAdminUsers } from '@/features/admin/adminApi';
 import { cn } from '@/lib/cn';
 import { TONES, type Tone } from '@/lib/tones';
 
-const NAV: { href: string; label: string; icon: typeof LayoutDashboard; tone: Tone }[] = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  tone: Tone;
+  /** Feature still being tried out; shown as a small "Beta" tag. */
+  beta?: boolean;
+}
+
+const NAV: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, tone: 'indigo' },
   { href: '/tracker', label: 'Applications', icon: KanbanSquare, tone: 'sky' },
   { href: '/summary', label: 'Insights', icon: BarChart3, tone: 'emerald' },
   { href: '/interviews', label: 'Interview prep', icon: MessagesSquare, tone: 'fuchsia' },
-  { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet' },
+  { href: '/matches', label: 'Job match', icon: Radar, tone: 'violet', beta: true },
+  { href: '/integrations', label: 'Connect AI', icon: Plug, tone: 'teal' },
 ];
 
+/** Only rendered for admins (the page, API and database check again). */
+const ADMIN_NAV: NavItem = { href: '/admin', label: 'Admin Panel', icon: ShieldCheck, tone: 'rose' };
+
+export interface SidebarAccount {
+  displayName: string;
+  email: string;
+  isAdmin: boolean;
+}
+
 interface SidebarProps {
-  ownerName: string;
+  account: SidebarAccount;
   collapsed: boolean;
   onToggleCollapsed: () => void;
   mobileOpen: boolean;
@@ -42,21 +62,28 @@ export function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, onCloseMobile }: SidebarProps) {
+export function Sidebar({ account, collapsed, onToggleCollapsed, mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  // Non-admins never request the list.
+  const { users } = useAdminUsers(account.isAdmin);
+  const pendingCount = users.filter((u) => u.status === 'pending').length;
 
   const signOut = async () => {
     setSigningOut(true);
     try {
-      await apiFetch('/api/auth/logout', { method: 'POST' });
+      // The route answers with a redirect to /login; we navigate ourselves.
+      await fetch('/auth/signout', { method: 'POST', redirect: 'manual' });
     } finally {
-      window.location.assign('/login');
+      router.replace('/login');
+      router.refresh();
     }
   };
 
-  const initials = ownerName
+  const initials = account.displayName
     .split(/\s+/)
     .map((part) => part[0])
     .join('')
@@ -89,7 +116,8 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {NAV.map(({ href, label, icon: Icon, tone }) => {
+          {(account.isAdmin ? [...NAV, ADMIN_NAV] : NAV).map(({ href, label, icon: Icon, tone, beta }) => {
+            const badge = href === ADMIN_NAV.href && pendingCount > 0 ? pendingCount : 0;
             const active = pathname === href || pathname.startsWith(`${href}/`);
             return (
               <Link
@@ -115,20 +143,51 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
                 />
                 <Icon className={cn('size-5 shrink-0', active ? TONES[tone].text : 'text-slate-400 group-hover:text-slate-600')} />
                 <span className={cn(collapsed && 'md:sr-only')}>{label}</span>
+                {beta && (
+                  <span
+                    className={cn(
+                      'ml-auto rounded-full bg-amber-50 px-1.5 py-px text-[10px] font-semibold tracking-wide text-amber-700 uppercase ring-1 ring-amber-200 ring-inset',
+                      collapsed && 'md:sr-only'
+                    )}
+                  >
+                    Beta
+                  </span>
+                )}
+                {badge > 0 && (
+                  <span
+                    title={`${badge} waiting for approval`}
+                    className={cn(
+                      'ml-auto grid min-w-5 place-items-center rounded-full bg-amber-500 px-1.5 text-[11px] leading-5 font-bold text-white',
+                      collapsed && 'md:absolute md:top-1 md:right-2 md:ml-0'
+                    )}
+                  >
+                    {badge}
+                    <span className="sr-only"> waiting for approval</span>
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
         <div className="space-y-1 border-t border-slate-200 p-3">
-          <div className={cn('flex items-center gap-3 px-2 py-2', collapsed && 'md:justify-center md:px-0')}>
+          <button
+            type="button"
+            onClick={() => setAccountOpen(true)}
+            title="Account"
+            className={cn(
+              'flex w-full cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-slate-50',
+              collapsed && 'md:justify-center md:px-0'
+            )}
+          >
             <span className="grid size-9 shrink-0 place-items-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-700 ring-2 ring-indigo-100">
               {initials || 'ME'}
             </span>
-            <span className={cn('min-w-0 text-sm font-semibold text-slate-900', collapsed && 'md:sr-only')}>
-              <span className="block truncate">{ownerName}</span>
+            <span className={cn('min-w-0', collapsed && 'md:sr-only')}>
+              <span className="block truncate text-sm font-semibold text-slate-900">{account.displayName}</span>
+              <span className="block truncate text-xs text-slate-500">{account.email}</span>
             </span>
-          </div>
+          </button>
           <button
             type="button"
             onClick={() => setConfirmingSignOut(true)}
@@ -160,13 +219,15 @@ export function Sidebar({ ownerName, collapsed, onToggleCollapsed, mobileOpen, o
       <ConfirmDialog
         open={confirmingSignOut}
         title="Sign out?"
-        description="You will need your password to sign in again."
+        description="You will need to sign in again to use Hustle."
         confirmLabel="Sign out"
         variant="primary"
         loading={signingOut}
         onConfirm={signOut}
         onCancel={() => setConfirmingSignOut(false)}
       />
+
+      <AccountModal open={accountOpen} account={account} onClose={() => setAccountOpen(false)} />
     </>
   );
 }

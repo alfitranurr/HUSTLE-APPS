@@ -1,223 +1,120 @@
 import 'server-only';
-import { JOB_STAGES, JOB_STATUSES, type JobStage, type JobStatus } from '@/lib/constants';
-import type { Job } from '@/lib/types';
-import { advanceStageDates, parseStageDates, serializeStageDates } from '@/lib/stageDates';
-import { splitAttachmentCell } from '@/lib/urls';
+import type { JobStage, JobStatus } from '@/lib/constants';
 import { parseDate, toDateKey } from '@/lib/format';
-import { appendRow, batchWriteValues, columnLetter, deleteRow, deleteRows, ensureSheet, NotFoundError, readValues, writeValues } from '../google/sheet';
+import { advanceStageDates } from '@/lib/stageDates';
+import type { Job } from '@/lib/types';
+import { must, NotFoundError, owned, type DataContext } from '../db';
+import { addAttachments, attachmentPaths, isUuid, removeAttachments, removeFiles } from '../proofs';
+import type { ValidatedUpload } from '../uploads';
+import { JOB_SELECT, jobDataToRow, rowToJob, type JobData, type JobRow } from './jobMapper';
 
-const SHEET = 'DataLowongan';
+export type { JobData };
 
-/** Physical column order in the sheet (kept compatible with the original Apps Script layout). */
-const COLUMNS = [
-  'ID', 'Timestamp', 'Company', 'StartDate', 'EndDate', 'Status', 'Instagram', 'LinkedIn', 'Web', 'Kategori',
-  'Note', 'BuktiURL', 'Platform', 'CareerLevel', 'CurrentStage', 'Province', 'City', 'OtherLink', 'LastUpdated',
-  'ContractDate', 'StageDates',
-] as const;
-type Column = (typeof COLUMNS)[number];
+const now = () => new Date().toISOString();
 
-const LAST_COLUMN = columnLetter(COLUMNS.length);
-const headerKey = (h: string) => h.replace(/\s+/g, '').toLowerCase();
-
-/** Fields the user edits. Everything except identity and bookkeeping timestamps. */
-export type JobData = Omit<Job, 'id' | 'createdAt' | 'updatedAt'>;
-
-interface StoredJob {
-  job: Job;
-  row: number;
-}
-
-// --- normalisation of legacy values -------------------------------------------
-
-function normalizeStatus(raw: string): JobStatus {
-  const s = raw.toLowerCase();
-  const exact = JOB_STATUSES.find((status) => status.toLowerCase() === s);
-  if (exact) return exact;
-  if (s === 'done' || s.includes('success')) return 'Success';
-  if (s.includes('fail') || s.includes('declin') || s.includes('reject')) return 'Failed';
-  if (s === 'progress' || s.includes('progress') || s.includes('psikotes') || s.includes('interview')) {
-    return 'In Progress';
-  }
-  return 'Not Started';
-}
-
-function normalizeStage(raw: string): JobStage {
-  const s = raw.toLowerCase();
-  const exact = JOB_STAGES.find((stage) => stage.toLowerCase() === s);
-  if (exact) return exact;
-  if (['online test', 'technical test', 'psikotes'].includes(s)) return 'Assessment Test';
-  if (s === 'presentation round') return 'FGD/LGD';
-  return 'Not Started';
-}
-
-// --- row <-> Job mapping ------------------------------------------------------------
-
-function toJob(get: (column: Column) => string): Job {
-  return {
-    id: get('ID'),
-    company: get('Company'),
-    position: get('Kategori'),
-    // Older rows have no application date; the creation timestamp is the best approximation.
-    appliedAt: get('StartDate') || get('Timestamp'),
-    scheduledAt: get('EndDate'),
-    contractDate: get('ContractDate'),
-    stageDates: parseStageDates(get('StageDates')),
-    status: normalizeStatus(get('Status')),
-    stage: normalizeStage(get('CurrentStage')),
-    platform: get('Platform'),
-    careerLevel: get('CareerLevel'),
-    province: get('Province'),
-    city: get('City'),
-    note: get('Note'),
-    links: {
-      instagram: get('Instagram'),
-      linkedin: get('LinkedIn'),
-      website: get('Web'),
-      other: get('OtherLink'),
-    },
-    attachments: splitAttachmentCell(get('BuktiURL')),
-    createdAt: get('Timestamp'),
-    updatedAt: get('LastUpdated') || get('Timestamp'),
-  };
-}
-
-function toCells(job: Job): string[] {
-  const values: Record<Column, string> = {
-    ID: job.id,
-    Timestamp: job.createdAt,
-    Company: job.company,
-    StartDate: job.appliedAt,
-    EndDate: job.scheduledAt,
-    Status: job.status,
-    Instagram: job.links.instagram,
-    LinkedIn: job.links.linkedin,
-    Web: job.links.website,
-    Kategori: job.position,
-    Note: job.note,
-    BuktiURL: job.attachments.length ? job.attachments.join(', ') : 'No File',
-    Platform: job.platform,
-    CareerLevel: job.careerLevel,
-    CurrentStage: job.stage,
-    Province: job.province,
-    City: job.city,
-    OtherLink: job.links.other,
-    LastUpdated: job.updatedAt,
-    ContractDate: job.contractDate,
-    StageDates: serializeStageDates(job.stageDates),
-  };
-  return COLUMNS.map((column) => values[column]);
+/** Splits long id lists so `in (...)` filters stay well inside URL limits. */
+function chunks<T>(items: T[], size = 100): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i += size) result.push(items.slice(i, i + size));
+  return result;
 }
 
 // --- reads ----------------------------------------------------------------------
 
-let headerChecked = false;
-
-async function readAll(): Promise<StoredJob[]> {
-  await ensureSheet(SHEET, COLUMNS);
-  const values = await readValues(`${SHEET}!A:${LAST_COLUMN}`);
-  if (values.length === 0) return [];
-
-  // Columns are located by header name, falling back to the canonical position.
-  const header = values[0].map(headerKey);
-  const indexOf = (column: Column) => {
-    const aliases = column === 'OtherLink' ? ['otherlink', 'linkother'] : [headerKey(column)];
-    const found = header.findIndex((h) => aliases.includes(h));
-    return found >= 0 ? found : COLUMNS.indexOf(column);
-  };
-  const index = new Map(COLUMNS.map((c) => [c, indexOf(c)]));
-
-  // Columns added after the original layout (LastUpdated, ContractDate, StageDates) get their header once.
-  if (!headerChecked) {
-    headerChecked = true;
-    const missing = COLUMNS.map((name, i) => ({ name, i })).filter(({ i }) => !header[i]);
-    for (const { name, i } of missing) await writeValues(`${SHEET}!${columnLetter(i + 1)}1`, [[name]]);
-  }
-
-  const stored = values
-    .slice(1)
-    .map((cells, i) => ({ job: toJob((c) => cells[index.get(c)!] ?? ''), row: i + 2 }))
-    .filter(({ job }) => job.company);
-
-  await backfillMissingIds(stored);
-  return stored;
+export async function listJobs(ctx: DataContext): Promise<Job[]> {
+  const rows = must(
+    await ctx.db.from('jobs').select(JOB_SELECT).eq('user_id', ctx.userId).order('created_at', { ascending: true })
+  ) as unknown as JobRow[];
+  return rows.map(rowToJob);
 }
 
-/** Legacy rows without an ID can't be addressed safely, so give them one once. */
-async function backfillMissingIds(stored: StoredJob[]) {
-  const missing = stored.filter(({ job }) => !job.id);
-  for (const [i, entry] of missing.entries()) {
-    entry.job.id = `ID-${Date.now()}-${i}`;
-    await writeValues(`${SHEET}!A${entry.row}`, [[entry.job.id]]);
-  }
-}
-
-async function find(id: string): Promise<StoredJob> {
-  const found = (await readAll()).find((entry) => entry.job.id === id);
-  if (!found) throw new NotFoundError('Application not found');
-  return found;
-}
-
-export async function listJobs(): Promise<Job[]> {
-  return (await readAll()).map(({ job }) => job);
-}
-
-export async function getJob(id: string): Promise<Job> {
-  return (await find(id)).job;
+export async function getJob(ctx: DataContext, id: string): Promise<Job> {
+  const row = isUuid(id)
+    ? (must(
+        await ctx.db.from('jobs').select(JOB_SELECT).eq('user_id', ctx.userId).eq('id', id).maybeSingle()
+      ) as unknown as JobRow | null)
+    : null;
+  if (!row) throw new NotFoundError('Application not found');
+  return rowToJob(row);
 }
 
 // --- writes ---------------------------------------------------------------------
 
-async function writeJob(row: number, job: Job) {
-  await writeValues(`${SHEET}!A${row}:${LAST_COLUMN}${row}`, [toCells(job)]);
+export async function createJob(ctx: DataContext, data: JobData, uploads: ValidatedUpload[] = []): Promise<Job> {
+  const row = {
+    ...jobDataToRow(data),
+    stage_dates: advanceStageDates(data.stageDates, data.stage),
+  };
+  const { id } = must(await ctx.db.from('jobs').insert(owned(ctx, row)).select('id').single()) as { id: string };
+  try {
+    await addAttachments(ctx, id, uploads);
+  } catch (error) {
+    // No half-saved application without its files.
+    await ctx.db.from('jobs').delete().eq('user_id', ctx.userId).eq('id', id);
+    throw error;
+  }
+  return getJob(ctx, id);
 }
 
-export async function createJob(data: JobData): Promise<Job> {
-  await ensureSheet(SHEET, COLUMNS);
-  const now = new Date().toISOString();
-  const job: Job = {
-    ...data,
-    stageDates: advanceStageDates(data.stageDates, data.stage),
-    id: `ID-${Date.now()}`,
-    createdAt: now,
-    updatedAt: now,
-  };
-  await appendRow(`${SHEET}!A:${LAST_COLUMN}`, toCells(job));
-  return job;
-}
+/**
+ * Full update from the form. `keepAttachmentIds` must be ids already on this
+ * job; anything else on the job is removed (row and file).
+ */
+export async function updateJob(
+  ctx: DataContext,
+  id: string,
+  data: JobData,
+  files: { keepAttachmentIds: string[]; uploads: ValidatedUpload[] }
+): Promise<{ before: Job; after: Job }> {
+  const before = await getJob(ctx, id);
+  const keep = new Set(files.keepAttachmentIds);
+  const removed = before.attachments.filter((a) => !keep.has(a.id)).map((a) => a.id);
 
-export async function updateJob(id: string, data: JobData): Promise<{ before: Job; after: Job }> {
-  const { job: before, row } = await find(id);
-  const after: Job = {
-    ...data,
-    stageDates: advanceStageDates(data.stageDates, data.stage, before.stage),
-    id,
-    createdAt: before.createdAt,
-    updatedAt: new Date().toISOString(),
-  };
-  await writeJob(row, after);
-  return { before, after };
+  // New files first: if they fail, nothing else has changed.
+  await addAttachments(ctx, id, files.uploads);
+  must(
+    await ctx.db
+      .from('jobs')
+      .update({
+        ...jobDataToRow(data),
+        stage_dates: advanceStageDates(data.stageDates, data.stage, before.stage),
+        updated_at: now(),
+      })
+      .eq('user_id', ctx.userId)
+      .eq('id', id)
+  );
+  await removeAttachments(ctx, id, removed);
+  return { before, after: await getJob(ctx, id) };
 }
 
 export type JobPatch = Partial<Pick<Job, 'stage' | 'status'>>;
 
 /** Small updates (stage change from the board, "followed up"). Always bumps `updatedAt`. */
-export async function patchJob(id: string, patch: JobPatch): Promise<Job> {
-  const { job, row } = await find(id);
+export async function patchJob(ctx: DataContext, id: string, patch: JobPatch): Promise<Job> {
+  const job = await getJob(ctx, id);
   const stage = patch.stage ?? job.stage;
-  const after: Job = {
-    ...job,
-    ...patch,
-    stageDates: advanceStageDates(job.stageDates, stage, job.stage),
-    updatedAt: new Date().toISOString(),
-  };
-  await writeJob(row, after);
-  return after;
+  must(
+    await ctx.db
+      .from('jobs')
+      .update({
+        stage,
+        status: patch.status ?? job.status,
+        stage_dates: advanceStageDates(job.stageDates, stage, job.stage),
+        updated_at: now(),
+      })
+      .eq('user_id', ctx.userId)
+      .eq('id', id)
+  );
+  return getJob(ctx, id);
 }
 
-export async function deleteJob(id: string): Promise<Job> {
-  const { job, row } = await find(id);
-  await deleteRow(SHEET, row);
-  return job;
+export async function deleteJob(ctx: DataContext, id: string): Promise<void> {
+  if (!isUuid(id)) throw new NotFoundError('Application not found');
+  const paths = await attachmentPaths(ctx, { jobIds: [id] });
+  const deleted = must(await ctx.db.from('jobs').delete().eq('user_id', ctx.userId).eq('id', id).select('id'));
+  if (deleted.length === 0) throw new NotFoundError('Application not found');
+  // Attachment rows went with the job (cascade); now the files.
+  await removeFiles(ctx, paths);
 }
 
 // --- bulk -------------------------------------------------------------------------
@@ -232,13 +129,19 @@ export interface BulkChanges {
   stageDateFromApplied?: boolean;
 }
 
-/** Applies the same change to many applications in a single Sheets request. Returns the updated jobs. */
-export async function bulkUpdateJobs(ids: string[], changes: BulkChanges): Promise<Job[]> {
-  const wanted = new Set(ids);
-  const targets = (await readAll()).filter(({ job }) => wanted.has(job.id));
-  const now = new Date().toISOString();
+/** Applies the same change to many applications. Returns how many were updated. */
+export async function bulkUpdateJobs(ctx: DataContext, ids: string[], changes: BulkChanges): Promise<number> {
+  const valid = ids.filter(isUuid);
+  const targets: Job[] = [];
+  for (const part of chunks(valid)) {
+    const rows = must(
+      await ctx.db.from('jobs').select(JOB_SELECT).eq('user_id', ctx.userId).in('id', part)
+    ) as unknown as JobRow[];
+    targets.push(...rows.map(rowToJob));
+  }
 
-  const updated = targets.map(({ job, row }) => {
+  const stamp = now();
+  const updates = targets.map((job) => {
     const stage = changes.stage ?? job.stage;
     let status = changes.status ?? job.status;
     // Same rule as a single update: a signed contract is a success unless told otherwise.
@@ -249,19 +152,31 @@ export async function bulkUpdateJobs(ids: string[], changes: BulkChanges): Promi
     if (changes.stageDateFromApplied && stage !== job.stage && stage !== 'Not Started' && applied) {
       stageDates[stage] = toDateKey(applied);
     }
-    const updatedAt = changes.stageDateFromApplied ? job.updatedAt : now;
-    const after: Job = { ...job, stage, status, stageDates, updatedAt };
-    return { after, range: `${SHEET}!A${row}:${LAST_COLUMN}${row}` };
+    const values: Record<string, unknown> = { stage, status, stage_dates: stageDates };
+    if (!changes.stageDateFromApplied) values.updated_at = stamp;
+    return { id: job.id, values };
   });
 
-  await batchWriteValues(updated.map(({ after, range }) => ({ range, values: [toCells(after)] })));
-  return updated.map(({ after }) => after);
+  // Each job gets its own stage dates, so one update per job, a few at a time.
+  for (const part of chunks(updates, 8)) {
+    await Promise.all(
+      part.map(async ({ id, values }) =>
+        must(await ctx.db.from('jobs').update(values).eq('user_id', ctx.userId).eq('id', id))
+      )
+    );
+  }
+  return updates.length;
 }
 
-/** Deletes many applications in a single Sheets request. Returns the deleted jobs (for attachment clean-up). */
-export async function bulkDeleteJobs(ids: string[]): Promise<Job[]> {
-  const wanted = new Set(ids);
-  const targets = (await readAll()).filter(({ job }) => wanted.has(job.id));
-  await deleteRows(SHEET, targets.map(({ row }) => row));
-  return targets.map(({ job }) => job);
+/** Deletes many applications and their files. Returns how many were deleted. */
+export async function bulkDeleteJobs(ctx: DataContext, ids: string[]): Promise<number> {
+  const valid = ids.filter(isUuid);
+  let count = 0;
+  for (const part of chunks(valid)) {
+    const paths = await attachmentPaths(ctx, { jobIds: part });
+    const deleted = must(await ctx.db.from('jobs').delete().eq('user_id', ctx.userId).in('id', part).select('id'));
+    count += deleted.length;
+    await removeFiles(ctx, paths);
+  }
+  return count;
 }

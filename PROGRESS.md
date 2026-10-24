@@ -2,6 +2,8 @@
 
 _Terakhir diperbarui: 23 Oktober 2026_
 
+> **Migrasi multi-user (Supabase) sedang berjalan** di branch `feat/multi-user`: progres dan sisa pekerjaan ada di [`docs/PROGRESS.md`](docs/PROGRESS.md). Dokumen ini diperbarui penuh setelah merge ke production.
+
 Legenda: ✅ selesai · 🟡 menunggu merge / sedang dikerjakan · ⬜ belum · ↩️ dibuat lalu dicabut atas permintaan
 
 ## Status saat ini

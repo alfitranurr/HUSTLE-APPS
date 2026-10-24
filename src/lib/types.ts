@@ -28,10 +28,17 @@ export interface Job {
     website: string;
     other: string;
   };
-  /** Google Drive URLs of uploaded proof files. */
-  attachments: string[];
+  /** Uploaded proof files. */
+  attachments: Attachment[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** A proof file. `url` is an app route that redirects to a short-lived signed URL. */
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
 }
 
 export interface InterviewQuestion {
@@ -109,6 +116,71 @@ export interface Recommendation {
   /** ISO time the email arrived or the text was pasted. */
   receivedAt: string;
   status: RecommendationStatus;
+}
+
+// ---------------------------------------------------------------------------
+// Admin panel: account management data only. No usage or content figures
+// (data minimisation, UU PDP / GDPR); see 0005_admin_privacy.sql.
+// ---------------------------------------------------------------------------
+
+export type AccountStatus = 'pending' | 'approved' | 'suspended';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  status: AccountStatus;
+  isAdmin: boolean;
+  /** ISO times; '' when it never happened. */
+  createdAt: string;
+  emailConfirmedAt: string;
+  lastSignInAt: string;
+  reviewedAt: string;
+}
+
+export interface AdminSystemStats {
+  usersTotal: number;
+  usersPending: number;
+  usersApproved: number;
+  usersSuspended: number;
+  activeTokens: number;
+  /** Capacity only: total size of proof files and of the database. */
+  storageBytes: number;
+  databaseBytes: number;
+}
+
+export interface AdminSystemHealth {
+  stats: AdminSystemStats;
+  /** Round trip of the stats query, ms. */
+  databaseLatencyMs: number;
+  checks: { label: string; status: 'ok' | 'warn' | 'error'; detail: string }[];
+}
+
+/** An API token as the owner sees it: never the token itself. */
+export interface ApiTokenInfo {
+  id: string;
+  name: string;
+  /** First 8 characters, e.g. "hst_ab12". */
+  prefix: string;
+  /** ISO times; '' when it never happened. */
+  createdAt: string;
+  lastUsedAt: string;
+  revokedAt: string;
+  /** Turned off by an admin rather than by the owner. */
+  revokedByAdmin: boolean;
+}
+
+/** An access key as the admin sees it (0006_admin_tokens.sql): never the key itself. */
+export interface AdminToken {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string;
+  revokedAt: string;
+  revokedByAdmin: boolean;
 }
 
 /** A parsed job before it is stored. */

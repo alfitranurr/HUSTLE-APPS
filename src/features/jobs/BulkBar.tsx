@@ -50,7 +50,7 @@ export function BulkBar({ count, busy, onDelete, onClear }: BulkBarProps) {
       <ConfirmDialog
         open={confirming}
         title={`Delete ${count} ${plural}?`}
-        description={`The selected ${plural} and their attachments in Google Drive will be removed. This can’t be undone.`}
+        description={`The selected ${plural} and their attachments will be removed. This can’t be undone.`}
         confirmLabel={`Delete ${count}`}
         loading={busy}
         onConfirm={() => {

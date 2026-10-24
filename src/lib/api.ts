@@ -25,9 +25,9 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
     | { success: false; error?: string }
     | null;
 
-  if (response.status === 401 && !url.startsWith('/api/auth/')) {
-    window.location.assign('/login');
-  }
+  // Session gone (expired or signed out elsewhere): full reload so proxy.ts
+  // can send the visitor to /login with fresh cookies.
+  if (response.status === 401) window.location.reload();
   if (!response.ok || !body?.success) {
     throw new ApiError((body && !body.success && body.error) || 'Request failed. Please try again.', response.status);
   }

@@ -1,43 +1,71 @@
 import 'server-only';
 import type { CandidateProfile, ProfileInput } from '@/lib/types';
-import { ensureSheet, readValues, writeValues } from '../google/sheet';
+import { must, owned, type DataContext } from '../db';
 
-/** Key/value rows in a "Profile" tab; list fields are stored as JSON arrays. */
-const SHEET = 'Profile';
-const LIST_KEYS = ['skills', 'titles', 'education', 'targetRoles', 'preferredLocations', 'keywords', 'excludeKeywords'] as const;
-const TEXT_KEYS = ['name', 'headline', 'location', 'parsedAt'] as const;
+/** One candidate_profiles row per user (Job match). */
 
-const parseList = (value: string | undefined): string[] => {
-  try {
-    const parsed: unknown = JSON.parse(value ?? '[]');
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
-  } catch {
-    return [];
-  }
-};
+interface ProfileRow {
+  name: string;
+  headline: string;
+  location: string;
+  skills: string[];
+  titles: string[];
+  education: string[];
+  target_roles: string[];
+  preferred_locations: string[];
+  keywords: string[];
+  exclude_keywords: string[];
+  years_experience: number | string | null;
+  parsed_at: string | null;
+}
 
-export async function getProfile(): Promise<CandidateProfile | null> {
-  await ensureSheet(SHEET, ['Key', 'Value']);
-  const rows = await readValues(`${SHEET}!A2:B`);
-  if (rows.length === 0) return null;
-  const map = new Map(rows.filter(([key]) => key).map(([key, value]) => [key, value ?? '']));
-  const years = Number.parseFloat(map.get('yearsExperience') ?? '');
+const SELECT =
+  'name, headline, location, skills, titles, education, target_roles, preferred_locations, keywords, exclude_keywords, years_experience, parsed_at';
+
+function toProfile(row: ProfileRow): CandidateProfile {
+  // numeric comes back as a string from PostgREST.
+  const years = row.years_experience === null ? null : Number(row.years_experience);
   return {
-    ...(Object.fromEntries(TEXT_KEYS.map((k) => [k, map.get(k) ?? ''])) as Record<(typeof TEXT_KEYS)[number], string>),
-    ...(Object.fromEntries(LIST_KEYS.map((k) => [k, parseList(map.get(k))])) as Record<(typeof LIST_KEYS)[number], string[]>),
-    yearsExperience: Number.isFinite(years) ? years : null,
+    name: row.name,
+    headline: row.headline,
+    location: row.location,
+    skills: row.skills,
+    titles: row.titles,
+    education: row.education,
+    targetRoles: row.target_roles,
+    preferredLocations: row.preferred_locations,
+    keywords: row.keywords,
+    excludeKeywords: row.exclude_keywords,
+    yearsExperience: years !== null && Number.isFinite(years) ? years : null,
+    parsedAt: row.parsed_at ? new Date(row.parsed_at).toISOString() : '',
   };
 }
 
-export async function saveProfile(input: ProfileInput, parsedAt?: string): Promise<CandidateProfile> {
-  const current = await getProfile();
-  const profile: CandidateProfile = { ...input, parsedAt: parsedAt ?? current?.parsedAt ?? '' };
-  const rows: string[][] = [
-    ...TEXT_KEYS.map((k) => [k, profile[k]]),
-    ...LIST_KEYS.map((k) => [k, JSON.stringify(profile[k])]),
-    ['yearsExperience', profile.yearsExperience === null ? '' : String(profile.yearsExperience)],
-  ];
-  await ensureSheet(SHEET, ['Key', 'Value']);
-  await writeValues(`${SHEET}!A2:B${rows.length + 1}`, rows);
-  return profile;
+export async function getProfile(ctx: DataContext): Promise<CandidateProfile | null> {
+  const row = must(
+    await ctx.db.from('candidate_profiles').select(SELECT).eq('user_id', ctx.userId).maybeSingle()
+  ) as ProfileRow | null;
+  return row ? toProfile(row) : null;
+}
+
+/** Saves the whole profile. `parsedAt` is set only when a PDF was just read. */
+export async function saveProfile(ctx: DataContext, input: ProfileInput, parsedAt?: string): Promise<CandidateProfile> {
+  const values = {
+    name: input.name,
+    headline: input.headline,
+    location: input.location,
+    skills: input.skills,
+    titles: input.titles,
+    education: input.education,
+    target_roles: input.targetRoles,
+    preferred_locations: input.preferredLocations,
+    keywords: input.keywords,
+    exclude_keywords: input.excludeKeywords,
+    years_experience: input.yearsExperience,
+    ...(parsedAt ? { parsed_at: parsedAt } : {}),
+  };
+  const row = must(
+    await ctx.db.from('candidate_profiles').upsert(owned(ctx, values), { onConflict: 'user_id' }).select(SELECT).single()
+  ) as ProfileRow;
+  return toProfile(row);
 }

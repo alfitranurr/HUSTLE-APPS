@@ -7,7 +7,7 @@ import { validateUploads } from '@/lib/server/uploads';
  * Reads LinkedIn's "Save to PDF" export. Parsed fields replace the old ones;
  * the owner's own choices (target roles, locations, keywords) are kept.
  */
-export const POST = withAuth(async (req) => {
+export const POST = withAuth(async (req, _ctx, data) => {
   const form = await req.formData();
   const file = form.get('file');
   if (!(file instanceof File)) throw new HttpError(400, 'Choose your LinkedIn profile PDF.');
@@ -21,10 +21,11 @@ export const POST = withAuth(async (req) => {
     throw new HttpError(422, 'Could not read this PDF. Use LinkedIn → More → Save to PDF on your profile.');
   }
 
-  const current = await getProfile();
+  const current = await getProfile(data);
   const keepOwn = <T,>(own: T[] | undefined, fallback: T[]) => (own && own.length > 0 ? own : fallback);
   return ok(
     await saveProfile(
+      data,
       {
         ...parsed,
         skills: [...new Set([...parsed.skills, ...(current?.skills ?? [])])],

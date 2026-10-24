@@ -2,9 +2,13 @@ import { ok, withAuth } from '@/lib/server/http';
 import { parseJobForm } from '@/lib/server/jobForm';
 import { createJob, listJobs } from '@/lib/server/repositories/jobs';
 
-export const GET = withAuth(async () => ok(await listJobs()));
+// Also reachable with an API token (MCP: list and add applications).
+export const GET = withAuth(async (_req, _ctx, data) => ok(await listJobs(data)), { token: true });
 
-export const POST = withAuth(async (req) => {
-  const { data } = await parseJobForm(await req.formData());
-  return ok(await createJob(data), { status: 201 });
-});
+export const POST = withAuth(
+  async (req, _ctx, data) => {
+    const { data: fields, uploads } = await parseJobForm(await req.formData());
+    return ok(await createJob(data, fields, uploads), { status: 201 });
+  },
+  { token: true }
+);

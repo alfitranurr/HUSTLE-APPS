@@ -6,14 +6,16 @@ import { isSegment } from '@/lib/stats';
 
 export const metadata: Metadata = { title: 'Applications' };
 
-type Params = Partial<Record<keyof JobFilters, string>>;
+type Params = Partial<Record<keyof JobFilters | 'edit', string>>;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FREE_TEXT = ['search', 'position', 'careerLevel', 'province'] as const;
 
 /**
  * Deep links from the dashboard and insights, e.g. /tracker?followUp=yes,
- * /tracker?segment=rejected&stage=Assessment%20Test, /tracker?position=Data%20Analyst.
+ * /tracker?segment=rejected&stage=Assessment%20Test, /tracker?position=Data%20Analyst,
+ * and /tracker?edit=<id> to open one application's form (used by the AI assistant).
  */
 export default async function TrackerPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
@@ -30,5 +32,6 @@ export default async function TrackerPage({ searchParams }: { searchParams: Prom
     const value = params[key];
     if (typeof value === 'string' && DATE.test(value)) initialFilters[key] = value;
   }
-  return <TrackerView initialFilters={initialFilters} />;
+  const editId = typeof params.edit === 'string' && UUID.test(params.edit) ? params.edit : undefined;
+  return <TrackerView initialFilters={initialFilters} editId={editId} />;
 }

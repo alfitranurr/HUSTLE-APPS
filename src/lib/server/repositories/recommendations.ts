@@ -1,55 +1,60 @@
 import 'server-only';
-import { RECOMMENDATION_STATUSES } from '@/lib/constants';
 import { normalise } from '@/lib/matching';
 import type { ParsedJob, Recommendation, RecommendationSource, RecommendationStatus } from '@/lib/types';
-import { appendRows, columnLetter, ensureSheet, NotFoundError, readValues, writeValues } from '../google/sheet';
+import { must, NotFoundError, owned, type DataContext } from '../db';
 
-/** Settings key holding when Gmail was last synced. */
-export const GMAIL_SYNC_KEY = 'gmailLastSync';
+interface RecommendationRow {
+  external_id: string;
+  title: string;
+  company: string;
+  location: string;
+  url: string;
+  source: string;
+  received_at: string;
+  status: string;
+}
 
-const SHEET = 'Recommendations';
-const COLUMNS = ['ID', 'Title', 'Company', 'Location', 'Url', 'Source', 'ReceivedAt', 'Status'] as const;
-const LAST = columnLetter(COLUMNS.length);
-const STATUS_COLUMN = columnLetter(COLUMNS.indexOf('Status') + 1);
+const SELECT = 'external_id, title, company, location, url, source, received_at, status';
 
-function toRecommendation(cells: string[]): Recommendation {
-  const [id, title, company, location, url, source, receivedAt, status] = cells;
+/** The API keeps using the LinkedIn id (or hash) as the recommendation id. */
+function toRecommendation(row: RecommendationRow): Recommendation {
   return {
-    id: id ?? '',
-    title: title ?? '',
-    company: company ?? '',
-    location: location ?? '',
-    url: url ?? '',
-    source: source === 'email' ? 'email' : 'paste',
-    receivedAt: receivedAt ?? '',
-    status: (RECOMMENDATION_STATUSES as readonly string[]).includes(status) ? (status as RecommendationStatus) : 'new',
+    id: row.external_id,
+    title: row.title,
+    company: row.company,
+    location: row.location,
+    url: row.url,
+    source: row.source as RecommendationSource,
+    receivedAt: new Date(row.received_at).toISOString(),
+    status: row.status as RecommendationStatus,
   };
 }
 
-const toCells = (r: Recommendation) => [r.id, r.title, r.company, r.location, r.url, r.source, r.receivedAt, r.status];
-
-/** The same job can arrive by email (with an id) and by paste (without one). */
+/** The same job can arrive with an id and without one (pasted text). */
 const sameJobKey = (r: Pick<ParsedJob, 'title' | 'company'>) => `${normalise(r.title)}|${normalise(r.company)}`;
 
-async function readAll() {
-  await ensureSheet(SHEET, COLUMNS);
-  return (await readValues(`${SHEET}!A2:${LAST}`))
-    .map((cells, i) => ({ item: toRecommendation(cells), row: i + 2 }))
-    .filter(({ item }) => item.id && item.title);
+export async function listRecommendations(ctx: DataContext): Promise<Recommendation[]> {
+  const rows = must(
+    await ctx.db
+      .from('recommendations')
+      .select(SELECT)
+      .eq('user_id', ctx.userId)
+      .order('received_at', { ascending: false })
+  ) as RecommendationRow[];
+  return rows.map(toRecommendation);
 }
 
-export async function listRecommendations(): Promise<Recommendation[]> {
-  return (await readAll()).map(({ item }) => item);
-}
-
-/** Stores jobs not seen before; returns how many were new. One Sheets append for the whole batch. */
+/** Stores jobs not seen before; returns how many were found and how many were new. */
 export async function addRecommendations(
+  ctx: DataContext,
   batches: { jobs: ParsedJob[]; source: RecommendationSource; receivedAt: string }[]
 ): Promise<{ found: number; added: number }> {
-  const existing = await readAll();
-  const ids = new Set(existing.map(({ item }) => item.id));
-  const keys = new Set(existing.map(({ item }) => sameJobKey(item)));
-  const fresh: Recommendation[] = [];
+  const existing = must(
+    await ctx.db.from('recommendations').select('external_id, dedupe_key').eq('user_id', ctx.userId)
+  ) as { external_id: string; dedupe_key: string }[];
+  const ids = new Set(existing.map((r) => r.external_id));
+  const keys = new Set(existing.map((r) => r.dedupe_key));
+  const fresh: Record<string, string>[] = [];
   let found = 0;
 
   for (const { jobs, source, receivedAt } of batches) {
@@ -59,16 +64,38 @@ export async function addRecommendations(
       if (ids.has(job.id) || keys.has(key)) continue;
       ids.add(job.id);
       keys.add(key);
-      fresh.push({ ...job, source, receivedAt, status: 'new' });
+      fresh.push(
+        owned(ctx, {
+          external_id: job.id,
+          dedupe_key: key,
+          title: job.title,
+          company: job.company,
+          location: job.location,
+          url: job.url,
+          source,
+          received_at: receivedAt,
+        })
+      );
     }
   }
-  await appendRows(`${SHEET}!A:${LAST}`, fresh.map(toCells));
+  if (fresh.length) must(await ctx.db.from('recommendations').insert(fresh));
   return { found, added: fresh.length };
 }
 
-export async function setRecommendationStatus(id: string, status: RecommendationStatus): Promise<Recommendation> {
-  const found = (await readAll()).find(({ item }) => item.id === id);
-  if (!found) throw new NotFoundError('Recommendation not found');
-  await writeValues(`${SHEET}!${STATUS_COLUMN}${found.row}`, [[status]]);
-  return { ...found.item, status };
+export async function setRecommendationStatus(
+  ctx: DataContext,
+  id: string,
+  status: RecommendationStatus
+): Promise<Recommendation> {
+  const row = must(
+    await ctx.db
+      .from('recommendations')
+      .update({ status })
+      .eq('user_id', ctx.userId)
+      .eq('external_id', id)
+      .select(SELECT)
+      .maybeSingle()
+  ) as RecommendationRow | null;
+  if (!row) throw new NotFoundError('Recommendation not found');
+  return toRecommendation(row);
 }

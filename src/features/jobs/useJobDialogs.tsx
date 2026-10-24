@@ -74,8 +74,8 @@ export function useJobDialogs(onChanged: () => unknown) {
         title="Delete application?"
         description={
           <>
-            <strong className="font-semibold text-slate-900">{deleting?.company}</strong> and its attachments in Google
-            Drive will be removed. This can’t be undone.
+            <strong className="font-semibold text-slate-900">{deleting?.company}</strong> and its attachments will be
+            removed. This can’t be undone.
           </>
         }
         loading={busy}

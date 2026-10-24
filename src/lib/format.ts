@@ -105,9 +105,8 @@ export function percent(part: number, total: number): number {
   return total > 0 ? (part / total) * 100 : 0;
 }
 
-/** Whole numbers from 10% up; one decimal below so small rates don't show as 0% (0.5%). */
+/** Always two decimals (52.71%, 1.97%), so close rates stay distinguishable; nothing is "0%" unless it is. */
 export function formatPercent(value: number): string {
-  if (value === 0) return '0%';
-  const rounded = value < 10 ? Math.round(value * 10) / 10 : Math.round(value);
-  return `${rounded}%`;
+  if (!Number.isFinite(value) || value === 0) return '0%';
+  return `${value.toFixed(2)}%`;
 }

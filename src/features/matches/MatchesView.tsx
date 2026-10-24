@@ -1,9 +1,10 @@
 'use client';
 
-import { CheckCircle2, ClipboardPaste, EyeOff, Inbox, RefreshCw, Search, SearchX, Sparkles } from 'lucide-react';
+import { CheckCircle2, ClipboardPaste, EyeOff, Inbox, Search, SearchX, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input, Select } from '@/components/ui/Field';
@@ -12,11 +13,11 @@ import { StatCard } from '@/components/ui/StatCard';
 import { useToast } from '@/components/ui/Toast';
 import { useJobDialogs } from '@/features/jobs/useJobDialogs';
 import { useJobs } from '@/hooks/useJobs';
-import { ApiError, errorMessage } from '@/lib/api';
+import { errorMessage } from '@/lib/api';
 import { FAIR_MATCH, STRONG_MATCH } from '@/lib/constants';
 import { guessCareerLevel, scoreJob } from '@/lib/matching';
 import type { Recommendation, RecommendationStatus } from '@/lib/types';
-import { setRecommendationStatus, syncGmail, useProfile, useRecommendations } from './matchApi';
+import { setRecommendationStatus, useProfile, useRecommendations } from './matchApi';
 import { PasteModal } from './PasteModal';
 import { ProfileCard } from './ProfileCard';
 import { ProfileModal } from './ProfileModal';
@@ -29,14 +30,12 @@ const NO_FILTERS = { search: '', status: 'new' as StatusFilter, source: '', minS
 export function MatchesView() {
   const toast = useToast();
   const { profile, isLoading: profileLoading, mutate: mutateProfile } = useProfile();
-  const { items, lastSync, isLoading, mutate } = useRecommendations();
+  const { items, isLoading, mutate } = useRecommendations();
   const { jobs, mutate: mutateJobs } = useJobs();
   const { openCreateWith, dialogs } = useJobDialogs(mutateJobs);
   const [filters, setFilters] = useState(NO_FILTERS);
   const [editingProfile, setEditingProfile] = useState(false);
   const [pasting, setPasting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
-  const [needsSetup, setNeedsSetup] = useState(false);
 
   const scored = useMemo(
     () =>
@@ -68,36 +67,14 @@ export function MatchesView() {
     );
   }, [scored, filters]);
 
-  const sync = async () => {
-    setSyncing(true);
-    try {
-      const result = await syncGmail();
-      setNeedsSetup(false);
-      toast.success(
-        result.emails === 0
-          ? 'No LinkedIn recommendation emails in the last 30 days.'
-          : `${result.added} new ${result.added === 1 ? 'job' : 'jobs'} from ${result.emails} ${result.emails === 1 ? 'email' : 'emails'}.`
-      );
-      await mutate();
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 409) setNeedsSetup(true);
-      toast.error(errorMessage(err));
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const changeStatus = async (item: Recommendation, status: RecommendationStatus) => {
     await mutate(
       async (current) => {
         await setRecommendationStatus(item.id, status);
-        return current && { ...current, items: current.items.map((i) => (i.id === item.id ? { ...i, status } : i)) };
+        return current?.map((i) => (i.id === item.id ? { ...i, status } : i));
       },
       {
-        optimisticData: (current) =>
-          current
-            ? { ...current, items: current.items.map((i) => (i.id === item.id ? { ...i, status } : i)) }
-            : { items: [], lastSync: '' },
+        optimisticData: (current) => (current ?? []).map((i) => (i.id === item.id ? { ...i, status } : i)),
         rollbackOnError: true,
         revalidate: false,
       }
@@ -123,16 +100,12 @@ export function MatchesView() {
     <div className="space-y-6">
       <PageHeader
         title="Job match"
-        description="The jobs LinkedIn recommends to you, scored against your profile. Rule-based and free."
+        badge={<Badge tone="amber">Beta</Badge>}
+        description="The jobs LinkedIn recommends to you, scored against your profile. Rule-based and free. Still in beta: scores are a rough guide and may change."
         actions={
-          <>
-            <Button variant="secondary" icon={<ClipboardPaste className="size-4" />} onClick={() => setPasting(true)}>
-              Paste from LinkedIn
-            </Button>
-            <Button icon={<RefreshCw className="size-4" />} loading={syncing} onClick={sync}>
-              Sync Gmail
-            </Button>
-          </>
+          <Button icon={<ClipboardPaste className="size-4" />} onClick={() => setPasting(true)}>
+            Paste from LinkedIn
+          </Button>
         }
       />
 
@@ -145,7 +118,7 @@ export function MatchesView() {
             onUploaded={(saved) => void mutateProfile(saved, { revalidate: false })}
           />
         </div>
-        <SourcesCard lastSync={lastSync} syncing={syncing} needsSetup={needsSetup} onSync={sync} onPaste={() => setPasting(true)} />
+        <SourcesCard onPaste={() => setPasting(true)} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -186,7 +159,7 @@ export function MatchesView() {
             aria-label="Source"
             placeholder="All sources"
             options={[
-              { value: 'email', label: 'Gmail' },
+              { value: 'email', label: 'Email (older imports)' },
               { value: 'paste', label: 'Pasted' },
             ]}
             value={filters.source}
@@ -214,16 +187,11 @@ export function MatchesView() {
         <EmptyState
           icon={<Inbox className="size-5" />}
           title="No recommendations yet"
-          description="Sync your LinkedIn recommendation emails from Gmail, or paste the “Top job picks for you” page."
+          description="Paste the “Top job picks for you” page from LinkedIn to see how each job matches your profile."
           action={
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button icon={<ClipboardPaste className="size-4" />} onClick={() => setPasting(true)}>
-                Paste from LinkedIn
-              </Button>
-              <Button variant="secondary" icon={<RefreshCw className="size-4" />} loading={syncing} onClick={sync}>
-                Sync Gmail
-              </Button>
-            </div>
+            <Button icon={<ClipboardPaste className="size-4" />} onClick={() => setPasting(true)}>
+              Paste from LinkedIn
+            </Button>
           }
         />
       ) : visible.length === 0 ? (

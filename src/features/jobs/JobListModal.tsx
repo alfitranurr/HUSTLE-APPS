@@ -14,6 +14,7 @@ import { formatDate } from '@/lib/format';
 import { TONES } from '@/lib/tones';
 import type { Job } from '@/lib/types';
 import { DEFAULT_SORT, sortJobs } from './filters';
+import { StagePath } from './StagePath';
 import { selectionHref, type JobSelection } from './selection';
 
 interface JobListModalProps {
@@ -47,7 +48,7 @@ export function JobListModal({ selection, jobs, context, onClose, onOpen }: JobL
     <Modal
       open
       onClose={onClose}
-      size="lg"
+      size="xl"
       accent={selection.tone}
       title={`${selection.title} · ${total}`}
       description={context ?? 'Newest first. Select a company to see its details.'}
@@ -101,21 +102,25 @@ export function JobListModal({ selection, jobs, context, onClose, onOpen }: JobL
                 type="button"
                 onClick={() => onOpen(job)}
                 className={cn(
-                  'flex w-full cursor-pointer flex-col gap-2 border-l-4 px-4 py-3 text-left transition-colors hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between',
+                  'block w-full cursor-pointer space-y-2 border-l-4 px-4 py-3 text-left transition-colors hover:bg-slate-50',
                   TONES[STATUS_TONE[job.status]].edge
                 )}
               >
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-semibold text-slate-900">{job.company}</span>
-                  <span className="block truncate text-xs text-slate-500">{job.position || 'Position not set'}</span>
-                </span>
-                <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-                  <StageBadge stage={job.stage} />
-                  <StatusBadge status={job.status} />
-                  <span className="w-24 text-right text-xs text-slate-500 tabular-nums">
-                    {formatDate(job.appliedAt)}
+                <span className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-slate-900">{job.company}</span>
+                    <span className="block truncate text-xs text-slate-500">{job.position || 'Position not set'}</span>
+                  </span>
+                  <span className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+                    <StageBadge stage={job.stage} />
+                    <StatusBadge status={job.status} />
+                    <span className="w-24 text-right text-xs text-slate-500 tabular-nums">
+                      {formatDate(job.appliedAt)}
+                    </span>
                   </span>
                 </span>
+                {/* Its own full-width line, so a long journey wraps instead of squeezing the badges. */}
+                <StagePath job={job} />
               </button>
             </li>
           ))}

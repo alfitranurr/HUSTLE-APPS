@@ -18,7 +18,7 @@ const COLUMNS: [header: string, value: (job: Job) => string][] = [
   ['Website', (j) => j.links.website],
   ['Instagram', (j) => j.links.instagram],
   ['Other link', (j) => j.links.other],
-  ['Attachments', (j) => j.attachments.join(' ')],
+  ['Attachments', (j) => j.attachments.map((file) => file.name).join(', ')],
   ['Notes', (j) => j.note],
   ['Last updated', (j) => formatDate(j.updatedAt)],
 ];

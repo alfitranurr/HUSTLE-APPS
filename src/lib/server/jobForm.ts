@@ -1,22 +1,19 @@
 import 'server-only';
-import type { Job } from '@/lib/types';
 import { jobFieldsSchema } from '@/lib/validation';
-import { uploadFile } from './google/drive';
 import type { JobData } from './repositories/jobs';
-import { validateUploads } from './uploads';
+import { validateUploads, type ValidatedUpload } from './uploads';
 
 const FIELDS = Object.keys(jobFieldsSchema.shape) as (keyof typeof jobFieldsSchema.shape)[];
 
 /**
- * Turns the multipart job form into repository data: validates fields, uploads
- * new attachments and decides which existing attachments to keep. Only URLs
- * already stored on the job can be kept, so a client can never inject or
- * delete arbitrary Drive files.
+ * Turns the multipart job form into repository input: validated fields, the
+ * new files (checked, not yet uploaded) and the ids of saved files to keep.
+ * The repository only keeps ids that already belong to the job, so a client
+ * can never point at someone else's file.
  */
 export async function parseJobForm(
-  formData: FormData,
-  existing?: Job
-): Promise<{ data: JobData; removedAttachments: string[] }> {
+  formData: FormData
+): Promise<{ data: JobData; uploads: ValidatedUpload[]; keepAttachmentIds: string[] }> {
   const raw: Record<string, string | undefined> = {};
   for (const field of FIELDS) {
     const value = formData.get(field);
@@ -27,20 +24,9 @@ export async function parseJobForm(
   // Validate every file before uploading any of them.
   const uploads = await validateUploads(formData.getAll('files').filter((f): f is File => f instanceof File));
 
-  const keep = new Set(formData.getAll('keepAttachments').map(String));
-  const stored = existing?.attachments ?? [];
-  const kept = stored.filter((url) => keep.has(url));
-  const removedAttachments = stored.filter((url) => !keep.has(url));
-
-  const uploaded: string[] = [];
-  for (const file of uploads) uploaded.push(await uploadFile(file.buffer, file.name, file.mimeType));
-
   return {
-    data: {
-      ...fields,
-      links: { instagram, linkedin, website, other: otherLink },
-      attachments: [...kept, ...uploaded],
-    },
-    removedAttachments,
+    data: { ...fields, links: { instagram, linkedin, website, other: otherLink } },
+    uploads,
+    keepAttachmentIds: formData.getAll('keepAttachments').map(String),
   };
 }

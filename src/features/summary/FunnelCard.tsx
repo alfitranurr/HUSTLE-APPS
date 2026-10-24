@@ -1,34 +1,36 @@
-import { TrendingDown } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { selectReached, type JobSelection } from '@/features/jobs/selection';
-import { formatPercent } from '@/lib/format';
-import { biggestDrop, type FunnelStep } from '@/lib/stats';
+import type { FunnelStep, StopPoint } from '@/lib/stats';
 import { rowLabel, SelectableRow } from './SelectableRow';
 
 interface FunnelCardProps {
   steps: FunnelStep[];
+  stop: StopPoint | null;
   onSelect: (selection: JobSelection) => void;
 }
 
-/** How far applications got, with the pass rate between consecutive stages. */
-export function FunnelCard({ steps, onSelect }: FunnelCardProps) {
+/** How many applications went through each stage, as plain counts ("4 of 203"); the bar shows the share. */
+export function FunnelCard({ steps, stop, onSelect }: FunnelCardProps) {
   const total = steps[0]?.reached ?? 0;
-  const drop = biggestDrop(steps);
 
   return (
     <Card accent="indigo" className="h-full">
-      <CardHeader title="Pipeline conversion" description="Applications that reached each stage (or went further)" />
+      <CardHeader
+        title="Pipeline conversion"
+        description="How many of your applications got to each stage. Stages you skipped aren't counted."
+      />
       <CardContent className="space-y-4">
         {total === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">No applications in this timeframe</p>
         ) : (
           <>
-            {drop && (
+            {stop && (
               <p className="flex items-start gap-2 rounded-lg border-l-4 border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                <TrendingDown className="mt-0.5 size-4 shrink-0 text-amber-600" />
+                <MapPin className="mt-0.5 size-4 shrink-0 text-amber-600" />
                 <span>
-                  Biggest drop: <strong className="font-semibold">{drop.from.label} → {drop.to.label}</strong>, only{' '}
-                  {formatPercent(drop.to.fromPrevious ?? 0)} move on ({drop.from.reached} → {drop.to.reached}).
+                  Most applications end up at <strong className="font-semibold">{stop.label}</strong>: {stop.count} of{' '}
+                  your {total} applications.
                 </span>
               </p>
             )}
@@ -47,11 +49,9 @@ export function FunnelCard({ steps, onSelect }: FunnelCardProps) {
                         style={{ width: step.reached > 0 ? `max(${step.ofTotal}%, 0.375rem)` : 0 }}
                       />
                     </span>
-                    <span className="w-28 text-right tabular-nums">
+                    <span className="w-24 text-right tabular-nums">
                       <span className="font-semibold text-slate-900">{step.reached}</span>
-                      {step.fromPrevious !== null && (
-                        <span className="ml-1.5 text-xs text-slate-500">{formatPercent(step.fromPrevious)} pass</span>
-                      )}
+                      <span className="ml-1 text-xs text-slate-500">of {total}</span>
                     </span>
                   </SelectableRow>
                 </li>
